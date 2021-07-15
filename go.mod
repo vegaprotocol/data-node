@@ -45,7 +45,7 @@ require (
 	github.com/facebookgo/ensure v0.0.0-20160127193407-b4ab57deab51 // indirect
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
 	github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870 // indirect
-	github.com/fatih/color v1.7.0
+	github.com/fatih/color v1.7.0 // indirect
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/franela/goblin v0.0.0-20200105215937-c9ffbefa60db // indirect
 	github.com/franela/goreq v0.0.0-20171204163338-bcd34c9993f8 // indirect

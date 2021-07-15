@@ -4,24 +4,21 @@
 all: build
 
 .PHONY: lint
-lint: ## Lint the files
-	@t="$$(mktemp)" ; \
-	go list ./... | xargs golint | grep -vE '(and that stutters|blank import should be|should have comment|which can be annoying to use)' | tee "$$t" ; \
-	code=0 ; test "$$(wc -l <"$$t" | awk '{print $$1}')" -gt 0 && code=1 ; \
-	rm -f "$$t" ; \
-	exit "$$code"
+lint:
+	@outputfile="$$(mktemp)" ; \
+	go list ./... | xargs golint 2>&1 | \
+		sed -e "s#^$$GOPATH/src/##" | tee "$$outputfile" ; \
+	lines="$$(wc -l <"$$outputfile")" ; \
+	rm -f "$$outputfile" ; \
+	exit "$$lines"
 
 .PHONY: retest
 retest: ## Re-run all unit tests
 	@./script/build.sh -a retest
 
 .PHONY: test
-test: ## Run unit tests
-	@./script/build.sh -a test
-
-.PHONY: integrationtest
-integrationtest: ## run integration tests, showing ledger movements and full scenario output
-	@./script/build.sh -a integrationtest
+test: ## Run tests
+	@go test ./...
 
 .PHONY: spec_feature_test
 spec_feature_test: ## run integration tests in the specs internal repo
@@ -42,21 +39,21 @@ msan: ## Run memory sanitizer
 	@env CC=clang CGO_ENABLED=1 go test -msan ./...
 
 .PHONY: vet
-vet: ## Run go vet
-	@./script/build.sh -a vet
+vet: deps
+	@go vet ./...
 
 .PHONY: coverage
-coverage: ## Generate global code coverage report
-	@./script/build.sh -a coverage
+coverage:
+	@go test -covermode=count -coverprofile="coverage.txt" ./...
+	@go tool cover -func="coverage.txt"
 
 .PHONY: deps
 deps: ## Get the dependencies
 	@./script/build.sh -a deps
 
 .PHONY: build
-build: ## install the binaries in cmd/{progname}/
-	@d="" ; test -n "$$DEBUGVEGA" && d="-d" ; \
-	./script/build.sh $$d -a build -t default
+build:
+	@go build .
 
 .PHONY: gofmtsimplify
 gofmtsimplify:
