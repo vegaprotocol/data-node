@@ -10,7 +10,6 @@ import (
 )
 
 type NodeCmd struct {
-	config.Passphrase `long:"nodewallet-passphrase"`
 	config.RootPathFlag
 
 	config.Config
@@ -31,11 +30,6 @@ func (cmd *NodeCmd) Execute(args []string) error {
 	)
 	defer log.AtExit()
 
-	pass, err := cmd.Passphrase.Get("node wallet")
-	if err != nil {
-		return err
-	}
-
 	// we define this option to parse the cli args each time the config is
 	// loaded. So that we can respect the cli flag precedence.
 	parseFlagOpt := func(cfg *config.Config) error {
@@ -55,7 +49,6 @@ func (cmd *NodeCmd) Execute(args []string) error {
 	}).Run(
 		cfgwatchr,
 		cmd.RootPath,
-		pass,
 		args,
 	)
 }

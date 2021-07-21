@@ -35,6 +35,7 @@ import (
 	"code.vegaprotocol.io/data-node/trades"
 	"code.vegaprotocol.io/data-node/transfers"
 	"code.vegaprotocol.io/data-node/vegatime"
+	coreprotoapi "code.vegaprotocol.io/vega/proto/api"
 )
 
 type AccountStore interface {
@@ -80,6 +81,8 @@ type NodeCommand struct {
 	partyStore            *storage.Party
 	riskStore             *storage.Risk
 	transferResponseStore *storage.TransferResponse
+
+	coreTradingServiceClient coreprotoapi.TradingServiceClient
 
 	broker *broker.Broker
 
@@ -137,7 +140,7 @@ type NodeCommand struct {
 	VersionHash string
 }
 
-func (l *NodeCommand) Run(cfgwatchr *config.Watcher, rootPath string, nodeWalletPassphrase string, args []string) error {
+func (l *NodeCommand) Run(cfgwatchr *config.Watcher, rootPath string, args []string) error {
 	l.cfgwatchr = cfgwatchr
 
 	l.conf, l.configPath = cfgwatchr.Get(), rootPath
@@ -167,6 +170,7 @@ func (l *NodeCommand) runNode(args []string) error {
 		l.Log,
 		l.conf.API,
 		l.stats,
+		l.coreTradingServiceClient,
 		l.timeService,
 		l.marketService,
 		l.partyService,
