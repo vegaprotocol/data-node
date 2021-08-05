@@ -233,6 +233,9 @@ pipeline {
                     }
                 }
                 stage('unit tests with race') {
+                    environment {
+                        CGO_ENABLED = 1
+                    }
                     options { retry(3) }
                     steps {
                         dir('vega') {
