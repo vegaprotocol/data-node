@@ -1,11 +1,12 @@
-package main
+package cmds
 
 import (
 	"context"
 
-	"code.vegaprotocol.io/data-node/cmd/data-node/node"
+	"code.vegaprotocol.io/data-node/cmd/data-node/cmds/node"
 	"code.vegaprotocol.io/data-node/config"
 	"code.vegaprotocol.io/data-node/logging"
+
 	"github.com/jessevdk/go-flags"
 )
 
