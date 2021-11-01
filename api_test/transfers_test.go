@@ -18,16 +18,17 @@ func TestObserveTransferResponses(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimout)
 	defer cancel()
 
-	conn, broker := NewTestServer(t, ctx, true)
+	ts := NewTestServer(t, ctx, true)
+	defer ts.Close()
 
-	client := apipb.NewTradingDataServiceClient(conn)
+	client := apipb.NewTradingDataServiceClient(ts.conn)
 	require.NotNil(t, client)
 
 	// we need to subscribe to the stream prior to publishing the events
 	stream, err := client.TransferResponsesSubscribe(ctx, &apipb.TransferResponsesSubscribeRequest{})
 	assert.NoError(t, err)
 
-	PublishEvents(t, ctx, broker, func(be *eventspb.BusEvent) (events.Event, error) {
+	PublishEvents(t, ctx, ts.broker, func(be *eventspb.BusEvent) (events.Event, error) {
 		tr := be.GetTransferResponses()
 		require.NotNil(t, tr)
 		var responses []*pb.TransferResponse
@@ -57,7 +58,7 @@ func TestObserveTransferResponses(t *testing.T) {
 					close(done)
 					return
 				}
-				require.NoError(t, err)
+				assert.NoError(t, err)
 				close(done)
 				return
 			}

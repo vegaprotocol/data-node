@@ -20,9 +20,10 @@ func TestGetPartyAccounts(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimout)
 	defer cancel()
 
-	conn, broker := NewTestServer(t, ctx, true)
+	ts := NewTestServer(t, ctx, true)
+	defer ts.Close()
 
-	PublishEvents(t, ctx, broker, func(be *eventspb.BusEvent) (events.Event, error) {
+	PublishEvents(t, ctx, ts.broker, func(be *eventspb.BusEvent) (events.Event, error) {
 		acc := be.GetAccount()
 		require.NotNil(t, acc)
 		balance, _ := num.UintFromString(acc.Balance, 10)
@@ -38,7 +39,7 @@ func TestGetPartyAccounts(t *testing.T) {
 		return e, nil
 	}, "account-events.golden")
 
-	client := apipb.NewTradingDataServiceClient(conn)
+	client := apipb.NewTradingDataServiceClient(ts.conn)
 	require.NotNil(t, client)
 
 	partyID := "6fb72005cde8e239f8d3b08c5fbcec06f93bfb45e9013208f662954923343fba"

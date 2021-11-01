@@ -60,10 +60,29 @@ const (
 	defaultTimout = 30 * time.Second
 )
 
+type Storage interface {
+	Close() error
+}
+
+type TestServer struct {
+	ctrl    *gomock.Controller
+	broker  *broker.Broker
+	conn    *grpc.ClientConn
+	storage []Storage
+}
+
+func (t *TestServer) Close() {
+	for _, s := range t.storage {
+		s.Close()
+	}
+}
+
 // NewTestServer instantiates a new api.GRPCServer and returns a conn to it and the broker this server subscribes to.
 // Any error will fail and terminate the test.
-func NewTestServer(t testing.TB, ctx context.Context, blocking bool) (conn *grpc.ClientConn, eventBroker *broker.Broker) {
+func NewTestServer(t testing.TB, ctx context.Context, blocking bool) (ts *TestServer) {
 	t.Helper()
+	var eventBroker *broker.Broker
+	var conn *grpc.ClientConn
 
 	suffix := randomSuffix()
 	path := fmt.Sprintf("vegatest-%d-", suffix)
@@ -263,7 +282,12 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) (conn *grpc
 		}
 	}
 
-	return
+	return &TestServer{
+		ctrl:    mockCtrl,
+		broker:  eventBroker,
+		conn:    conn,
+		storage: []Storage{accountStore, candleStore, orderStore, marketStore, checkpointStore, riskStore, tradeStore, transferResponseStore},
+	}
 }
 
 // PublishEvents reads JSON encoded BusEvents from golden file testdata/<type>-events.golden and publishes the
