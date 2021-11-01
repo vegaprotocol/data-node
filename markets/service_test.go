@@ -13,6 +13,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testService struct {
@@ -180,6 +181,7 @@ func testMarketObserveDepthSuccess(t *testing.T) {
 	chDepth := <-depthCh
 	// cancel context here, so we can check the unsubscribe call went through as expected
 	svc.cfunc()
+	require.NotNil(t, chDepth)
 	assert.Equal(t, depth, *chDepth)
 	wg.Wait() // wait for unsubscribe call
 }

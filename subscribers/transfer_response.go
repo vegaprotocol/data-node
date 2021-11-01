@@ -69,6 +69,7 @@ func (t *TransferResponse) Types() []events.Type {
 }
 
 func (t *TransferResponse) flush() error {
+	t.log.Debug("TRANSFERRESPONE: Flushing...")
 	t.mu.Lock()
 	trs := t.trs
 	t.trs = []*types.TransferResponse{}
@@ -76,7 +77,10 @@ func (t *TransferResponse) flush() error {
 	if len(trs) == 0 {
 		return nil
 	}
-	return t.store.SaveBatch(trs)
+
+	err := t.store.SaveBatch(trs)
+	t.log.Debug("TRANSFERRESPONE: flushed")
+	return err
 }
 
 // Push - takes the event pushed by the broker
@@ -86,9 +90,11 @@ func (t *TransferResponse) Push(evts ...events.Event) {
 	for _, e := range evts {
 		switch te := e.(type) {
 		case TimeEvent:
+			t.log.Debug("TRANSFERRESPONE: Flushing")
 			_ = t.flush()
 		case TransferResponseEvent:
 			t.mu.Lock()
+			t.log.Debug("TRANSFERREPOSONCE: Event added")
 			t.trs = append(t.trs, te.TransferResponses()...)
 			t.mu.Unlock()
 		default:
