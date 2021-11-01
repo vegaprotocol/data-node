@@ -300,11 +300,13 @@ func PublishEvents(
 	goldenFile string) {
 
 	t.Helper()
+	t.Logf("%s: publishing events", time.Now())
 	path := filepath.Join("testdata", goldenFile)
 	f, err := os.Open(path)
 	if err != nil {
 		t.Fatalf("failed to open golden file %s: %v", path, err)
 	}
+	t.Logf("%s: opened file", time.Now())
 	defer f.Close()
 
 	scanner := bufio.NewScanner(f)
@@ -328,12 +330,14 @@ func PublishEvents(
 		s = append(s, e)
 		evts[e.Type()] = s
 	}
+	t.Logf("%s: finished scanning", time.Now())
 
 	// add time event subscriber so we can verify the time event was received at the end
 	sCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	sub := NewEventSubscriber(sCtx)
 	id := b.Subscribe(sub)
+	t.Logf("%s: subscribed", time.Now())
 
 	// we've grouped events per type, now send them all in batches
 	for _, batch := range evts {
@@ -346,26 +350,28 @@ func PublishEvents(
 		}
 	}
 
-	t.Logf("%d events sent", len(evts))
+	t.Logf("%s: %d events sent", time.Now(), len(evts))
 
 	// whatever time it is now + 1 second
 	now := time.Now()
 	// the broker reacts to Time events to trigger writes the data stores
 	tue := events.NewTime(ctx, now)
 	b.Send(tue)
+	t.Logf("%s: sent, waiting", time.Now())
 	// await confirmation that we've actually received the time update event
 	if err := waitForEvent(sCtx, sub, tue); err != nil {
 		t.Fatalf("Did not receive the expected event within reasonable time: %+v", tue)
 	}
-
-	t.Log("time event received")
+	t.Logf("%s: time event received", time.Now())
 
 	// cancel the subscriber ctx
 	cancel()
-
+	t.Logf("%s: cancelled", time.Now())
 	sub.Halt()
+	t.Logf("%s: halted", time.Now())
 	// unsubscribe the ad-hoc subscriber
 	b.Unsubscribe(id)
+	t.Logf("%s: unsubscribed", time.Now())
 }
 
 func waitForEvent(ctx context.Context, sub *EventSubscriber, event events.Event) error {

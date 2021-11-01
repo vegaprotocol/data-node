@@ -58,7 +58,7 @@ func TestObserveTransferResponses(t *testing.T) {
 					close(done)
 					return
 				}
-				assert.Error(t, err)
+				assert.NoError(t, err)
 				close(done)
 				return
 			}
