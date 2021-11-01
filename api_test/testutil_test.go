@@ -102,6 +102,11 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) (ts *TestSe
 
 	ctx, cancel := context.WithCancel(ctx)
 
+	eventBroker, err = broker.New(ctx, logger, conf.Broker)
+	if err != nil {
+		t.Fatalf("failed to create broker: %v", err)
+	}
+
 	accountStore, err := storage.NewAccounts(logger, conf.Storage, cancel)
 	if err != nil {
 		t.Fatalf("failed to create account store: %v", err)
@@ -211,10 +216,6 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) (ts *TestSe
 	checkpointSub := subscribers.NewCheckpointSub(ctx, logger, checkpointStore, true)
 	checkpointSvc := checkpoint.NewService(logger, conf.Checkpoint, checkpointStore)
 
-	eventBroker, err = broker.New(ctx, logger, conf.Broker)
-	if err != nil {
-		t.Fatalf("failed to create broker: %v", err)
-	}
 	eventBroker.SubscribeBatch(
 		accountSub,
 		transferSub,
