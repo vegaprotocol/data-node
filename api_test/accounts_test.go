@@ -57,6 +57,8 @@ loop:
 				PartyId: partyID,
 				Type:    pb.AccountType_ACCOUNT_TYPE_GENERAL,
 			})
+
+			logger.Debugf("num accounts: %d", len(resp.Accounts))
 			if err == nil && len(resp.Accounts) > 0 {
 				break loop
 			}

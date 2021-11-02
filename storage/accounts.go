@@ -42,7 +42,7 @@ type Account struct {
 // NewAccounts creates a new account store with the logger and configuration specified.
 func NewAccounts(log *logging.Logger, c Config, onCriticalError func()) (*Account, error) {
 	log = log.Named(namedLogger)
-	log.SetLevel(c.Level.Get())
+	log.SetLevel(logging.DebugLevel)
 
 	if err := InitStoreDirectory(c.AccountsDirPath); err != nil {
 		return nil, errors.Wrap(err, "error on init badger database for account storage")
@@ -272,6 +272,7 @@ func (a *Account) getAccountsForPrefix(prefix, validFor []byte, byReference bool
 // SaveBatch writes a slice of account changes to the underlying store.
 func (a *Account) SaveBatch(accs []*types.Account) error {
 	if len(accs) == 0 {
+		a.log.Debug("NO ACCOUNTS")
 		// Sanity check, no need to do any processing on an empty batch.
 		return nil
 	}
