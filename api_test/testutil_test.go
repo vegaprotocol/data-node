@@ -65,10 +65,11 @@ type Storage interface {
 }
 
 type TestServer struct {
-	ctrl    *gomock.Controller
-	broker  *broker.Broker
-	conn    *grpc.ClientConn
-	storage []Storage
+	ctrl            *gomock.Controller
+	broker          *broker.Broker
+	conn            *grpc.ClientConn
+	storage         []Storage
+	transferStorage *storage.TransferResponse
 }
 
 func (t *TestServer) Close() {
@@ -284,10 +285,11 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) (ts *TestSe
 	}
 
 	return &TestServer{
-		ctrl:    mockCtrl,
-		broker:  eventBroker,
-		conn:    conn,
-		storage: []Storage{accountStore, candleStore, orderStore, marketStore, checkpointStore, riskStore, tradeStore, transferResponseStore},
+		ctrl:            mockCtrl,
+		broker:          eventBroker,
+		conn:            conn,
+		transferStorage: transferResponseStore,
+		storage:         []Storage{accountStore, candleStore, orderStore, marketStore, checkpointStore, riskStore, tradeStore, transferResponseStore},
 	}
 }
 

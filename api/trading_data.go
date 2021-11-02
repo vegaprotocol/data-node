@@ -988,8 +988,10 @@ func (t *tradingDataService) Checkpoints(ctx context.Context, _ *protoapi.Checkp
 // TransferResponsesSubscribe opens a subscription to transfer response data provided by the transfer response service.
 func (t *tradingDataService) TransferResponsesSubscribe(
 	_ *protoapi.TransferResponsesSubscribeRequest, srv protoapi.TradingDataService_TransferResponsesSubscribeServer) error {
+
 	defer metrics.StartAPIRequestAndTimeGRPC("TransferResponseSubscribe")()
 	// Wrap context from the request into cancellable. We can close internal chan in error.
+	t.log.Debug("Doing context")
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
 

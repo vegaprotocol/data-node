@@ -14,6 +14,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// waits untill the tranferStorage server has at least on subscriber meaning
+// we are ready to start publishing events.
+func waitForSubscriber(ctx context.Context, t *testing.T, ts *TestServer) {
+	bigID := uint64(9999) // intentionally non-existent subscription id
+	for {
+		select {
+		case <-ctx.Done():
+			t.FailNow()
+		default:
+
+			// this will return nil if there are no subscribers, so if and error with
+			// ID-does-not-exist is returned it means there is at least one subscriptions
+			if ts.transferStorage.Unsubscribe(bigID) != nil {
+				return
+			}
+		}
+	}
+}
+
 func TestObserveTransferResponses(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimout)
 	defer cancel()
@@ -27,6 +46,9 @@ func TestObserveTransferResponses(t *testing.T) {
 	// we need to subscribe to the stream prior to publishing the events
 	stream, err := client.TransferResponsesSubscribe(ctx, &apipb.TransferResponsesSubscribeRequest{})
 	assert.NoError(t, err)
+
+	// wait for subscriptions
+	waitForSubscriber(ctx, t, ts)
 
 	PublishEvents(t, ctx, ts.broker, func(be *eventspb.BusEvent) (events.Event, error) {
 		tr := be.GetTransferResponses()
