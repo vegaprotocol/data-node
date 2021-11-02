@@ -20,7 +20,7 @@ type TransferResponse struct {
 // NewTransferResponses instantiate a new TransferResponse
 func NewTransferResponses(log *logging.Logger, cfg Config) (*TransferResponse, error) {
 	log = log.Named(namedLogger)
-	log.SetLevel(cfg.Level.Get())
+	log.SetLevel(logging.DebugLevel)
 
 	return &TransferResponse{
 		Config:      cfg,
