@@ -56,12 +56,14 @@ type Broker struct {
 
 	socketServer *socketServer
 	quit         chan struct{}
+
+	log *logging.Logger
 }
 
 // New creates a new base broker
 func New(ctx context.Context, log *logging.Logger, config Config) (*Broker, error) {
 	log = log.Named(namedLogger)
-	log.SetLevel(config.Level.Get())
+	log.SetLevel(logging.DebugLevel)
 
 	socketServer, err := newSocketServer(log, &config.SocketConfig)
 	if err != nil {
@@ -76,6 +78,7 @@ func New(ctx context.Context, log *logging.Logger, config Config) (*Broker, erro
 		eChans:       map[events.Type]chan []events.Event{},
 		socketServer: socketServer,
 		quit:         make(chan struct{}),
+		log:          log,
 	}
 
 	return b, nil
@@ -123,6 +126,7 @@ func (b *Broker) sendChannelSync(sub Subscriber, evts []events.Event) bool {
 
 func (b *Broker) startSending(t events.Type, evts []events.Event) {
 	b.mu.Lock()
+	b.log.Debug("BROKER: start sending")
 	ch, ok := b.eChans[t]
 	if !ok {
 		subs := b.getSubsByType(t)
@@ -133,10 +137,13 @@ func (b *Broker) startSending(t events.Type, evts []events.Event) {
 	b.mu.Unlock()
 	ch <- evts
 	if ok {
+		b.log.Debug("BROKER: channel reused")
 		// we already started the routine to consume the channel
 		// we can return here
 		return
 	}
+
+	b.log.Debug("BROKER: spawning go routine")
 	go func(ch chan []events.Event, t events.Type) {
 		defer func() {
 			b.mu.Lock()

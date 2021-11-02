@@ -350,6 +350,17 @@ func PublishEvents(
 		}
 	}
 
+	// Above we send the actual event we want to test, then below we send a time-event to flush the buffers
+	// and process the batch. We require that the actual-event is received and processed before the time-event
+	// but, despite the check in waitForEvent on the dummy subscriber, this does not always happen. Since the
+	// broker stores subscribers as a map sending events to subs in different orders, and the handling of each
+	// events-type happening in different go-routines, what we actually see is a race where if the sub we care
+	// about is hit second by the first event, and hit first by the second event, the event we think is being
+	// sent second could actually grab the lock first. Madness.
+	// TLDR: regrettably, we need a small sleep to make sure all of the above events are processed before we send
+	// the below time event.
+	time.Sleep(20 * time.Millisecond)
+
 	logger.Debugf("%d events sent", len(evts))
 
 	// whatever time it is now + 1 second

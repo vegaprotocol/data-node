@@ -66,7 +66,11 @@ func (a *AccountSub) Push(evts ...events.Event) {
 			k := acc.Id
 			acc.Id = ""
 			a.buf[k] = &acc
+			if logging.DebugLevel == a.log.GetLevel() {
+				a.log.Debug("EVENT ADDED")
+			}
 		case TimeEvent:
+			a.log.Debug("ACCOUNTS FLUSHING")
 			a.flush()
 		default:
 			a.log.Panic("Unknown event type in account subscriber", logging.String("Type", et.Type().String()))
