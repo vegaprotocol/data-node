@@ -119,7 +119,7 @@ func NewGRPCServer(
 ) *GRPCServer {
 	// setup logger
 	log = log.Named(namedLogger)
-	log.SetLevel(config.Level.Get())
+	log.SetLevel(logging.DebugLevel)
 	ctx, cfunc := context.WithCancel(context.Background())
 
 	return &GRPCServer{

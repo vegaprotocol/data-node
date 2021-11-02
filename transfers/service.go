@@ -28,7 +28,7 @@ type Svc struct {
 // NewService retunrs a new instance of the transfer response service
 func NewService(log *logging.Logger, cfg Config, store TransferResponseStore) *Svc {
 	log = log.Named(namedLogger)
-	log.SetLevel(cfg.Level.Get())
+	log.SetLevel(logging.DebugLevel)
 	return &Svc{
 		Config: cfg,
 		log:    log,
@@ -59,6 +59,7 @@ func (s *Svc) ObserveTransferResponses(
 
 	transfers := make(chan []*types.TransferResponse)
 	internal := make(chan []*types.TransferResponse)
+	s.log.Debug("Adding internal subscriber")
 	ref := s.store.Subscribe(internal)
 
 	var cancel func()

@@ -701,7 +701,7 @@ func (t *tradingDataService) OrdersByMarket(ctx context.Context,
 		return nil, apiError(codes.Internal, ErrOrderServiceGetByMarket, err)
 	}
 
-	var response = &protoapi.OrdersByMarketResponse{}
+	response := &protoapi.OrdersByMarketResponse{}
 	if len(o) > 0 {
 		response.Orders = o
 	}
@@ -731,7 +731,7 @@ func (t *tradingDataService) OrdersByParty(ctx context.Context,
 		return nil, apiError(codes.InvalidArgument, ErrOrderServiceGetByParty, err)
 	}
 
-	var response = &protoapi.OrdersByPartyResponse{}
+	response := &protoapi.OrdersByPartyResponse{}
 	if len(o) > 0 {
 		response.Orders = o
 	}
@@ -893,7 +893,7 @@ func (t *tradingDataService) PositionsByParty(ctx context.Context, request *prot
 	if err != nil {
 		return nil, apiError(codes.Internal, ErrTradeServiceGetPositionsByParty, err)
 	}
-	var response = &protoapi.PositionsByPartyResponse{}
+	response := &protoapi.PositionsByPartyResponse{}
 	response.Positions = positions
 	return response, nil
 }
@@ -973,7 +973,6 @@ func (t *tradingDataService) GetVegaTime(ctx context.Context, _ *protoapi.GetVeg
 	return &protoapi.GetVegaTimeResponse{
 		Timestamp: ts.UnixNano(),
 	}, nil
-
 }
 
 func (t *tradingDataService) Checkpoints(ctx context.Context, _ *protoapi.CheckpointsRequest) (*protoapi.CheckpointsResponse, error) {
@@ -994,6 +993,7 @@ func (t *tradingDataService) TransferResponsesSubscribe(
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
 
+	t.log.Debug("Calling ObserveTransferResponses")
 	transferResponsesChan, ref := t.TransferResponseService.ObserveTransferResponses(ctx, t.Config.StreamRetries)
 
 	if t.log.GetLevel() == logging.DebugLevel {
@@ -1809,7 +1809,6 @@ func (t *tradingDataService) OrderByID(ctx context.Context, in *protoapi.OrderBy
 		Order: order,
 	}
 	return resp, nil
-
 }
 
 // OrderVersionsByID returns all versions of the order by its orderID
@@ -2020,6 +2019,7 @@ func (t *tradingDataService) ObserveGovernance(
 		}
 	}
 }
+
 func (t *tradingDataService) ObservePartyProposals(
 	in *protoapi.ObservePartyProposalsRequest,
 	stream protoapi.TradingDataService_ObservePartyProposalsServer,
