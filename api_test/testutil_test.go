@@ -333,20 +333,10 @@ func PublishEvents(
 		evts[e.Type()] = s
 	}
 
-	// add time event subscriber so we can verify the time event was received at the end
-	sCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	sub := NewEventSubscriber(sCtx, logger)
-	id := b.Subscribe(sub)
-
 	// we've grouped events per type, now send them all in batches
 	for _, batch := range evts {
 		for _, e := range batch {
 			b.Send(e)
-
-			if err := waitForEvent(sCtx, sub, e); err != nil {
-				t.Fatalf("Did not receive the expected event within reasonable time: %+v", e)
-			}
 		}
 	}
 
@@ -368,21 +358,6 @@ func PublishEvents(
 	// the broker reacts to Time events to trigger writes the data stores
 	tue := events.NewTime(ctx, now)
 	b.Send(tue)
-	logger.Debug("sent, waiting")
-	// await confirmation that we've actually received the time update event
-	if err := waitForEvent(sCtx, sub, tue); err != nil {
-		t.Fatalf("Did not receive the expected event within reasonable time: %+v", tue)
-	}
-	logger.Debug("time event received")
-
-	// cancel the subscriber ctx
-	cancel()
-	logger.Debug("cancelled")
-	sub.Halt()
-	logger.Debug("halted")
-	// unsubscribe the ad-hoc subscriber
-	b.Unsubscribe(id)
-	logger.Debug("unsubscribed")
 }
 
 func waitForEvent(ctx context.Context, sub *EventSubscriber, event events.Event) error {
