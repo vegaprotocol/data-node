@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"code.vegaprotocol.io/data-node/logging"
+	"code.vegaprotocol.io/data-node/storage"
 	"code.vegaprotocol.io/vega/events"
 )
 
@@ -59,11 +60,11 @@ type Broker struct {
 }
 
 // New creates a new base broker
-func New(ctx context.Context, log *logging.Logger, config Config) (*Broker, error) {
+func New(ctx context.Context, log *logging.Logger, config Config, chainInfo storage.ChainInfoI) (*Broker, error) {
 	log = log.Named(namedLogger)
 	log.SetLevel(config.Level.Get())
 
-	socketServer, err := newSocketServer(log, &config.SocketConfig)
+	socketServer, err := newSocketServer(log, &config.SocketConfig, chainInfo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialise underlying socket receiver: %w", err)
 	}

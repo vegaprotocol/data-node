@@ -15,6 +15,7 @@ import (
 	"code.vegaprotocol.io/data-node/broker"
 	"code.vegaprotocol.io/data-node/broker/mocks"
 	"code.vegaprotocol.io/data-node/logging"
+	mocksdn "code.vegaprotocol.io/data-node/mocks"
 	types "code.vegaprotocol.io/protos/vega"
 	eventspb "code.vegaprotocol.io/protos/vega/events/v1"
 	"code.vegaprotocol.io/vega/events"
@@ -28,6 +29,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sync/errgroup"
 )
+
+const testChainId = "test-chain"
 
 type brokerTst struct {
 	*broker.Broker
@@ -59,7 +62,9 @@ func getBroker(t *testing.T) *brokerTst {
 	assert.NoError(t, err)
 	socketConfig := config.SocketConfig
 
-	broker, _ := broker.New(ctx, logging.NewTestLogger(), config)
+	chainInfo := mocksdn.NewMockChainInfoI(ctrl)
+	chainInfo.EXPECT().GetChainID().Return(testChainId, nil).AnyTimes()
+	broker, _ := broker.New(ctx, logging.NewTestLogger(), config, chainInfo)
 	return &brokerTst{
 		Broker:   broker,
 		cfunc:    cfunc,
@@ -271,6 +276,17 @@ func testSendsReceivedEvents(t *testing.T) {
 			Version: 1,
 			Id:      "id-1",
 			Block:   "1",
+			Type:    eventspb.BusEventType_BUS_EVENT_TYPE_STREAM_START,
+			Event: &eventspb.BusEvent_StreamStart{
+				StreamStart: &eventspb.StreamStartEvent{
+					ChainId: testChainId,
+				},
+			},
+		},
+		{
+			Version: 1,
+			Id:      "id-1",
+			Block:   "1",
 			Type:    eventspb.BusEventType_BUS_EVENT_TYPE_TIME_UPDATE,
 			Event: &eventspb.BusEvent_TimeUpdate{
 				TimeUpdate: &eventspb.TimeUpdate{
@@ -304,10 +320,10 @@ func testSendsReceivedEvents(t *testing.T) {
 
 	// ensure all 3 events are being sent
 	wg := sync.WaitGroup{}
-	wg.Add(3)
+	wg.Add(4)
 	sub.EXPECT().Closed().AnyTimes().Return(closedCh)
 	sub.EXPECT().Skip().AnyTimes().Return(skipCh)
-	sub.EXPECT().Push(gomock.Any()).Times(3).Do(func(events ...interface{}) {
+	sub.EXPECT().Push(gomock.Any()).Times(4).Do(func(events ...interface{}) {
 		wg.Done()
 	})
 
