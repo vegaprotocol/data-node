@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"code.vegaprotocol.io/data-node/logging"
-	"code.vegaprotocol.io/data-node/storage"
 	eventspb "code.vegaprotocol.io/protos/vega/events/v1"
 	"code.vegaprotocol.io/vega/events"
 	"golang.org/x/sync/errgroup"
@@ -29,8 +28,7 @@ type socketServer struct {
 	log    *logging.Logger
 	config *SocketConfig
 
-	sock      protocol.Socket
-	chainInfo storage.ChainInfoI
+	sock protocol.Socket
 }
 
 func pipeEventToString(pe mangos.PipeEvent) string {
@@ -44,17 +42,16 @@ func pipeEventToString(pe mangos.PipeEvent) string {
 	}
 }
 
-func newSocketServer(log *logging.Logger, config *SocketConfig, chainInfo storage.ChainInfoI) (*socketServer, error) {
+func newSocketServer(log *logging.Logger, config *SocketConfig) (*socketServer, error) {
 	sock, err := pull.NewSocket()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new socket: %w", err)
 	}
 
 	return &socketServer{
-		log:       log,
-		config:    config,
-		sock:      sock,
-		chainInfo: chainInfo,
+		log:    log,
+		config: config,
+		sock:   sock,
 	}, nil
 }
 
@@ -84,9 +81,7 @@ func (s socketServer) listen() error {
 }
 
 func (s socketServer) receive(ctx context.Context) (<-chan events.Event, <-chan error) {
-	streamStartReceived := false
 	receiveCh := make(chan events.Event, defaultEventChannelBufferSize)
-	var preStartEvents []events.Event
 	errCh := make(chan error, 1)
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -139,38 +134,7 @@ func (s socketServer) receive(ctx context.Context) (<-chan events.Event, <-chan 
 				continue
 			}
 
-			streamStart, ok := evt.(*events.StreamStart)
-			if ok {
-				ourChainId, err := s.chainInfo.GetChainID()
-				if err != nil {
-					return fmt.Errorf("Unable to get expected chain ID %w", err)
-				}
-
-				if ourChainId == "" {
-					// An empty chain ID indicates this is our first run
-					ourChainId = streamStart.ChainId()
-					s.chainInfo.SetChainID(ourChainId)
-				}
-
-				if streamStart.ChainId() != ourChainId {
-					return fmt.Errorf("mismatched chain id received: %s, want %s", streamStart.ChainId(), ourChainId)
-				}
-
-				s.log.Infof("Stream starting with chain id: %s", streamStart.ChainId())
-				// Send all the events we were queueing up before we got our StreamStart message
-				for _, preStartEvent := range preStartEvents {
-					receiveCh <- preStartEvent
-				}
-				preStartEvents = nil
-				streamStartReceived = true
-
-			}
-
-			if streamStartReceived {
-				receiveCh <- evt
-			} else {
-				preStartEvents = append(preStartEvents, evt)
-			}
+			receiveCh <- evt
 
 			recvTimeouts = 0
 		}
