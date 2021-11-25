@@ -2,20 +2,12 @@ package storage
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 
 	"code.vegaprotocol.io/data-node/logging"
+	vgfs "code.vegaprotocol.io/shared/libs/fs"
 )
-
-//go:generate go run github.com/golang/mock/mockgen -destination mocks/chaininfo_mock.go -package mocks code.vegaprotocol.io/data-node/storage ChainInfoI
-type ChainInfoI interface {
-	ReloadConf(Config)
-	SetChainID(string) error
-	GetChainID() (string, error)
-}
 
 type ChainInfo struct {
 	config          Config
@@ -40,8 +32,7 @@ func NewChainInfo(log *logging.Logger, home string, c Config, onCriticalError fu
 	}
 
 	// If the json file doesn't exist yet, create one with some default values
-	_, err := os.Stat(jsonFile)
-	if errors.Is(err, os.ErrNotExist) {
+	if exists, _ := vgfs.FileExists(jsonFile); !exists {
 		chainInfo.SetChainID("")
 	}
 

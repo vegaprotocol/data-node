@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"code.vegaprotocol.io/data-node/logging"
-	"code.vegaprotocol.io/data-node/storage"
 	"code.vegaprotocol.io/vega/events"
 )
 
@@ -42,6 +41,12 @@ type subscription struct {
 	required bool
 }
 
+//go:generate go run github.com/golang/mock/mockgen -destination mocks/chaininfo_mock.go -package mocks code.vegaprotocol.io/data-node/broker ChainInfoI
+type ChainInfoI interface {
+	SetChainID(string) error
+	GetChainID() (string, error)
+}
+
 // Broker - the base broker type
 // perhaps we can extend this to embed into type-specific brokers
 type Broker struct {
@@ -57,11 +62,11 @@ type Broker struct {
 
 	socketServer *socketServer
 	quit         chan struct{}
-	chainInfo    storage.ChainInfoI
+	chainInfo    ChainInfoI
 }
 
 // New creates a new base broker
-func New(ctx context.Context, log *logging.Logger, config Config, chainInfo storage.ChainInfoI) (*Broker, error) {
+func New(ctx context.Context, log *logging.Logger, config Config, chainInfo ChainInfoI) (*Broker, error) {
 	log = log.Named(namedLogger)
 	log.SetLevel(config.Level.Get())
 
