@@ -46,6 +46,7 @@ type evt struct {
 	ctx context.Context
 	sid uint64
 	id  string
+	cid string
 }
 
 func getBroker(t *testing.T) *brokerTst {
@@ -84,6 +85,7 @@ func (b brokerTst) randomEvt() *evt {
 		t:   events.All,
 		ctx: b.ctx,
 		id:  idString,
+		cid: "testchain",
 	}
 }
 
@@ -276,17 +278,7 @@ func testSendsReceivedEvents(t *testing.T) {
 			Version: 1,
 			Id:      "id-1",
 			Block:   "1",
-			Type:    eventspb.BusEventType_BUS_EVENT_TYPE_STREAM_START,
-			Event: &eventspb.BusEvent_StreamStart{
-				StreamStart: &eventspb.StreamStartEvent{
-					ChainId: testChainId,
-				},
-			},
-		},
-		{
-			Version: 1,
-			Id:      "id-1",
-			Block:   "1",
+			ChainId: testChainId,
 			Type:    eventspb.BusEventType_BUS_EVENT_TYPE_TIME_UPDATE,
 			Event: &eventspb.BusEvent_TimeUpdate{
 				TimeUpdate: &eventspb.TimeUpdate{
@@ -298,6 +290,7 @@ func testSendsReceivedEvents(t *testing.T) {
 			Version: 1,
 			Id:      "id-2",
 			Block:   "2",
+			ChainId: testChainId,
 			Type:    eventspb.BusEventType_BUS_EVENT_TYPE_TIME_UPDATE,
 			Event: &eventspb.BusEvent_TimeUpdate{
 				TimeUpdate: &eventspb.TimeUpdate{
@@ -309,6 +302,7 @@ func testSendsReceivedEvents(t *testing.T) {
 			Version: 1,
 			Id:      "id-3",
 			Block:   "3",
+			ChainId: testChainId,
 			Type:    eventspb.BusEventType_BUS_EVENT_TYPE_TIME_UPDATE,
 			Event: &eventspb.BusEvent_TimeUpdate{
 				TimeUpdate: &eventspb.TimeUpdate{
@@ -320,10 +314,10 @@ func testSendsReceivedEvents(t *testing.T) {
 
 	// ensure all 3 events are being sent
 	wg := sync.WaitGroup{}
-	wg.Add(4)
+	wg.Add(3)
 	sub.EXPECT().Closed().AnyTimes().Return(closedCh)
 	sub.EXPECT().Skip().AnyTimes().Return(skipCh)
-	sub.EXPECT().Push(gomock.Any()).Times(4).Do(func(events ...interface{}) {
+	sub.EXPECT().Push(gomock.Any()).Times(3).Do(func(events ...interface{}) {
 		wg.Done()
 	})
 
@@ -641,4 +635,8 @@ func (e evt) TraceID() string {
 
 func (e evt) StreamMessage() *eventspb.BusEvent {
 	return nil
+}
+
+func (e evt) ChainID() string {
+	return e.cid
 }
