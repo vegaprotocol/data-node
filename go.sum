@@ -20,6 +20,8 @@ code.vegaprotocol.io/shared v0.0.0-20211015074835-9ed837d93090 h1:SF7ZRvZ/JASJNE
 code.vegaprotocol.io/shared v0.0.0-20211015074835-9ed837d93090/go.mod h1:dmahiiphuDJvjXXDvQvo22tFPx7yk9wW8z1glU/JgHE=
 code.vegaprotocol.io/vega v0.46.1-0.20211125134407-819a96bb0610 h1:oKbWyKrajDtvQ4uyRBI6BPIFmUEod4ewVJClYk1iNg8=
 code.vegaprotocol.io/vega v0.46.1-0.20211125134407-819a96bb0610/go.mod h1:9xMQVQxhMEh7foas87unxbuiLBmnkLCjIo2ft4sk4/A=
+code.vegaprotocol.io/vega v0.46.1-0.20211126095248-3255c3c31173 h1:350MzI+vxTtgjq7y4vnjJIBQnz009n5tGZLStw9U8UI=
+code.vegaprotocol.io/vega v0.46.1-0.20211126095248-3255c3c31173/go.mod h1:9xMQVQxhMEh7foas87unxbuiLBmnkLCjIo2ft4sk4/A=
 code.vegaprotocol.io/vegawallet v0.10.0/go.mod h1:DVCdA2rYKOLMH4XN81gYB61sIfYXh+yL55bqKFCo+Ao=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 gioui.org v0.0.0-20210308172011-57750fc8a0a6/go.mod h1:RSH6KIUZ0p2xy5zHDxgAM4zumjgTw83q2ge/PI+yyw8=
