@@ -92,7 +92,7 @@ type Subscription {
     partyId: ID
   ): Proposal!
 
-  "Subscribe to votes, either by proposal id or pary id"
+  "Subscribe to votes, either by proposal id or party id"
   votes(
     "Optional proposal id which votes are to be streamed"
     proposalId: ID
@@ -158,7 +158,7 @@ type MarginLevels {
 type MarketData {
   "market id of the associated mark price"
   market: Market!
-  "the mark price (actually an unsgined int)"
+  "the mark price (actually an unsigned int)"
   markPrice: String!
   "the highest price level on an order book for buy orders."
   bestBidPrice: String!
@@ -180,7 +180,7 @@ type MarketData {
   midPrice: String!
   "the arithmetic average of the best static bid price and best static offer price"
   staticMidPrice: String!
-  "RFC3339Nano time at which this market price was releavant"
+  "RFC3339Nano time at which this market price was relevant"
   timestamp: String!
   "the sum of the size of all positions greater than 0."
   openInterest: String!
@@ -230,7 +230,7 @@ type LiquidityProviderFeeShare {
   party: Party!
   "The share own by this liquidity provider (float)"
   equityLikeShare: String!
-  "the average entry valuation of the liqidity provider for the market"
+  "the average entry valuation of the liquidity provider for the market"
   averageEntryValuation: String!
 }
 
@@ -927,7 +927,7 @@ union Product = Future
 
 "Describe something that can be traded on Vega"
 type Instrument {
-  "Uniquely identify an instrument accrods all instruments available on Vega (string)"
+  "Uniquely identify an instrument across all instruments available on Vega (string)"
   id: String!
 
   "A short non necessarily unique code used to easily describe the instrument (e.g: FX:BTCUSD/DEC18) (string)"
@@ -1027,7 +1027,7 @@ type PriceMonitoringTrigger {
   auctionExtensionSecs: Int!
 }
 
-"Configuration of a market price monitorings auctions triggers"
+"Configuration of a market price monitoring auctions triggers"
 type PriceMonitoringSettings {
   "Specified a set of PriceMonitoringParameters to be use for price monitoring purposes"
   parameters: PriceMonitoringParameters
@@ -1146,7 +1146,7 @@ type Market {
     last: Int
   ): [Trade!]
 
-  "Current depth on the orderbook for this market"
+  "Current depth on the order book for this market"
   depth(
     "Maximum market order book depth (returns whole order book if omitted)"
     maxDepth: Int
@@ -1321,7 +1321,7 @@ type Party {
   # All delegations for a party to a given node if node is specified, or all delegations if not
   delegations(nodeId: String): [Delegation!]
 
-  "The staking informations for this Party"
+  "The staking information for this Party"
   stake: PartyStake!
 
   "return reward information"
@@ -1333,7 +1333,7 @@ type Party {
 }
 
 """
-All staking informations related to a Party.
+All staking information related to a Party.
 Contains the current recognised balance by the network and
 all the StakeLink/Unlink seen by the network
 """
@@ -1596,7 +1596,7 @@ type Erc20WithdrawalApproval {
 type Withdrawal {
   "The Vega internal id of the withdrawal"
   id: ID!
-  "The PartyID initiating the witndrawal"
+  "The PartyID initiating the withdrawal"
   party: Party!
   "The amount to be withdrawn"
   amount: String!
@@ -1604,7 +1604,7 @@ type Withdrawal {
   asset: Asset!
   "The current status of the withdrawal"
   status: WithdrawalStatus!
-  "A reference the foreign chain can use to refere to when processing the withdrawal"
+  "A reference the foreign chain can use to refer to when processing the withdrawal"
   ref: String!
   "RFC3339Nano time until the withdrawal will be invalid"
   expiry: String!
@@ -1952,7 +1952,7 @@ enum OrderType {
   Limit
 
   """
-  Used for distressed partys, an order placed by the network to close out distressed partys
+  Used for distressed parties, an order placed by the network to close out distressed parties
   similar to Market order, only no party is attached to the order.
   """
   Network
@@ -2039,9 +2039,9 @@ enum AccountType {
   GlobalInsurance
   "Settlement - only for 'system' party"
   Settlement
-  "Margin - The leverage account for partys"
+  "Margin - The leverage account for parties"
   Margin
-  "General account - the account containing 'unused' collateral for partys"
+  "General account - the account containing 'unused' collateral for parties"
   General
   "Infrastructure fee account - the account where all infrastructure fees are collected"
   FeeInfrastructure
@@ -2119,7 +2119,7 @@ type NewMarket {
 
 "A commitment of liquidity to be made by the party which proposes a market"
 type NewMarketCommitment {
-  "Specified as a unitless number that represents the amount of settlement asset of the market"
+  "Specified as a unit-less number that represents the amount of settlement asset of the market"
   commitmentAmount: String!
   """
   Nominated liquidity fee factor, which is an input to the calculation of
@@ -2346,11 +2346,11 @@ type TransferResponses {
 type PositionResolution {
   "the market ID where position resolution happened"
   marketId: ID!
-  "number of distressed partys on market"
+  "number of distressed parties on market"
   distressed: Int!
-  "number of partys closed out"
+  "number of parties closed out"
   closed: Int!
-  "the mark price at which partys were distressed/closed out"
+  "the mark price at which parties were distressed/closed out"
   markPrice: String!
 }
 
@@ -2537,7 +2537,7 @@ type RiskFactor {
 type LiquidityOrder {
   "The value to which this order is tied"
   reference: PeggedReference!
-  "The proportion of the commitment allocted to this order"
+  "The proportion of the commitment allocated to this order"
   proportion: Int!
   "Offset from the pegged reference"
   offset: Int!
@@ -2582,7 +2582,7 @@ type LiquidityProvision {
   updatedAt: String
   "Market identifier for the order"
   market: Market!
-  "Specified as a unitless number that represents the amount of settlement asset of the market."
+  "Specified as a unit-less number that represents the amount of settlement asset of the market."
   commitmentAmount: String!
   "nominated liquidity fee factor, which is an input to the calculation of taker fees on the market, as per setting fees and rewarding liquidity providers."
   fee: String!
