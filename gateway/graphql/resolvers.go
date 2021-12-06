@@ -839,6 +839,7 @@ func makePagination(skip, first, last *int) *protoapi.Pagination {
 func (r *myPartyResolver) RewardDetails(
 	ctx context.Context,
 	party *types.Party,
+	asset *string,
 ) ([]*types.RewardPerAssetDetail, error) {
 	req := &protoapi.GetRewardDetailsRequest{
 		PartyId: party.Id,
@@ -849,7 +850,21 @@ func (r *myPartyResolver) RewardDetails(
 		// for the given party
 		return nil, nil
 	}
-	return resp.RewardDetails, nil
+
+	// If we're not filtering by asset, return the lot
+	if asset == nil {
+		return resp.RewardDetails, nil
+	}
+
+	// Otherwise only return rewards for the asset of interest
+	rewardDetails := make([]*types.RewardPerAssetDetail, 0)
+	for _, rewardDetail := range resp.RewardDetails {
+		if rewardDetail.Asset == *asset {
+			rewardDetails = append(rewardDetails, rewardDetail)
+		}
+	}
+
+	return rewardDetails, nil
 }
 
 func (r *myPartyResolver) Stake(
@@ -2287,7 +2302,7 @@ func (r *mySubscriptionResolver) BusEvents(ctx context.Context, types []BusEvent
 	// about 10MB message size allowed
 	msgSize := grpc.MaxCallRecvMsgSize(mb * 10e6)
 
-	// build the bidirectionnal stream connection
+	// build the bidirectional stream connection
 	stream, err := r.tradingDataClient.ObserveEventBus(ctx, msgSize)
 	if err != nil {
 		return nil, customErrorFromStatus(err)

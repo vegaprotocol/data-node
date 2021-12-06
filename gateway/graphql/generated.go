@@ -579,7 +579,7 @@ type ComplexityRoot struct {
 		Orders              func(childComplexity int, skip *int, first *int, last *int) int
 		Positions           func(childComplexity int) int
 		Proposals           func(childComplexity int, inState *ProposalState) int
-		RewardDetails       func(childComplexity int) int
+		RewardDetails       func(childComplexity int, asset *string) int
 		Stake               func(childComplexity int) int
 		Trades              func(childComplexity int, marketID *string, skip *int, first *int, last *int) int
 		Votes               func(childComplexity int) int
@@ -730,7 +730,7 @@ type ComplexityRoot struct {
 
 	RewardPerAssetDetail struct {
 		Asset       func(childComplexity int) int
-		Rewards     func(childComplexity int) int
+		Rewards     func(childComplexity int, skip *int, first *int, last *int) int
 		TotalAmount func(childComplexity int) int
 	}
 
@@ -1142,7 +1142,7 @@ type PartyResolver interface {
 	LiquidityProvisions(ctx context.Context, obj *vega.Party, market *string, reference *string) ([]*vega.LiquidityProvision, error)
 	Delegations(ctx context.Context, obj *vega.Party, nodeID *string) ([]*vega.Delegation, error)
 	Stake(ctx context.Context, obj *vega.Party) (*v13.PartyStakeResponse, error)
-	RewardDetails(ctx context.Context, obj *vega.Party) ([]*vega.RewardPerAssetDetail, error)
+	RewardDetails(ctx context.Context, obj *vega.Party, asset *string) ([]*vega.RewardPerAssetDetail, error)
 }
 type PartyStakeResolver interface {
 	Linkings(ctx context.Context, obj *v13.PartyStakeResponse) ([]*v1.StakeLinking, error)
@@ -1222,7 +1222,7 @@ type RewardResolver interface {
 }
 type RewardPerAssetDetailResolver interface {
 	Asset(ctx context.Context, obj *vega.RewardPerAssetDetail) (*vega.Asset, error)
-	Rewards(ctx context.Context, obj *vega.RewardPerAssetDetail) ([]*vega.RewardDetails, error)
+	Rewards(ctx context.Context, obj *vega.RewardPerAssetDetail, skip *int, first *int, last *int) ([]*vega.RewardDetails, error)
 	TotalAmount(ctx context.Context, obj *vega.RewardPerAssetDetail) (string, error)
 }
 type StakeLinkingResolver interface {
@@ -3500,7 +3500,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Party.RewardDetails(childComplexity), true
+		args, err := ec.field_Party_rewardDetails_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Party.RewardDetails(childComplexity, args["asset"].(*string)), true
 
 	case "Party.stake":
 		if e.complexity.Party.Stake == nil {
@@ -4278,7 +4283,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.RewardPerAssetDetail.Rewards(childComplexity), true
+		args, err := ec.field_RewardPerAssetDetail_rewards_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.RewardPerAssetDetail.Rewards(childComplexity, args["skip"].(*int), args["first"].(*int), args["last"].(*int)), true
 
 	case "RewardPerAssetDetail.totalAmount":
 		if e.complexity.RewardPerAssetDetail.TotalAmount == nil {
@@ -6584,7 +6594,11 @@ type Party {
   stake: PartyStake!
 
   "return reward information"
-  rewardDetails: [RewardPerAssetDetail]
+  rewardDetails(
+    "An optional asset"
+    asset: String
+  ): [RewardPerAssetDetail]
+
 }
 
 """
@@ -7874,7 +7888,14 @@ type RewardPerAssetDetail {
   "Asset in which the reward was paid"
   asset: Asset!
   "A list of rewards received for this asset"
-  rewards: [Reward]
+  rewards (
+    "Pagination skip"
+    skip: Int
+    "Pagination first element"
+    first: Int
+    "Pagination last element"
+    last: Int
+  ): [Reward]
   "The total amount of rewards received for this asset."
   totalAmount: String!
 }
@@ -8168,6 +8189,21 @@ func (ec *executionContext) field_Party_proposals_args(ctx context.Context, rawA
 		}
 	}
 	args["inState"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Party_rewardDetails_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["asset"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("asset"))
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["asset"] = arg0
 	return args, nil
 }
 
@@ -8687,6 +8723,39 @@ func (ec *executionContext) field_Query_withdrawal_args(ctx context.Context, raw
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_RewardPerAssetDetail_rewards_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["skip"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("skip"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["skip"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg1
+	var arg2 *int
+	if tmp, ok := rawArgs["last"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
+		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["last"] = arg2
 	return args, nil
 }
 
@@ -19683,9 +19752,16 @@ func (ec *executionContext) _Party_rewardDetails(ctx context.Context, field grap
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Party_rewardDetails_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Party().RewardDetails(rctx, obj)
+		return ec.resolvers.Party().RewardDetails(rctx, obj, args["asset"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -22963,9 +23039,16 @@ func (ec *executionContext) _RewardPerAssetDetail_rewards(ctx context.Context, f
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_RewardPerAssetDetail_rewards_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.RewardPerAssetDetail().Rewards(rctx, obj)
+		return ec.resolvers.RewardPerAssetDetail().Rewards(rctx, obj, args["skip"].(*int), args["first"].(*int), args["last"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

@@ -1325,7 +1325,11 @@ type Party {
   stake: PartyStake!
 
   "return reward information"
-  rewardDetails: [RewardPerAssetDetail]
+  rewardDetails(
+    "An optional asset"
+    asset: String
+  ): [RewardPerAssetDetail]
+
 }
 
 """
@@ -2615,7 +2619,14 @@ type RewardPerAssetDetail {
   "Asset in which the reward was paid"
   asset: Asset!
   "A list of rewards received for this asset"
-  rewards: [Reward]
+  rewards (
+    "Pagination skip"
+    skip: Int
+    "Pagination first element"
+    first: Int
+    "Pagination last element"
+    last: Int
+  ): [Reward]
   "The total amount of rewards received for this asset."
   totalAmount: String!
 }
