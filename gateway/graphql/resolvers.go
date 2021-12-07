@@ -879,7 +879,7 @@ func (r *myPartyResolver) RewardDetails(
 	}
 
 	// Otherwise only return rewards for the asset of interest
-	rewardDetails := make([]*types.RewardPerAssetDetail, 0)
+	rewardDetails := []*types.RewardPerAssetDetail{}
 	for _, rewardDetail := range resp.RewardDetails {
 		if rewardDetail.Asset == *asset {
 			rewardDetails = append(rewardDetails, rewardDetail)

@@ -1,8 +1,10 @@
-package gql
+package gql_test
 
 import (
+	"context"
 	"testing"
 
+	gql "code.vegaprotocol.io/data-node/gateway/graphql"
 	"code.vegaprotocol.io/protos/vega"
 	"github.com/stretchr/testify/assert"
 )
@@ -37,8 +39,11 @@ func TestPaginateRewards(t *testing.T) {
 
 	cases := []TestCase{tc1, tc2, tc3, tc4, tc5, tc6, tc7, tc8, tc9}
 	for _, tc := range cases {
-		p := makePagination(tc.skip, tc.first, tc.last)
-		actual := paginateRewards(testRewards, p)
+		rewards := vega.RewardPerAssetDetail{Details: testRewards}
+		resolver := gql.VegaResolverRoot{}
+		rewardResolver := resolver.RewardPerAssetDetail()
+		actual, err := rewardResolver.Rewards(context.Background(), &rewards, tc.skip, tc.first, tc.last)
+		assert.NoError(t, err)
 		assert.Equal(t, tc.expected, actual, tc.description)
 	}
 }
