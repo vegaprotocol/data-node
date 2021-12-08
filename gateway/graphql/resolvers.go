@@ -881,20 +881,6 @@ func (r *myPartyResolver) RewardDetails(
 	}
 
 	return resp.RewardDetails, nil
-	// // If we're not filtering by asset, return the lot
-	// if asset == nil {
-	// 	return resp.RewardDetails, nil
-	// }
-
-	// // Otherwise only return rewards for the asset of interest
-	// rewardDetails := []*types.RewardPerAssetDetail{}
-	// for _, rewardDetail := range resp.RewardDetails {
-	// 	if rewardDetail.Asset == *asset {
-	// 		rewardDetails = append(rewardDetails, rewardDetail)
-	// 	}
-	// }
-
-	// return rewardDetails, nil
 }
 
 func (r *myPartyResolver) Stake(
