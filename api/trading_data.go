@@ -12,6 +12,7 @@ import (
 	"code.vegaprotocol.io/data-node/subscribers"
 	"code.vegaprotocol.io/data-node/vegatime"
 	protoapi "code.vegaprotocol.io/protos/data-node/api/v1"
+	"code.vegaprotocol.io/protos/vega"
 	pbtypes "code.vegaprotocol.io/protos/vega"
 	commandspb "code.vegaprotocol.io/protos/vega/commands/v1"
 	eventspb "code.vegaprotocol.io/protos/vega/events/v1"
@@ -232,7 +233,8 @@ type DelegationService interface {
 // RewardsService ...
 //go:generate go run github.com/golang/mock/mockgen -destination mocks/rewards_service_mock.go -package mocks code.vegaprotocol.io/data-node/api RewardsService
 type RewardsService interface {
-	GetRewardDetails(ctx context.Context, party string) (*protoapi.GetRewardDetailsResponse, error)
+	GetRewardDetails(ctx context.Context, party string) []*pbtypes.RewardPerAssetDetail
+	GetRewardDetailsForAsset(ctx context.Context, party, asset string) *pbtypes.RewardPerAssetDetail
 	ObserveRewardDetails(ctx context.Context, retries int, assetID, party string) (rewardCh <-chan pbtypes.RewardDetails, ref uint64)
 }
 
@@ -688,11 +690,16 @@ func (t *tradingDataService) GetRewardDetails(ctx context.Context, req *protoapi
 	if len(req.PartyId) <= 0 {
 		return nil, ErrMissingPartyID
 	}
-	details, err := t.rewardsService.GetRewardDetails(ctx, req.PartyId)
-	if err != nil {
-		return nil, err
+
+	var rpads []*vega.RewardPerAssetDetail
+	if len(req.AssetId) <= 0 {
+		rpads = t.rewardsService.GetRewardDetails(ctx, req.PartyId)
+	} else {
+		rpad := t.rewardsService.GetRewardDetailsForAsset(ctx, req.PartyId, req.AssetId)
+		rpads = []*vega.RewardPerAssetDetail{rpad}
 	}
-	return details, nil
+
+	return &protoapi.GetRewardDetailsResponse{RewardDetails: rpads}, nil
 }
 
 func (t *tradingDataService) ObserveRewardDetails(req *protoapi.ObserveRewardDetailsRequest,

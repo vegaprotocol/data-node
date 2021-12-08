@@ -10,7 +10,6 @@ import (
 
 	"code.vegaprotocol.io/data-node/contextutil"
 	"code.vegaprotocol.io/data-node/logging"
-	protoapi "code.vegaprotocol.io/protos/data-node/api/v1"
 	"code.vegaprotocol.io/protos/vega"
 	types "code.vegaprotocol.io/protos/vega/events/v1"
 	"code.vegaprotocol.io/vega/events"
@@ -290,40 +289,56 @@ func (rc *RewardCounters) GetRewardSubscribersCount() int32 {
 	return atomic.LoadInt32(&rc.subscriberCnt)
 }
 
-// GetRewardDetails returns the information relating to rewards for a single party
-func (rc *RewardCounters) GetRewardDetails(ctx context.Context, partyID string) (*protoapi.GetRewardDetailsResponse, error) {
+// GetRewardDetails returns the information relating to rewards for a single (asset, party) pair
+func (rc *RewardCounters) getRewardDetailsForAsset(ctx context.Context, partyID, assetID string) *vega.RewardPerAssetDetail {
+	if _, ok := rc.rewardsPerPartyPerAsset[partyID]; !ok {
+		return &vega.RewardPerAssetDetail{Asset: assetID}
+	}
+
+	details, ok := rc.rewardsPerPartyPerAsset[partyID][assetID]
+	if !ok {
+		return &vega.RewardPerAssetDetail{Asset: assetID}
+	}
+
+	rpad := &vega.RewardPerAssetDetail{Asset: assetID,
+		TotalForAsset: details.totalAmount.String(),
+		Details:       make([]*vega.RewardDetails, 0)}
+
+	for _, rd := range details.rewards {
+		reward := vega.RewardDetails{
+			AssetId:           rd.assetID,
+			PartyId:           rd.partyID,
+			Epoch:             rd.epoch,
+			Amount:            rd.amount.String(),
+			PercentageOfTotal: strconv.FormatFloat(rd.percentageAmount, 'f', 5, 64),
+			ReceivedAt:        rd.receivedAt,
+		}
+		rpad.Details = append(rpad.Details, &reward)
+	}
+	return rpad
+}
+
+// GetRewardDetails returns the information relating to rewards for a single (asset, party) pair
+func (rc *RewardCounters) GetRewardDetailsForAsset(ctx context.Context, partyID, assetID string) *vega.RewardPerAssetDetail {
 	rc.mu.RLock()
 	defer rc.mu.RUnlock()
+	return rc.getRewardDetailsForAsset(ctx, partyID, assetID)
+}
+
+// GetRewardDetails returns the information relating to rewards for a single party
+func (rc *RewardCounters) GetRewardDetails(ctx context.Context, partyID string) (rpads []*vega.RewardPerAssetDetail) {
+	rc.mu.RLock()
+	defer rc.mu.RUnlock()
+
 	rewards, ok := rc.rewardsPerPartyPerAsset[partyID]
 	if !ok {
-		rewards = make(map[string]*rewardsDetails)
+		return
 	}
 
-	// Now build up the proto message from the details we have stored
-	resp := &protoapi.GetRewardDetailsResponse{
-		RewardDetails: make([]*vega.RewardPerAssetDetail, 0, len(rewards)),
+	for assetID := range rewards {
+		rpads = append(rpads, rc.GetRewardDetailsForAsset(ctx, partyID, assetID))
 	}
-
-	for asset, rpad := range rewards {
-		perAsset := vega.RewardPerAssetDetail{
-			Asset:         asset,
-			TotalForAsset: rpad.totalAmount.String(),
-			Details:       make([]*vega.RewardDetails, 0),
-		}
-		for _, rd := range rpad.rewards {
-			reward := vega.RewardDetails{
-				AssetId:           rd.assetID,
-				PartyId:           rd.partyID,
-				Epoch:             rd.epoch,
-				Amount:            rd.amount.String(),
-				PercentageOfTotal: strconv.FormatFloat(rd.percentageAmount, 'f', 5, 64),
-				ReceivedAt:        rd.receivedAt,
-			}
-			perAsset.Details = append(perAsset.Details, &reward)
-		}
-		resp.RewardDetails = append(resp.RewardDetails, &perAsset)
-	}
-	return resp, nil
+	return
 }
 
 // Types returns all the message types this subscriber wants to receive

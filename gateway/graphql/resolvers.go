@@ -863,8 +863,15 @@ func (r *myPartyResolver) RewardDetails(
 	party *types.Party,
 	asset *string,
 ) ([]*types.RewardPerAssetDetail, error) {
+
+	var assetID string
+	if asset != nil {
+		assetID = *asset
+	}
+
 	req := &protoapi.GetRewardDetailsRequest{
 		PartyId: party.Id,
+		AssetId: assetID,
 	}
 	resp, err := r.tradingDataClient.GetRewardDetails(ctx, req)
 	if err != nil {
@@ -873,20 +880,21 @@ func (r *myPartyResolver) RewardDetails(
 		return nil, nil
 	}
 
-	// If we're not filtering by asset, return the lot
-	if asset == nil {
-		return resp.RewardDetails, nil
-	}
+	return resp.RewardDetails, nil
+	// // If we're not filtering by asset, return the lot
+	// if asset == nil {
+	// 	return resp.RewardDetails, nil
+	// }
 
-	// Otherwise only return rewards for the asset of interest
-	rewardDetails := []*types.RewardPerAssetDetail{}
-	for _, rewardDetail := range resp.RewardDetails {
-		if rewardDetail.Asset == *asset {
-			rewardDetails = append(rewardDetails, rewardDetail)
-		}
-	}
+	// // Otherwise only return rewards for the asset of interest
+	// rewardDetails := []*types.RewardPerAssetDetail{}
+	// for _, rewardDetail := range resp.RewardDetails {
+	// 	if rewardDetail.Asset == *asset {
+	// 		rewardDetails = append(rewardDetails, rewardDetail)
+	// 	}
+	// }
 
-	return rewardDetails, nil
+	// return rewardDetails, nil
 }
 
 func (r *myPartyResolver) Stake(
