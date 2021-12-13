@@ -3,6 +3,7 @@ package subscribers
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -367,21 +368,21 @@ func (rc *RewardCounters) getRewards(ctx context.Context, partyID, assetID strin
 	return rewards
 }
 
+// Paginate rewards, sorting by epoch
 func PaginateRewards(rewards []*vega.Reward, skip, limit uint64, descending bool) []*vega.Reward {
 	length := uint64(len(rewards))
 	start := uint64(0)
 	end := length
 
+	sort_fn := func(i, j int) bool { return rewards[i].Epoch < rewards[j].Epoch }
 	if descending {
-		if skip+limit <= length {
-			start = length - skip - limit
+		sort_fn = func(i, j int) bool { return rewards[i].Epoch > rewards[j].Epoch }
 		}
-		end = length - min(skip, length)
-	} else {
+
+	sort.Slice(rewards, sort_fn)
 		start = skip
 		if limit != 0 {
 			end = skip + limit
-		}
 	}
 
 	start = min(start, length)

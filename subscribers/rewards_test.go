@@ -94,23 +94,20 @@ func TestTwoDifferentAssetsSameParty(t *testing.T) {
 	evt2 := events.NewRewardPayout(ctx, now, partyID, "2", "ETH", num.NewUint(50), 0.2)
 	re.Push(evt2)
 
-	// Now query for the reward details for that party
-	// TODO: test summary as well
-	//details := re.GetRewardDetails(ctx, partyID)
-	// something something assert.Equal(t, 1, len(rewards))
-	// assert.NotNil(t, details)
-	// assert.Equal(t, 2, len(details))
-	// assert.Equal(t, "BTC", details[0].Asset)
-	// assert.Equal(t, "100", details[0].TotalForAsset)
-	// assert.Equal(t, "ETH", details[1].Asset)
-	// assert.Equal(t, "50", details[1].TotalForAsset)
+	// Now query for the reward summaries for that party
+	summaries := re.GetRewardSummaries(ctx, partyID, nil)
+
 	// first sort details
-	// sort.Slice(details, func(i, j int) bool { return details[i].Asset < details[j].Asset })
+	sort.Slice(summaries, func(i, j int) bool { return summaries[i].AssetId < summaries[j].AssetId })
 
-	// for _, det := range details {
-	// 	sort.Slice(det.Details, func(i, j int) bool { return det.Details[i].PercentageOfTotal < det.Details[j].PercentageOfTotal })
-	// }
+	assert.NotNil(t, summaries)
+	assert.Equal(t, 2, len(summaries))
+	assert.Equal(t, "BTC", summaries[0].AssetId)
+	assert.Equal(t, "100", summaries[0].Amount)
+	assert.Equal(t, "ETH", summaries[1].AssetId)
+	assert.Equal(t, "50", summaries[1].Amount)
 
+	// Now query for the individual rewards for that party
 	rewards := re.GetRewards(ctx, partyID, 0, 10, true)
 
 	sort.Slice(rewards, func(i, j int) bool {
@@ -155,9 +152,9 @@ type testCase struct {
 type rewards []*vega.Reward
 
 func TestPaginateRewards(t *testing.T) {
-	r1 := &vega.Reward{Amount: "1"}
-	r2 := &vega.Reward{Amount: "2"}
-	r3 := &vega.Reward{Amount: "3"}
+	r1 := &vega.Reward{Epoch: 1}
+	r2 := &vega.Reward{Epoch: 2}
+	r3 := &vega.Reward{Epoch: 3}
 	testRewards := rewards{r1, r2, r3}
 
 	tc1 := testCase{0, 2, false, rewards{r1, r2}, "First Two"}
@@ -165,10 +162,10 @@ func TestPaginateRewards(t *testing.T) {
 	tc3 := testCase{4, 2, false, rewards{}, "Skip past end"}
 	tc4 := testCase{0, 4, false, rewards{r1, r2, r3}, "First > length"}
 	tc5 := testCase{3, 0, false, rewards{}, "Skip everything"}
-	tc6 := testCase{0, 2, true, rewards{r2, r3}, "Last Two"}
+	tc6 := testCase{0, 2, true, rewards{r3, r2}, "Last Two"}
 	tc7 := testCase{1, 1, true, rewards{r2}, "Last but one"}
 	tc8 := testCase{4, 1, true, rewards{}, "Skip before beginning"}
-	tc9 := testCase{1, 4, true, rewards{r1, r2}, "Last before beginning"}
+	tc9 := testCase{1, 4, true, rewards{r2, r1}, "Last before beginning"}
 
 	cases := []testCase{tc1, tc2, tc3, tc4, tc5, tc6, tc7, tc8, tc9}
 	for _, tc := range cases {
