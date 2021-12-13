@@ -121,7 +121,7 @@ type Subscription {
   ): Delegation!
 
   "Subscribe to reward details data"
-  rewardDetails(
+  rewards(
     "the asset to subscribe for, empty if all"
     assetId: ID
     "the party to subscribe for, empty if all"
@@ -1339,12 +1339,23 @@ type Party {
   stake: PartyStake!
 
   "return reward information"
-  rewardDetails(
+  rewardDetails: [RewardPerAssetDetail] @deprecated(reason: "Use rewardSummaries or rewards instead.")
+}
+  rewards(
     "An optional asset"
     asset: String
-  ): [RewardPerAssetDetail]
+    "Pagination skip element"
+    skip: Int
+    "Pagination first element"
+    first: Int
+    "Pagination last element"
+    last: Int
+  ): [Reward]
 
-}
+  rewardSummaries(
+    "An optional asset"
+    asset: String
+  ): [RewardSummary]
 
 """
 All staking information related to a Party.
@@ -2628,19 +2639,24 @@ type Reward {
   receivedAt: String!
 }
 
-"Reward information for a given asset"
-type RewardPerAssetDetail {
-  "Asset in which the reward was paid"
+type RewardSummary {
   asset: Asset!
-  "A list of rewards received for this asset"
+  amount: String!
   rewards (
     "Pagination skip"
     skip: Int
     "Pagination first element"
     first: Int
     "Pagination last element"
-    last: Int
-  ): [Reward]
+    last: Int): [Reward]
+}
+
+"RewardPerAssetDetail is depricated, use RewardSummmary instead "
+type RewardPerAssetDetail {
+  "Asset in which the reward was paid"
+  asset: Asset!
+  "A list of rewards received for this asset"
+  rewards: [Reward]
   "The total amount of rewards received for this asset."
   totalAmount: String!
 }
