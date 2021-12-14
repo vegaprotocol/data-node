@@ -377,12 +377,12 @@ func PaginateRewards(rewards []*vega.Reward, skip, limit uint64, descending bool
 	sort_fn := func(i, j int) bool { return rewards[i].Epoch < rewards[j].Epoch }
 	if descending {
 		sort_fn = func(i, j int) bool { return rewards[i].Epoch > rewards[j].Epoch }
-		}
+	}
 
 	sort.Slice(rewards, sort_fn)
-		start = skip
-		if limit != 0 {
-			end = skip + limit
+	start = skip
+	if limit != 0 {
+		end = skip + limit
 	}
 
 	start = min(start, length)
