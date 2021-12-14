@@ -14,6 +14,7 @@ import (
 
 	v12 "code.vegaprotocol.io/protos/data-node/api/v1"
 	"code.vegaprotocol.io/protos/vega"
+	v14 "code.vegaprotocol.io/protos/vega/api/v1"
 	v13 "code.vegaprotocol.io/protos/vega/commands/v1"
 	"code.vegaprotocol.io/protos/vega/events/v1"
 	v11 "code.vegaprotocol.io/protos/vega/oracles/v1"
@@ -83,6 +84,7 @@ type ResolverRoot interface {
 	Reward() RewardResolver
 	RewardPerAssetDetail() RewardPerAssetDetailResolver
 	StakeLinking() StakeLinkingResolver
+	Statistics() StatisticsResolver
 	Subscription() SubscriptionResolver
 	TradableInstrument() TradableInstrumentResolver
 	Trade() TradeResolver
@@ -724,6 +726,7 @@ type ComplexityRoot struct {
 		Party                      func(childComplexity int, id string) int
 		Proposal                   func(childComplexity int, id *string, reference *string) int
 		Proposals                  func(childComplexity int, inState *ProposalState) int
+		Statistics                 func(childComplexity int) int
 		UpdateMarketProposals      func(childComplexity int, marketID *string, inState *ProposalState) int
 		Withdrawal                 func(childComplexity int, id string) int
 	}
@@ -790,35 +793,38 @@ type ComplexityRoot struct {
 	}
 
 	Statistics struct {
-		AppVersion                     func(childComplexity int) int
-		AppVersionHash                 func(childComplexity int) int
-		AverageOrdersPerBlock          func(childComplexity int) int
-		AverageTxBytes                 func(childComplexity int) int
-		BacklogLength                  func(childComplexity int) int
-		BlockDuration                  func(childComplexity int) int
-		BlockHeight                    func(childComplexity int) int
-		CandleSubscriptions            func(childComplexity int) int
-		ChainVersion                   func(childComplexity int) int
-		CurrentTime                    func(childComplexity int) int
-		GenesisTime                    func(childComplexity int) int
-		MarketDepthSubscriptions       func(childComplexity int) int
-		MarketDepthUpdateSubscriptions func(childComplexity int) int
-		OrderSubscriptions             func(childComplexity int) int
-		OrdersPerSecond                func(childComplexity int) int
-		PositionsSubscriptions         func(childComplexity int) int
-		Status                         func(childComplexity int) int
-		TotalAmendOrder                func(childComplexity int) int
-		TotalCancelOrder               func(childComplexity int) int
-		TotalCreateOrder               func(childComplexity int) int
-		TotalMarkets                   func(childComplexity int) int
-		TotalOrders                    func(childComplexity int) int
-		TotalPeers                     func(childComplexity int) int
-		TotalTrades                    func(childComplexity int) int
-		TradeSubscriptions             func(childComplexity int) int
-		TradesPerSecond                func(childComplexity int) int
-		TxPerBlock                     func(childComplexity int) int
-		UpTime                         func(childComplexity int) int
-		VegaTime                       func(childComplexity int) int
+		AccountSubscriptions            func(childComplexity int) int
+		AppVersion                      func(childComplexity int) int
+		AppVersionHash                  func(childComplexity int) int
+		AverageOrdersPerBlock           func(childComplexity int) int
+		AverageTxBytes                  func(childComplexity int) int
+		BacklogLength                   func(childComplexity int) int
+		BlockDuration                   func(childComplexity int) int
+		BlockHeight                     func(childComplexity int) int
+		CandleSubscriptions             func(childComplexity int) int
+		ChainId                         func(childComplexity int) int
+		ChainVersion                    func(childComplexity int) int
+		CurrentTime                     func(childComplexity int) int
+		GenesisTime                     func(childComplexity int) int
+		MarketDataSubscriptions         func(childComplexity int) int
+		MarketDepthSubscriptions        func(childComplexity int) int
+		MarketDepthUpdatesSubscriptions func(childComplexity int) int
+		OrderSubscriptions              func(childComplexity int) int
+		OrdersPerSecond                 func(childComplexity int) int
+		PositionsSubscriptions          func(childComplexity int) int
+		Status                          func(childComplexity int) int
+		TotalAmendOrder                 func(childComplexity int) int
+		TotalCancelOrder                func(childComplexity int) int
+		TotalCreateOrder                func(childComplexity int) int
+		TotalMarkets                    func(childComplexity int) int
+		TotalOrders                     func(childComplexity int) int
+		TotalPeers                      func(childComplexity int) int
+		TotalTrades                     func(childComplexity int) int
+		TradeSubscriptions              func(childComplexity int) int
+		TradesPerSecond                 func(childComplexity int) int
+		TxPerBlock                      func(childComplexity int) int
+		Uptime                          func(childComplexity int) int
+		VegaTime                        func(childComplexity int) int
 	}
 
 	Subscription struct {
@@ -1225,6 +1231,7 @@ type QueryResolver interface {
 	Node(ctx context.Context, id string) (*vega.Node, error)
 	KeyRotations(ctx context.Context, id *string) ([]*v12.KeyRotation, error)
 	Epoch(ctx context.Context, id *string) (*vega.Epoch, error)
+	Statistics(ctx context.Context) (*v14.Statistics, error)
 }
 type RewardResolver interface {
 	Asset(ctx context.Context, obj *vega.RewardDetails) (*vega.Asset, error)
@@ -1245,6 +1252,34 @@ type StakeLinkingResolver interface {
 
 	Status(ctx context.Context, obj *v1.StakeLinking) (StakeLinkingStatus, error)
 	FinalizedAt(ctx context.Context, obj *v1.StakeLinking) (*string, error)
+}
+type StatisticsResolver interface {
+	BlockHeight(ctx context.Context, obj *v14.Statistics) (string, error)
+	BacklogLength(ctx context.Context, obj *v14.Statistics) (string, error)
+	TotalPeers(ctx context.Context, obj *v14.Statistics) (string, error)
+
+	Status(ctx context.Context, obj *v14.Statistics) (string, error)
+	TxPerBlock(ctx context.Context, obj *v14.Statistics) (string, error)
+	AverageTxBytes(ctx context.Context, obj *v14.Statistics) (string, error)
+	AverageOrdersPerBlock(ctx context.Context, obj *v14.Statistics) (string, error)
+	TradesPerSecond(ctx context.Context, obj *v14.Statistics) (string, error)
+	OrdersPerSecond(ctx context.Context, obj *v14.Statistics) (string, error)
+	TotalMarkets(ctx context.Context, obj *v14.Statistics) (string, error)
+	TotalAmendOrder(ctx context.Context, obj *v14.Statistics) (string, error)
+	TotalCancelOrder(ctx context.Context, obj *v14.Statistics) (string, error)
+	TotalCreateOrder(ctx context.Context, obj *v14.Statistics) (string, error)
+	TotalOrders(ctx context.Context, obj *v14.Statistics) (string, error)
+	TotalTrades(ctx context.Context, obj *v14.Statistics) (string, error)
+
+	BlockDuration(ctx context.Context, obj *v14.Statistics) (string, error)
+	OrderSubscriptions(ctx context.Context, obj *v14.Statistics) (string, error)
+	TradeSubscriptions(ctx context.Context, obj *v14.Statistics) (string, error)
+	CandleSubscriptions(ctx context.Context, obj *v14.Statistics) (string, error)
+	MarketDepthSubscriptions(ctx context.Context, obj *v14.Statistics) (string, error)
+	MarketDepthUpdatesSubscriptions(ctx context.Context, obj *v14.Statistics) (string, error)
+	PositionsSubscriptions(ctx context.Context, obj *v14.Statistics) (string, error)
+	AccountSubscriptions(ctx context.Context, obj *v14.Statistics) (string, error)
+	MarketDataSubscriptions(ctx context.Context, obj *v14.Statistics) (string, error)
 }
 type SubscriptionResolver interface {
 	Candles(ctx context.Context, marketID string, interval Interval) (<-chan *vega.Candle, error)
@@ -4253,6 +4288,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Proposals(childComplexity, args["inState"].(*ProposalState)), true
 
+	case "Query.statistics":
+		if e.complexity.Query.Statistics == nil {
+			break
+		}
+
+		return e.complexity.Query.Statistics(childComplexity), true
+
 	case "Query.updateMarketProposals":
 		if e.complexity.Query.UpdateMarketProposals == nil {
 			break
@@ -4515,6 +4557,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.StakeLinking.Type(childComplexity), true
 
+	case "Statistics.accountSubscriptions":
+		if e.complexity.Statistics.AccountSubscriptions == nil {
+			break
+		}
+
+		return e.complexity.Statistics.AccountSubscriptions(childComplexity), true
+
 	case "Statistics.appVersion":
 		if e.complexity.Statistics.AppVersion == nil {
 			break
@@ -4571,6 +4620,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Statistics.CandleSubscriptions(childComplexity), true
 
+	case "Statistics.chainId":
+		if e.complexity.Statistics.ChainId == nil {
+			break
+		}
+
+		return e.complexity.Statistics.ChainId(childComplexity), true
+
 	case "Statistics.chainVersion":
 		if e.complexity.Statistics.ChainVersion == nil {
 			break
@@ -4592,6 +4648,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Statistics.GenesisTime(childComplexity), true
 
+	case "Statistics.marketDataSubscriptions":
+		if e.complexity.Statistics.MarketDataSubscriptions == nil {
+			break
+		}
+
+		return e.complexity.Statistics.MarketDataSubscriptions(childComplexity), true
+
 	case "Statistics.marketDepthSubscriptions":
 		if e.complexity.Statistics.MarketDepthSubscriptions == nil {
 			break
@@ -4599,12 +4662,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Statistics.MarketDepthSubscriptions(childComplexity), true
 
-	case "Statistics.marketDepthUpdateSubscriptions":
-		if e.complexity.Statistics.MarketDepthUpdateSubscriptions == nil {
+	case "Statistics.marketDepthUpdatesSubscriptions":
+		if e.complexity.Statistics.MarketDepthUpdatesSubscriptions == nil {
 			break
 		}
 
-		return e.complexity.Statistics.MarketDepthUpdateSubscriptions(childComplexity), true
+		return e.complexity.Statistics.MarketDepthUpdatesSubscriptions(childComplexity), true
 
 	case "Statistics.orderSubscriptions":
 		if e.complexity.Statistics.OrderSubscriptions == nil {
@@ -4705,11 +4768,11 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		return e.complexity.Statistics.TxPerBlock(childComplexity), true
 
 	case "Statistics.upTime":
-		if e.complexity.Statistics.UpTime == nil {
+		if e.complexity.Statistics.Uptime == nil {
 			break
 		}
 
-		return e.complexity.Statistics.UpTime(childComplexity), true
+		return e.complexity.Statistics.Uptime(childComplexity), true
 
 	case "Statistics.vegaTime":
 		if e.complexity.Statistics.VegaTime == nil {
@@ -5707,6 +5770,8 @@ type Query {
 
   "get data for a specific epoch, if id omitted it gets the current epoch"
   epoch(id: String): Epoch!
+
+  statistics: Statistics!
 }
 
 enum NodeStatus {
@@ -5937,13 +6002,13 @@ enum NodeSignatureKind {
 "Statistics about the node"
 type Statistics {
   "Current block number"
-  blockHeight: Int!
+  blockHeight: String!
 
   "Number of items in the backlog"
-  backlogLength: Int!
+  backlogLength: String!
 
   "Total number of peers on the vega network"
-  totalPeers: Int!
+  totalPeers: String!
 
   "RFC3339Nano genesis time of the chain"
   genesisTime: String!
@@ -5961,37 +6026,37 @@ type Statistics {
   status: String!
 
   "Number of transaction processed per block"
-  txPerBlock: Int!
+  txPerBlock: String!
 
   "Average size of the transactions"
-  averageTxBytes: Int!
+  averageTxBytes: String!
 
   "Average number of orders added per blocks"
-  averageOrdersPerBlock: Int!
+  averageOrdersPerBlock: String!
 
   "Number of the trades per seconds"
-  tradesPerSecond: Int!
+  tradesPerSecond: String!
 
   "Number of orders per seconds"
-  ordersPerSecond: Int!
+  ordersPerSecond: String!
 
   "Total number of markets"
-  totalMarkets: Int!
+  totalMarkets: String!
 
   "Total number of amended orders"
-  totalAmendOrder: Int!
+  totalAmendOrder: String!
 
   "Total number of cancelled orders"
-  totalCancelOrder: Int!
+  totalCancelOrder: String!
 
   "Total number of orders created"
-  totalCreateOrder: Int!
+  totalCreateOrder: String!
 
   "Total number of orders"
-  totalOrders: Int!
+  totalOrders: String!
 
   "Total number of trades"
-  totalTrades: Int!
+  totalTrades: String!
 
   "Version commit hash of the vega node"
   appVersionHash: String!
@@ -6003,25 +6068,35 @@ type Statistics {
   chainVersion: String!
 
   "Duration of the last block, in nanoseconds"
-  blockDuration: Int!
+  blockDuration: String!
 
   "Number of orders subscriptions"
-  orderSubscriptions: Int!
+  orderSubscriptions: String!
 
   "Number of trades subscriptions"
-  tradeSubscriptions: Int!
+  tradeSubscriptions: String!
 
   "Number of candles subscriptions"
-  candleSubscriptions: Int!
+  candleSubscriptions: String!
 
   "Number of market depth subscriptions"
-  marketDepthSubscriptions: Int!
+  marketDepthSubscriptions: String!
 
   "Number of market depth update subscriptions"
-  marketDepthUpdateSubscriptions: Int!
+  marketDepthUpdatesSubscriptions: String!
 
   "Number of positions subscriptions"
-  positionsSubscriptions: Int!
+  positionsSubscriptions: String!
+
+  "Number of positions subscriptions"
+  accountSubscriptions: String!
+
+  "Number of positions subscriptions"
+  marketDataSubscriptions: String!
+
+  "Current chain id"
+  chainId: String!
+
 }
 
 "A mode where Vega tries to execute orders as soon as they are received"
@@ -22889,6 +22964,41 @@ func (ec *executionContext) _Query_epoch(ctx context.Context, field graphql.Coll
 	return ec.marshalNEpoch2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐEpoch(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_statistics(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Statistics(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*v14.Statistics)
+	fc.Result = res
+	return ec.marshalNStatistics2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚋapiᚋv1ᚐStatistics(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -24141,7 +24251,7 @@ func (ec *executionContext) _StakeLinking_txHash(ctx context.Context, field grap
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_blockHeight(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_blockHeight(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24152,14 +24262,14 @@ func (ec *executionContext) _Statistics_blockHeight(ctx context.Context, field g
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.BlockHeight, nil
+		return ec.resolvers.Statistics().BlockHeight(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24171,12 +24281,12 @@ func (ec *executionContext) _Statistics_blockHeight(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_backlogLength(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_backlogLength(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24187,14 +24297,14 @@ func (ec *executionContext) _Statistics_backlogLength(ctx context.Context, field
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.BacklogLength, nil
+		return ec.resolvers.Statistics().BacklogLength(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24206,12 +24316,12 @@ func (ec *executionContext) _Statistics_backlogLength(ctx context.Context, field
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_totalPeers(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_totalPeers(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24222,14 +24332,14 @@ func (ec *executionContext) _Statistics_totalPeers(ctx context.Context, field gr
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TotalPeers, nil
+		return ec.resolvers.Statistics().TotalPeers(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24241,12 +24351,12 @@ func (ec *executionContext) _Statistics_totalPeers(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_genesisTime(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_genesisTime(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24281,7 +24391,7 @@ func (ec *executionContext) _Statistics_genesisTime(ctx context.Context, field g
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_currentTime(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_currentTime(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24316,7 +24426,7 @@ func (ec *executionContext) _Statistics_currentTime(ctx context.Context, field g
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_upTime(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_upTime(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24334,7 +24444,7 @@ func (ec *executionContext) _Statistics_upTime(ctx context.Context, field graphq
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.UpTime, nil
+		return obj.Uptime, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24351,7 +24461,7 @@ func (ec *executionContext) _Statistics_upTime(ctx context.Context, field graphq
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_vegaTime(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_vegaTime(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24386,7 +24496,7 @@ func (ec *executionContext) _Statistics_vegaTime(ctx context.Context, field grap
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_status(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_status(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24397,14 +24507,14 @@ func (ec *executionContext) _Statistics_status(ctx context.Context, field graphq
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Status, nil
+		return ec.resolvers.Statistics().Status(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24421,7 +24531,7 @@ func (ec *executionContext) _Statistics_status(ctx context.Context, field graphq
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_txPerBlock(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_txPerBlock(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24432,14 +24542,14 @@ func (ec *executionContext) _Statistics_txPerBlock(ctx context.Context, field gr
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TxPerBlock, nil
+		return ec.resolvers.Statistics().TxPerBlock(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24451,12 +24561,12 @@ func (ec *executionContext) _Statistics_txPerBlock(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_averageTxBytes(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_averageTxBytes(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24467,14 +24577,14 @@ func (ec *executionContext) _Statistics_averageTxBytes(ctx context.Context, fiel
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.AverageTxBytes, nil
+		return ec.resolvers.Statistics().AverageTxBytes(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24486,12 +24596,12 @@ func (ec *executionContext) _Statistics_averageTxBytes(ctx context.Context, fiel
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_averageOrdersPerBlock(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_averageOrdersPerBlock(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24502,14 +24612,14 @@ func (ec *executionContext) _Statistics_averageOrdersPerBlock(ctx context.Contex
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.AverageOrdersPerBlock, nil
+		return ec.resolvers.Statistics().AverageOrdersPerBlock(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24521,12 +24631,12 @@ func (ec *executionContext) _Statistics_averageOrdersPerBlock(ctx context.Contex
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_tradesPerSecond(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_tradesPerSecond(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24537,14 +24647,14 @@ func (ec *executionContext) _Statistics_tradesPerSecond(ctx context.Context, fie
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TradesPerSecond, nil
+		return ec.resolvers.Statistics().TradesPerSecond(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24556,12 +24666,12 @@ func (ec *executionContext) _Statistics_tradesPerSecond(ctx context.Context, fie
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_ordersPerSecond(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_ordersPerSecond(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24572,14 +24682,14 @@ func (ec *executionContext) _Statistics_ordersPerSecond(ctx context.Context, fie
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.OrdersPerSecond, nil
+		return ec.resolvers.Statistics().OrdersPerSecond(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24591,12 +24701,12 @@ func (ec *executionContext) _Statistics_ordersPerSecond(ctx context.Context, fie
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_totalMarkets(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_totalMarkets(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24607,14 +24717,14 @@ func (ec *executionContext) _Statistics_totalMarkets(ctx context.Context, field 
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TotalMarkets, nil
+		return ec.resolvers.Statistics().TotalMarkets(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24626,12 +24736,12 @@ func (ec *executionContext) _Statistics_totalMarkets(ctx context.Context, field 
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_totalAmendOrder(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_totalAmendOrder(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24642,14 +24752,14 @@ func (ec *executionContext) _Statistics_totalAmendOrder(ctx context.Context, fie
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TotalAmendOrder, nil
+		return ec.resolvers.Statistics().TotalAmendOrder(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24661,12 +24771,12 @@ func (ec *executionContext) _Statistics_totalAmendOrder(ctx context.Context, fie
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_totalCancelOrder(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_totalCancelOrder(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24677,14 +24787,14 @@ func (ec *executionContext) _Statistics_totalCancelOrder(ctx context.Context, fi
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TotalCancelOrder, nil
+		return ec.resolvers.Statistics().TotalCancelOrder(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24696,12 +24806,12 @@ func (ec *executionContext) _Statistics_totalCancelOrder(ctx context.Context, fi
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_totalCreateOrder(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_totalCreateOrder(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24712,14 +24822,14 @@ func (ec *executionContext) _Statistics_totalCreateOrder(ctx context.Context, fi
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TotalCreateOrder, nil
+		return ec.resolvers.Statistics().TotalCreateOrder(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24731,12 +24841,12 @@ func (ec *executionContext) _Statistics_totalCreateOrder(ctx context.Context, fi
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_totalOrders(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_totalOrders(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24747,14 +24857,14 @@ func (ec *executionContext) _Statistics_totalOrders(ctx context.Context, field g
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TotalOrders, nil
+		return ec.resolvers.Statistics().TotalOrders(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24766,12 +24876,12 @@ func (ec *executionContext) _Statistics_totalOrders(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_totalTrades(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_totalTrades(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24782,14 +24892,14 @@ func (ec *executionContext) _Statistics_totalTrades(ctx context.Context, field g
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TotalTrades, nil
+		return ec.resolvers.Statistics().TotalTrades(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24801,12 +24911,12 @@ func (ec *executionContext) _Statistics_totalTrades(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_appVersionHash(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_appVersionHash(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24841,7 +24951,7 @@ func (ec *executionContext) _Statistics_appVersionHash(ctx context.Context, fiel
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_appVersion(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_appVersion(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24876,7 +24986,7 @@ func (ec *executionContext) _Statistics_appVersion(ctx context.Context, field gr
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_chainVersion(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_chainVersion(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24911,7 +25021,7 @@ func (ec *executionContext) _Statistics_chainVersion(ctx context.Context, field 
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_blockDuration(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_blockDuration(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24922,14 +25032,14 @@ func (ec *executionContext) _Statistics_blockDuration(ctx context.Context, field
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.BlockDuration, nil
+		return ec.resolvers.Statistics().BlockDuration(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24941,12 +25051,12 @@ func (ec *executionContext) _Statistics_blockDuration(ctx context.Context, field
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_orderSubscriptions(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_orderSubscriptions(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24957,14 +25067,14 @@ func (ec *executionContext) _Statistics_orderSubscriptions(ctx context.Context, 
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.OrderSubscriptions, nil
+		return ec.resolvers.Statistics().OrderSubscriptions(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24976,12 +25086,12 @@ func (ec *executionContext) _Statistics_orderSubscriptions(ctx context.Context, 
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_tradeSubscriptions(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_tradeSubscriptions(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24992,14 +25102,14 @@ func (ec *executionContext) _Statistics_tradeSubscriptions(ctx context.Context, 
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TradeSubscriptions, nil
+		return ec.resolvers.Statistics().TradeSubscriptions(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -25011,12 +25121,12 @@ func (ec *executionContext) _Statistics_tradeSubscriptions(ctx context.Context, 
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_candleSubscriptions(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_candleSubscriptions(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -25027,14 +25137,14 @@ func (ec *executionContext) _Statistics_candleSubscriptions(ctx context.Context,
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.CandleSubscriptions, nil
+		return ec.resolvers.Statistics().CandleSubscriptions(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -25046,12 +25156,12 @@ func (ec *executionContext) _Statistics_candleSubscriptions(ctx context.Context,
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_marketDepthSubscriptions(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_marketDepthSubscriptions(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -25062,14 +25172,14 @@ func (ec *executionContext) _Statistics_marketDepthSubscriptions(ctx context.Con
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.MarketDepthSubscriptions, nil
+		return ec.resolvers.Statistics().MarketDepthSubscriptions(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -25081,12 +25191,12 @@ func (ec *executionContext) _Statistics_marketDepthSubscriptions(ctx context.Con
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_marketDepthUpdateSubscriptions(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_marketDepthUpdatesSubscriptions(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -25097,14 +25207,14 @@ func (ec *executionContext) _Statistics_marketDepthUpdateSubscriptions(ctx conte
 		Object:     "Statistics",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.MarketDepthUpdateSubscriptions, nil
+		return ec.resolvers.Statistics().MarketDepthUpdatesSubscriptions(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -25116,12 +25226,117 @@ func (ec *executionContext) _Statistics_marketDepthUpdateSubscriptions(ctx conte
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Statistics_positionsSubscriptions(ctx context.Context, field graphql.CollectedField, obj *Statistics) (ret graphql.Marshaler) {
+func (ec *executionContext) _Statistics_positionsSubscriptions(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Statistics",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Statistics().PositionsSubscriptions(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Statistics_accountSubscriptions(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Statistics",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Statistics().AccountSubscriptions(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Statistics_marketDataSubscriptions(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Statistics",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Statistics().MarketDataSubscriptions(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Statistics_chainId(ctx context.Context, field graphql.CollectedField, obj *v14.Statistics) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -25139,7 +25354,7 @@ func (ec *executionContext) _Statistics_positionsSubscriptions(ctx context.Conte
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.PositionsSubscriptions, nil
+		return obj.ChainId, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -25151,9 +25366,9 @@ func (ec *executionContext) _Statistics_positionsSubscriptions(ctx context.Conte
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Subscription_candles(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
@@ -34188,6 +34403,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "statistics":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_statistics(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
@@ -34672,7 +34901,7 @@ func (ec *executionContext) _StakeLinking(ctx context.Context, sel ast.Selection
 
 var statisticsImplementors = []string{"Statistics"}
 
-func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSet, obj *Statistics) graphql.Marshaler {
+func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSet, obj *v14.Statistics) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, statisticsImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -34682,149 +34911,380 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Statistics")
 		case "blockHeight":
-			out.Values[i] = ec._Statistics_blockHeight(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_blockHeight(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "backlogLength":
-			out.Values[i] = ec._Statistics_backlogLength(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_backlogLength(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "totalPeers":
-			out.Values[i] = ec._Statistics_totalPeers(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_totalPeers(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "genesisTime":
 			out.Values[i] = ec._Statistics_genesisTime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "currentTime":
 			out.Values[i] = ec._Statistics_currentTime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "upTime":
 			out.Values[i] = ec._Statistics_upTime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "vegaTime":
 			out.Values[i] = ec._Statistics_vegaTime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "status":
-			out.Values[i] = ec._Statistics_status(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_status(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "txPerBlock":
-			out.Values[i] = ec._Statistics_txPerBlock(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_txPerBlock(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "averageTxBytes":
-			out.Values[i] = ec._Statistics_averageTxBytes(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_averageTxBytes(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "averageOrdersPerBlock":
-			out.Values[i] = ec._Statistics_averageOrdersPerBlock(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_averageOrdersPerBlock(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "tradesPerSecond":
-			out.Values[i] = ec._Statistics_tradesPerSecond(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_tradesPerSecond(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "ordersPerSecond":
-			out.Values[i] = ec._Statistics_ordersPerSecond(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_ordersPerSecond(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "totalMarkets":
-			out.Values[i] = ec._Statistics_totalMarkets(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_totalMarkets(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "totalAmendOrder":
-			out.Values[i] = ec._Statistics_totalAmendOrder(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_totalAmendOrder(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "totalCancelOrder":
-			out.Values[i] = ec._Statistics_totalCancelOrder(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_totalCancelOrder(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "totalCreateOrder":
-			out.Values[i] = ec._Statistics_totalCreateOrder(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_totalCreateOrder(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "totalOrders":
-			out.Values[i] = ec._Statistics_totalOrders(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_totalOrders(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "totalTrades":
-			out.Values[i] = ec._Statistics_totalTrades(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_totalTrades(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "appVersionHash":
 			out.Values[i] = ec._Statistics_appVersionHash(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "appVersion":
 			out.Values[i] = ec._Statistics_appVersion(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "chainVersion":
 			out.Values[i] = ec._Statistics_chainVersion(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "blockDuration":
-			out.Values[i] = ec._Statistics_blockDuration(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_blockDuration(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "orderSubscriptions":
-			out.Values[i] = ec._Statistics_orderSubscriptions(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_orderSubscriptions(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "tradeSubscriptions":
-			out.Values[i] = ec._Statistics_tradeSubscriptions(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_tradeSubscriptions(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "candleSubscriptions":
-			out.Values[i] = ec._Statistics_candleSubscriptions(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_candleSubscriptions(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "marketDepthSubscriptions":
-			out.Values[i] = ec._Statistics_marketDepthSubscriptions(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "marketDepthUpdateSubscriptions":
-			out.Values[i] = ec._Statistics_marketDepthUpdateSubscriptions(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_marketDepthSubscriptions(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "marketDepthUpdatesSubscriptions":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_marketDepthUpdatesSubscriptions(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "positionsSubscriptions":
-			out.Values[i] = ec._Statistics_positionsSubscriptions(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_positionsSubscriptions(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "accountSubscriptions":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_accountSubscriptions(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "marketDataSubscriptions":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Statistics_marketDataSubscriptions(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "chainId":
+			out.Values[i] = ec._Statistics_chainId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -37102,6 +37562,20 @@ func (ec *executionContext) unmarshalNStakeLinkingType2codeᚗvegaprotocolᚗio�
 
 func (ec *executionContext) marshalNStakeLinkingType2codeᚗvegaprotocolᚗioᚋdataᚑnodeᚋgatewayᚋgraphqlᚐStakeLinkingType(ctx context.Context, sel ast.SelectionSet, v StakeLinkingType) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) marshalNStatistics2codeᚗvegaprotocolᚗioᚋprotosᚋvegaᚋapiᚋv1ᚐStatistics(ctx context.Context, sel ast.SelectionSet, v v14.Statistics) graphql.Marshaler {
+	return ec._Statistics(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNStatistics2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚋapiᚋv1ᚐStatistics(ctx context.Context, sel ast.SelectionSet, v *v14.Statistics) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Statistics(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

@@ -287,6 +287,10 @@ func (r *VegaResolverRoot) Reward() RewardResolver {
 	return (*rewardResolver)(r)
 }
 
+func (r *VegaResolverRoot) Statistics() StatisticsResolver {
+	return (*statisticsResolver)(r)
+}
+
 // LiquidityOrder resolver
 
 type myLiquidityOrderResolver VegaResolverRoot
@@ -814,6 +818,15 @@ func (r *myQueryResolver) RewardDetails(ctx context.Context, partyID string) ([]
 	}
 	resp, _ := r.tradingDataClient.GetRewardDetails(ctx, req)
 	return resp.RewardDetails, nil
+}
+
+func (r *myQueryResolver) Statistics(ctx context.Context) (*vegaprotoapi.Statistics, error) {
+	req := &vegaprotoapi.StatisticsRequest{}
+	resp, err := r.tradingProxyClient.Statistics(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetStatistics(), nil
 }
 
 // END: Root Resolver
