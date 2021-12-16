@@ -6716,7 +6716,7 @@ type Party {
   "The staking information for this Party"
   stake: PartyStake!
 
-  "return reward information"
+  "return individual reward information"
   rewards(
     "An optional asset"
     asset: String
@@ -6728,11 +6728,13 @@ type Party {
     last: Int
   ): [Reward]
 
+  "return net reward information"
   rewardSummaries(
     "An optional asset"
     asset: String
   ): [RewardSummary]
 
+  "return reward information"
   rewardDetails: [RewardPerAssetDetail] @deprecated(reason: "Use rewardSummaries or rewards instead.")
 }
 
@@ -8019,8 +8021,11 @@ type Reward {
 }
 
 type RewardSummary {
+  "The asset for which these rewards are associated"
   asset: Asset!
+  "Total quantity of rewards awarded in this asset"
   amount: String!
+  "List of individual reward payouts, ordered by epoch"
   rewards (
     "Pagination skip"
     skip: Int

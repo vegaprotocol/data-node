@@ -5,7 +5,6 @@ import (
 	"context"
 	"math"
 
-	protoapi "code.vegaprotocol.io/protos/data-node/api/v1"
 	"code.vegaprotocol.io/protos/vega"
 )
 
@@ -22,18 +21,7 @@ func (r *rewardPerAssetDetailResolver) Asset(ctx context.Context, obj *vega.Rewa
 
 func (r *rewardPerAssetDetailResolver) Rewards(ctx context.Context, obj *vega.RewardSummary) ([]*vega.Reward, error) {
 	maxInt := math.MaxInt
-	p := makePagination(nil, &maxInt, nil)
-
-	req := &protoapi.GetRewardsRequest{
-		PartyId:    obj.PartyId,
-		AssetId:    obj.AssetId,
-		Pagination: p,
-	}
-	resp, err := r.tradingDataClient.GetRewards(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	return resp.Rewards, err
+	return r.r.allRewards(ctx, obj.PartyId, obj.AssetId, nil, &maxInt, nil)
 }
 
 func (r *rewardPerAssetDetailResolver) TotalAmount(ctx context.Context, obj *vega.RewardSummary) (string, error) {
