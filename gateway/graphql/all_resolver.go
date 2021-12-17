@@ -108,12 +108,10 @@ func (r *allResolver) allMarkets(ctx context.Context, id *string) ([]*types.Mark
 }
 
 func (r *allResolver) allRewards(ctx context.Context, partyID, assetID string, skip, first, last *int) ([]*types.Reward, error) {
-	p := makePagination(skip, first, last)
-
 	req := &protoapi.GetRewardsRequest{
 		PartyId:    partyID,
 		AssetId:    assetID,
-		Pagination: p,
+		Pagination: makePagination(skip, first, last),
 	}
 	resp, err := r.clt.GetRewards(ctx, req)
 	if err != nil {
