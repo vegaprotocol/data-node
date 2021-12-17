@@ -696,30 +696,6 @@ type Statistics {
   "Duration of the last block, in nanoseconds"
   blockDuration: String!
 
-  "Number of orders subscriptions"
-  orderSubscriptions: String!
-
-  "Number of trades subscriptions"
-  tradeSubscriptions: String!
-
-  "Number of candles subscriptions"
-  candleSubscriptions: String!
-
-  "Number of market depth subscriptions"
-  marketDepthSubscriptions: String!
-
-  "Number of market depth update subscriptions"
-  marketDepthUpdatesSubscriptions: String!
-
-  "Number of positions subscriptions"
-  positionsSubscriptions: String!
-
-  "Number of positions subscriptions"
-  accountSubscriptions: String!
-
-  "Number of positions subscriptions"
-  marketDataSubscriptions: String!
-
   "Current chain id"
   chainId: String!
 

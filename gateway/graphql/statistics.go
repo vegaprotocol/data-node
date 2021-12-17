@@ -65,38 +65,6 @@ func (s *statisticsResolver) TotalTrades(ctx context.Context, obj *vega.Statisti
 	return strconv.FormatUint(obj.TotalTrades, 10), nil
 }
 
-func (s *statisticsResolver) OrderSubscriptions(ctx context.Context, obj *vega.Statistics) (string, error) {
-	return strconv.FormatUint(uint64(obj.OrderSubscriptions), 10), nil
-}
-
-func (s *statisticsResolver) TradeSubscriptions(ctx context.Context, obj *vega.Statistics) (string, error) {
-	return strconv.FormatUint(uint64(obj.TradeSubscriptions), 10), nil
-}
-
-func (s *statisticsResolver) CandleSubscriptions(ctx context.Context, obj *vega.Statistics) (string, error) {
-	return strconv.FormatUint(uint64(obj.CandleSubscriptions), 10), nil
-}
-
-func (s *statisticsResolver) MarketDepthSubscriptions(ctx context.Context, obj *vega.Statistics) (string, error) {
-	return strconv.FormatUint(uint64(obj.MarketDepthSubscriptions), 10), nil
-}
-
-func (s *statisticsResolver) PositionsSubscriptions(ctx context.Context, obj *vega.Statistics) (string, error) {
-	return strconv.FormatUint(uint64(obj.PositionsSubscriptions), 10), nil
-}
-
-func (s *statisticsResolver) AccountSubscriptions(ctx context.Context, obj *vega.Statistics) (string, error) {
-	return strconv.FormatUint(uint64(obj.AccountSubscriptions), 10), nil
-}
-
-func (s *statisticsResolver) MarketDataSubscriptions(ctx context.Context, obj *vega.Statistics) (string, error) {
-	return strconv.FormatUint(uint64(obj.MarketDataSubscriptions), 10), nil
-}
-
-func (s *statisticsResolver) MarketDepthUpdatesSubscriptions(ctx context.Context, obj *vega.Statistics) (string, error) {
-	return strconv.FormatUint(uint64(obj.MarketDepthUpdatesSubscriptions), 10), nil
-}
-
 func (s *statisticsResolver) BlockDuration(ctx context.Context, obj *vega.Statistics) (string, error) {
 	return strconv.FormatUint(obj.BlockDuration, 10), nil
 }
