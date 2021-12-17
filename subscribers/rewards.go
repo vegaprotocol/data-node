@@ -296,6 +296,8 @@ func (rc *RewardCounters) GetRewardSubscribersCount() int32 {
 
 // Get the total amount of rewards for each asset (optionally filtering on an asset ID)
 func (rc *RewardCounters) GetRewardSummaries(ctx context.Context, partyID string, assetID *string) []*vega.RewardSummary {
+	rc.mu.RLock()
+	defer rc.mu.RUnlock()
 	summaries := []*vega.RewardSummary{}
 	rewardsPerAsset, ok := rc.rewardsPerPartyPerAsset[partyID]
 	if !ok {
