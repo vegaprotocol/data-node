@@ -10,6 +10,7 @@
 
 ### 🛠  Improvements
 - [244](https://github.com/vegaprotocol/data-node/pull/244) - Constrain the number of epochs for which we keep delegations in memory
+- [250](https://github.com/vegaprotocol/data-node/pull/250) - Update go requrement to 1.17
 
 ### 🐛 Fixes
 - [](https://github.com/vegaprotocol/data-node/pull/) -
