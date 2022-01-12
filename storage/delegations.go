@@ -3,6 +3,8 @@ package storage
 import (
 	"fmt"
 	"math"
+	"sort"
+	"strconv"
 	"sync"
 
 	"code.vegaprotocol.io/data-node/logging"
@@ -151,7 +153,10 @@ func (s *Delegations) GetAllDelegations() ([]*pb.Delegation, error) {
 }
 
 //GetAllDelegationsOnEpoch returns all delegation for the given epoch
-func (s *Delegations) GetAllDelegationsOnEpoch(epochSeq string) ([]*pb.Delegation, error) {
+func (s *Delegations) GetAllDelegationsOnEpoch(
+	epochSeq string,
+	skip, limit uint64, descending bool,
+) ([]*pb.Delegation, error) {
 	delegations := []*pb.Delegation{}
 
 	epochDelegations, ok := s.epochToPartyDelegations[epochSeq]
@@ -168,11 +173,15 @@ func (s *Delegations) GetAllDelegationsOnEpoch(epochSeq string) ([]*pb.Delegatio
 			})
 		}
 	}
+	delegations = PaginateDelegations(delegations, skip, limit, descending)
 	return delegations, nil
 }
 
 //GetNodeDelegations returns all the delegations made to a node across all epochs
-func (s *Delegations) GetNodeDelegations(nodeID string) ([]*pb.Delegation, error) {
+func (s *Delegations) GetNodeDelegations(
+	nodeID string,
+	skip, limit uint64, descending bool,
+) ([]*pb.Delegation, error) {
 	delegations := []*pb.Delegation{}
 
 	for epoch, epochDelegations := range s.epochToPartyDelegations {
@@ -190,6 +199,7 @@ func (s *Delegations) GetNodeDelegations(nodeID string) ([]*pb.Delegation, error
 			}
 		}
 	}
+	delegations = PaginateDelegations(delegations, skip, limit, descending)
 	return delegations, nil
 }
 
@@ -220,7 +230,7 @@ func (s *Delegations) GetNodeDelegationsOnEpoch(nodeID string, epochSeq string) 
 }
 
 //GetPartyDelegations returns all the delegations by a party across all epochs
-func (s *Delegations) GetPartyDelegations(party string) ([]*pb.Delegation, error) {
+func (s *Delegations) GetPartyDelegations(party string, skip, limit uint64, descending bool) ([]*pb.Delegation, error) {
 	delegations := []*pb.Delegation{}
 
 	for epoch, epochDelegations := range s.epochToPartyDelegations {
@@ -238,6 +248,7 @@ func (s *Delegations) GetPartyDelegations(party string) ([]*pb.Delegation, error
 			})
 		}
 	}
+	delegations = PaginateDelegations(delegations, skip, limit, descending)
 	return delegations, nil
 }
 
@@ -268,7 +279,10 @@ func (s *Delegations) GetPartyDelegationsOnEpoch(party string, epochSeq string) 
 }
 
 //GetPartyNodeDelegations returns the delegations from party to node across all epochs
-func (s *Delegations) GetPartyNodeDelegations(party string, node string) ([]*pb.Delegation, error) {
+func (s *Delegations) GetPartyNodeDelegations(
+	party string, node string,
+	skip, limit uint64, descending bool,
+) ([]*pb.Delegation, error) {
 	delegations := []*pb.Delegation{}
 
 	for epoch, epochDelegations := range s.epochToPartyDelegations {
@@ -290,6 +304,7 @@ func (s *Delegations) GetPartyNodeDelegations(party string, node string) ([]*pb.
 		})
 	}
 
+	delegations = PaginateDelegations(delegations, skip, limit, descending)
 	return delegations, nil
 }
 
@@ -320,4 +335,66 @@ func (s *Delegations) GetPartyNodeDelegationsOnEpoch(party, node, epochSeq strin
 	})
 
 	return delegations, nil
+}
+
+func makeSortFunction(delegations []*pb.Delegation, descending bool) func(int, int) bool {
+	mySort := func(i int, j int) bool {
+		epochI, err := strconv.Atoi(delegations[i].EpochSeq)
+		if err != nil {
+			// TODO: Can we do any better here? Can't return an error in a sort function
+			return true
+		}
+
+		epochJ, err := strconv.Atoi(delegations[j].EpochSeq)
+		if err != nil {
+			return true
+		}
+
+		if epochI != epochJ {
+			return epochI < epochJ
+		}
+
+		if delegations[i].Party != delegations[j].Party {
+			return delegations[i].Party < delegations[j].Party
+		}
+
+		return delegations[i].NodeId < delegations[j].NodeId
+	}
+
+	myInverseSort := func(i int, j int) bool {
+		return !mySort(i, j)
+	}
+
+	if descending {
+		return myInverseSort
+	} else {
+		return mySort
+	}
+}
+
+// Paginate rewards, sorting by epoch (then partyId, then nodeId)
+func PaginateDelegations(delegations []*pb.Delegation, skip, limit uint64, descending bool) []*pb.Delegation {
+	length := uint64(len(delegations))
+	start := uint64(0)
+	end := length
+
+	sort_fn := makeSortFunction(delegations, descending)
+
+	sort.Slice(delegations, sort_fn)
+	start = skip
+	if limit != 0 {
+		end = skip + limit
+	}
+
+	start = min(start, length)
+	end = min(end, length)
+	return delegations[start:end]
+}
+
+// Returns the min of 2 uint64s
+func min(x, y uint64) uint64 {
+	if y < x {
+		return y
+	}
+	return x
 }
