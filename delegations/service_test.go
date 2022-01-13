@@ -2,7 +2,6 @@ package delegations_test
 
 import (
 	"context"
-	"math"
 	"testing"
 
 	"code.vegaprotocol.io/data-node/delegations"
@@ -80,7 +79,7 @@ func TestGetAllDelegationsOnEpoch(t *testing.T) {
 		gomock.Any(),
 		gomock.Any(),
 		gomock.Any()).Return([]*pb.Delegation{}, nil)
-	res, err := testService.svc.GetAllDelegationsOnEpoch("1234", 0, math.MaxUint32, false)
+	res, err := testService.svc.GetAllDelegationsOnEpoch("1234", 0, 0, false)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(res))
 
@@ -95,7 +94,7 @@ func TestGetAllDelegationsOnEpoch(t *testing.T) {
 		del1, del2,
 	}, nil)
 
-	res, err = testService.svc.GetAllDelegationsOnEpoch("1234", 0, math.MaxUint32, false)
+	res, err = testService.svc.GetAllDelegationsOnEpoch("1234", 0, 0, false)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(res))
 	require.Equal(t, *del1, *res[0])
@@ -110,7 +109,7 @@ func TestGetPartyDelegations(t *testing.T) {
 		gomock.Any(),
 		gomock.Any(),
 		gomock.Any()).Return([]*pb.Delegation{}, nil)
-	res, err := testService.svc.GetPartyDelegations("party1", 0, math.MaxUint32, false)
+	res, err := testService.svc.GetPartyDelegations("party1", 0, 0, false)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(res))
 
@@ -125,7 +124,7 @@ func TestGetPartyDelegations(t *testing.T) {
 		del1, del2,
 	}, nil)
 
-	res, err = testService.svc.GetPartyDelegations("party1", 0, math.MaxUint32, false)
+	res, err = testService.svc.GetPartyDelegations("party1", 0, 0, false)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(res))
 	require.Equal(t, *del1, *res[0])
@@ -172,7 +171,7 @@ func TestGetPartyNodeDelegations(t *testing.T) {
 		gomock.Any(),
 		gomock.Any(),
 		gomock.Any()).Return([]*pb.Delegation{}, nil)
-	res, err := testService.svc.GetPartyNodeDelegations("party1", "node1", 0, math.MaxUint32, false)
+	res, err := testService.svc.GetPartyNodeDelegations("party1", "node1", 0, 0, false)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(res))
 
@@ -188,7 +187,7 @@ func TestGetPartyNodeDelegations(t *testing.T) {
 		del1, del2,
 	}, nil)
 
-	res, err = testService.svc.GetPartyNodeDelegations("party1", "node1", 0, math.MaxUint32, false)
+	res, err = testService.svc.GetPartyNodeDelegations("party1", "node1", 0, 0, false)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(res))
 	require.Equal(t, *del1, *res[0])
@@ -223,7 +222,7 @@ func TestGetNodeDelegations(t *testing.T) {
 		gomock.Any(),
 		gomock.Any(),
 		gomock.Any()).Return([]*pb.Delegation{}, nil)
-	res, err := testService.svc.GetNodeDelegations("node1", 0, math.MaxUint32, false)
+	res, err := testService.svc.GetNodeDelegations("node1", 0, 0, false)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(res))
 
@@ -238,7 +237,7 @@ func TestGetNodeDelegations(t *testing.T) {
 		del1, del2,
 	}, nil)
 
-	res, err = testService.svc.GetNodeDelegations("node1", 0, math.MaxUint32, false)
+	res, err = testService.svc.GetNodeDelegations("node1", 0, 0, false)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(res))
 	require.Equal(t, *del1, *res[0])
