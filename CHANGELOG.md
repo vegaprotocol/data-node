@@ -12,6 +12,7 @@
 - [244](https://github.com/vegaprotocol/data-node/pull/244) - Constrain the number of epochs for which we keep delegations in memory
 - [251](https://github.com/vegaprotocol/data-node/pull/251) - Updated proto and core and added support for the new events (state var and network limits)
 - [289](https://github.com/vegaprotocol/data-node/pull/289) - Add support for pagination of delegations
+- [254](https://github.com/vegaprotocol/data-node/pull/254) - Move to `ghcr.io` container registry
 
 ### 🐛 Fixes
 - [](https://github.com/vegaprotocol/data-node/pull/) -
