@@ -34,18 +34,18 @@ func (m *MockDelegationStore) EXPECT() *MockDelegationStoreMockRecorder {
 }
 
 // GetAllDelegations mocks base method
-func (m *MockDelegationStore) GetAllDelegations() ([]*vega.Delegation, error) {
+func (m *MockDelegationStore) GetAllDelegations(arg0, arg1 uint64, arg2 bool) ([]*vega.Delegation, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAllDelegations")
+	ret := m.ctrl.Call(m, "GetAllDelegations", arg0, arg1, arg2)
 	ret0, _ := ret[0].([]*vega.Delegation)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAllDelegations indicates an expected call of GetAllDelegations
-func (mr *MockDelegationStoreMockRecorder) GetAllDelegations() *gomock.Call {
+func (mr *MockDelegationStoreMockRecorder) GetAllDelegations(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllDelegations", reflect.TypeOf((*MockDelegationStore)(nil).GetAllDelegations))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllDelegations", reflect.TypeOf((*MockDelegationStore)(nil).GetAllDelegations), arg0, arg1, arg2)
 }
 
 // GetAllDelegationsOnEpoch mocks base method
@@ -79,18 +79,18 @@ func (mr *MockDelegationStoreMockRecorder) GetNodeDelegations(arg0, arg1, arg2, 
 }
 
 // GetNodeDelegationsOnEpoch mocks base method
-func (m *MockDelegationStore) GetNodeDelegationsOnEpoch(arg0, arg1 string) ([]*vega.Delegation, error) {
+func (m *MockDelegationStore) GetNodeDelegationsOnEpoch(arg0, arg1 string, arg2, arg3 uint64, arg4 bool) ([]*vega.Delegation, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNodeDelegationsOnEpoch", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetNodeDelegationsOnEpoch", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].([]*vega.Delegation)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetNodeDelegationsOnEpoch indicates an expected call of GetNodeDelegationsOnEpoch
-func (mr *MockDelegationStoreMockRecorder) GetNodeDelegationsOnEpoch(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockDelegationStoreMockRecorder) GetNodeDelegationsOnEpoch(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeDelegationsOnEpoch", reflect.TypeOf((*MockDelegationStore)(nil).GetNodeDelegationsOnEpoch), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeDelegationsOnEpoch", reflect.TypeOf((*MockDelegationStore)(nil).GetNodeDelegationsOnEpoch), arg0, arg1, arg2, arg3, arg4)
 }
 
 // GetPartyDelegations mocks base method
@@ -109,18 +109,18 @@ func (mr *MockDelegationStoreMockRecorder) GetPartyDelegations(arg0, arg1, arg2,
 }
 
 // GetPartyDelegationsOnEpoch mocks base method
-func (m *MockDelegationStore) GetPartyDelegationsOnEpoch(arg0, arg1 string) ([]*vega.Delegation, error) {
+func (m *MockDelegationStore) GetPartyDelegationsOnEpoch(arg0, arg1 string, arg2, arg3 uint64, arg4 bool) ([]*vega.Delegation, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPartyDelegationsOnEpoch", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetPartyDelegationsOnEpoch", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].([]*vega.Delegation)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPartyDelegationsOnEpoch indicates an expected call of GetPartyDelegationsOnEpoch
-func (mr *MockDelegationStoreMockRecorder) GetPartyDelegationsOnEpoch(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockDelegationStoreMockRecorder) GetPartyDelegationsOnEpoch(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPartyDelegationsOnEpoch", reflect.TypeOf((*MockDelegationStore)(nil).GetPartyDelegationsOnEpoch), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPartyDelegationsOnEpoch", reflect.TypeOf((*MockDelegationStore)(nil).GetPartyDelegationsOnEpoch), arg0, arg1, arg2, arg3, arg4)
 }
 
 // GetPartyNodeDelegations mocks base method

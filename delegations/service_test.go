@@ -46,20 +46,26 @@ func getTestService(t *testing.T) *testService {
 func TestGetAllDelegations(t *testing.T) {
 	testService := getTestService(t)
 	// empty delegations
-	testService.delegationStore.EXPECT().GetAllDelegations().Return([]*pb.Delegation{}, nil)
+	testService.delegationStore.EXPECT().GetAllDelegations(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any()).Return([]*pb.Delegation{}, nil)
 
-	res, err := testService.svc.GetAllDelegations()
+	res, err := testService.svc.GetAllDelegations(0, 0, false)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(res))
 
 	// some delegations
 	del1 := &pb.Delegation{Party: "party1", NodeId: "node1"}
 	del2 := &pb.Delegation{Party: "party2", NodeId: "node2"}
-	testService.delegationStore.EXPECT().GetAllDelegations().Return([]*pb.Delegation{
+	testService.delegationStore.EXPECT().GetAllDelegations(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any()).Return([]*pb.Delegation{
 		del1, del2,
 	}, nil)
 
-	res, err = testService.svc.GetAllDelegations()
+	res, err = testService.svc.GetAllDelegations(0, 0, false)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(res))
 	require.Equal(t, *del1, *res[0])
@@ -129,19 +135,27 @@ func TestGetPartyDelegationsOnEpoch(t *testing.T) {
 	testService := getTestService(t)
 
 	// no delegations for epoch
-	testService.delegationStore.EXPECT().GetPartyDelegationsOnEpoch(gomock.Any(), gomock.Any()).Return([]*pb.Delegation{}, nil)
-	res, err := testService.svc.GetPartyDelegationsOnEpoch("party1", "1234")
+	testService.delegationStore.EXPECT().GetPartyDelegationsOnEpoch(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any()).Return([]*pb.Delegation{}, nil)
+	res, err := testService.svc.GetPartyDelegationsOnEpoch("party1", "1234", 0, 0, false)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(res))
 
 	// some delegations
 	del1 := &pb.Delegation{Party: "party1", NodeId: "node1"}
 	del2 := &pb.Delegation{Party: "party1", NodeId: "node2"}
-	testService.delegationStore.EXPECT().GetPartyDelegationsOnEpoch(gomock.Any(), gomock.Any()).Return([]*pb.Delegation{
-		del1, del2,
-	}, nil)
+	testService.delegationStore.EXPECT().GetPartyDelegationsOnEpoch(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any()).Return([]*pb.Delegation{del1, del2}, nil)
 
-	res, err = testService.svc.GetPartyDelegationsOnEpoch("party1", "1234")
+	res, err = testService.svc.GetPartyDelegationsOnEpoch("party1", "1234", 0, 0, false)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(res))
 	require.Equal(t, *del1, *res[0])
@@ -234,19 +248,27 @@ func TestGetNodeDelegationsOnEpoch(t *testing.T) {
 	testService := getTestService(t)
 
 	// no delegations for node for epoch
-	testService.delegationStore.EXPECT().GetNodeDelegationsOnEpoch(gomock.Any(), gomock.Any()).Return([]*pb.Delegation{}, nil)
-	res, err := testService.svc.GetNodeDelegationsOnEpoch("node1", "1234")
+	testService.delegationStore.EXPECT().GetNodeDelegationsOnEpoch(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any()).Return([]*pb.Delegation{}, nil)
+	res, err := testService.svc.GetNodeDelegationsOnEpoch("node1", "1234", 0, 0, false)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(res))
 
 	// some delegations
 	del1 := &pb.Delegation{Party: "party1", NodeId: "node1"}
 	del2 := &pb.Delegation{Party: "party2", NodeId: "node1"}
-	testService.delegationStore.EXPECT().GetNodeDelegationsOnEpoch(gomock.Any(), gomock.Any()).Return([]*pb.Delegation{
-		del1, del2,
-	}, nil)
+	testService.delegationStore.EXPECT().GetNodeDelegationsOnEpoch(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any()).Return([]*pb.Delegation{del1, del2}, nil)
 
-	res, err = testService.svc.GetNodeDelegationsOnEpoch("node1", "1234")
+	res, err = testService.svc.GetNodeDelegationsOnEpoch("node1", "1234", 0, 0, false)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(res))
 	require.Equal(t, *del1, *res[0])

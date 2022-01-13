@@ -342,7 +342,6 @@ func makeSortFunction(delegations []*pb.Delegation, descending bool) func(int, i
 	mySort := func(i int, j int) bool {
 		epochI, err := strconv.Atoi(delegations[i].EpochSeq)
 		if err != nil {
-			// TODO: Can we do any better here? Can't return an error in a sort function
 			return true
 		}
 
