@@ -134,7 +134,7 @@ func (s *Delegations) notifyWithLock(de pb.Delegation) {
 }
 
 //GetAllDelegations returns all delegations across all epochs, all parties, all nodes
-func (s *Delegations) GetAllDelegations() ([]*pb.Delegation, error) {
+func (s *Delegations) GetAllDelegations(skip, limit uint64, descending bool) ([]*pb.Delegation, error) {
 	delegations := []*pb.Delegation{}
 
 	for epoch, epochDelegations := range s.epochToPartyDelegations {
@@ -149,6 +149,7 @@ func (s *Delegations) GetAllDelegations() ([]*pb.Delegation, error) {
 			}
 		}
 	}
+	delegations = PaginateDelegations(delegations, skip, limit, descending)
 	return delegations, nil
 }
 
@@ -204,7 +205,7 @@ func (s *Delegations) GetNodeDelegations(
 }
 
 //GetNodeDelegationsOnEpoch returns the delegations to a node by all parties at a given epoch
-func (s *Delegations) GetNodeDelegationsOnEpoch(nodeID string, epochSeq string) ([]*pb.Delegation, error) {
+func (s *Delegations) GetNodeDelegationsOnEpoch(nodeID string, epochSeq string, skip, limit uint64, descending bool) ([]*pb.Delegation, error) {
 	delegations := []*pb.Delegation{}
 
 	epochDelegations, ok := s.epochToPartyDelegations[epochSeq]
@@ -225,8 +226,8 @@ func (s *Delegations) GetNodeDelegationsOnEpoch(nodeID string, epochSeq string) 
 			})
 		}
 	}
+	delegations = PaginateDelegations(delegations, skip, limit, descending)
 	return delegations, nil
-
 }
 
 //GetPartyDelegations returns all the delegations by a party across all epochs
@@ -253,7 +254,7 @@ func (s *Delegations) GetPartyDelegations(party string, skip, limit uint64, desc
 }
 
 //GetPartyDelegationsOnEpoch returns all delegation by party on a given epoch
-func (s *Delegations) GetPartyDelegationsOnEpoch(party string, epochSeq string) ([]*pb.Delegation, error) {
+func (s *Delegations) GetPartyDelegationsOnEpoch(party string, epochSeq string, skip, limit uint64, descending bool) ([]*pb.Delegation, error) {
 	delegations := []*pb.Delegation{}
 
 	epochDelegations, ok := s.epochToPartyDelegations[epochSeq]
@@ -274,7 +275,7 @@ func (s *Delegations) GetPartyDelegationsOnEpoch(party string, epochSeq string) 
 			EpochSeq: epochSeq,
 		})
 	}
-
+	delegations = PaginateDelegations(delegations, skip, limit, descending)
 	return delegations, nil
 }
 

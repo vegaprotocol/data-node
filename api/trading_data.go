@@ -219,14 +219,14 @@ type EpochService interface {
 
 //go:generate go run github.com/golang/mock/mockgen -destination mocks/delegation_service_mock.go -package mocks code.vegaprotocol.io/data-node/api DelegationService
 type DelegationService interface {
-	GetAllDelegations() ([]*pbtypes.Delegation, error)
+	GetAllDelegations(skip, limit uint64, descending bool) ([]*pbtypes.Delegation, error)
 	GetAllDelegationsOnEpoch(epochSeq string, skip, limit uint64, descending bool) ([]*pbtypes.Delegation, error)
 	GetPartyDelegations(party string, skip, limit uint64, descending bool) ([]*pbtypes.Delegation, error)
-	GetPartyDelegationsOnEpoch(party string, epochSeq string) ([]*pbtypes.Delegation, error)
+	GetPartyDelegationsOnEpoch(party string, epochSeq string, skip, limit uint64, descending bool) ([]*pbtypes.Delegation, error)
 	GetPartyNodeDelegations(party string, node string, skip, limit uint64, descending bool) ([]*pbtypes.Delegation, error)
 	GetPartyNodeDelegationsOnEpoch(party string, node string, epochSeq string) ([]*pbtypes.Delegation, error)
 	GetNodeDelegations(nodeID string, skip, limit uint64, descending bool) ([]*pbtypes.Delegation, error)
-	GetNodeDelegationsOnEpoch(nodeID string, epochSeq string) ([]*pbtypes.Delegation, error)
+	GetNodeDelegationsOnEpoch(nodeID string, epochSeq string, skip, limit uint64, descending bool) ([]*pbtypes.Delegation, error)
 	ObserveDelegations(ctx context.Context, retries int, party, nodeID string) (delegationsCh <-chan pbtypes.Delegation, ref uint64)
 }
 
@@ -443,7 +443,7 @@ func (t *tradingDataService) Delegations(ctx context.Context, req *protoapi.Dele
 	}
 
 	if req.EpochSeq == "" && req.Party == "" && req.NodeId == "" { // all delegations for all parties all nodes across all epochs
-		delegations, err = t.delegationService.GetAllDelegations()
+		delegations, err = t.delegationService.GetAllDelegations(p.Skip, p.Limit, p.Descending)
 	} else if req.EpochSeq == "" && req.Party == "" && req.NodeId != "" { // all delegations for node from all parties across all epochs
 		delegations, err = t.delegationService.GetNodeDelegations(req.NodeId, p.Skip, p.Limit, p.Descending)
 	} else if req.EpochSeq == "" && req.Party != "" && req.NodeId == "" { // all delegations by a given party to all nodes across all epochs
@@ -453,9 +453,9 @@ func (t *tradingDataService) Delegations(ctx context.Context, req *protoapi.Dele
 	} else if req.EpochSeq != "" && req.Party == "" && req.NodeId == "" { // all delegations by all parties for all nodes in a given epoch
 		delegations, err = t.delegationService.GetAllDelegationsOnEpoch(req.EpochSeq, p.Skip, p.Limit, p.Descending)
 	} else if req.EpochSeq != "" && req.Party == "" && req.NodeId != "" { // all delegations to a given node on a given epoch
-		delegations, err = t.delegationService.GetNodeDelegationsOnEpoch(req.NodeId, req.EpochSeq)
+		delegations, err = t.delegationService.GetNodeDelegationsOnEpoch(req.NodeId, req.EpochSeq, p.Skip, p.Limit, p.Descending)
 	} else if req.EpochSeq != "" && req.Party != "" && req.NodeId == "" { // all delegations by a given party on a given epoch
-		delegations, err = t.delegationService.GetPartyDelegationsOnEpoch(req.Party, req.EpochSeq)
+		delegations, err = t.delegationService.GetPartyDelegationsOnEpoch(req.Party, req.EpochSeq, p.Skip, p.Limit, p.Descending)
 	} else if req.EpochSeq != "" && req.Party != "" && req.NodeId != "" { // all delegations by a given party to a given node on a given epoch
 		delegations, err = t.delegationService.GetPartyNodeDelegationsOnEpoch(req.Party, req.NodeId, req.EpochSeq)
 	}

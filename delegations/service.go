@@ -12,14 +12,14 @@ import (
 
 //go:generate go run github.com/golang/mock/mockgen -destination mocks/delegation_store_mock.go -package mocks code.vegaprotocol.io/data-node/delegations DelegationStore
 type DelegationStore interface {
-	GetAllDelegations() ([]*pb.Delegation, error)
+	GetAllDelegations(skip, limit uint64, descending bool) ([]*pb.Delegation, error)
 	GetAllDelegationsOnEpoch(epochSeq string, skip, limit uint64, descending bool) ([]*pb.Delegation, error)
 	GetPartyDelegations(party string, skip, limit uint64, descending bool) ([]*pb.Delegation, error)
-	GetPartyDelegationsOnEpoch(party string, epochSeq string) ([]*pb.Delegation, error)
+	GetPartyDelegationsOnEpoch(party string, epochSeq string, skip, limit uint64, descending bool) ([]*pb.Delegation, error)
 	GetPartyNodeDelegations(party string, node string, skip, limit uint64, descending bool) ([]*pb.Delegation, error)
 	GetPartyNodeDelegationsOnEpoch(party string, node string, epochSeq string) ([]*pb.Delegation, error)
 	GetNodeDelegations(nodeID string, skip, limit uint64, descending bool) ([]*pb.Delegation, error)
-	GetNodeDelegationsOnEpoch(nodeID string, epochSeq string) ([]*pb.Delegation, error)
+	GetNodeDelegationsOnEpoch(nodeID string, epochSeq string, skip, limit uint64, descending bool) ([]*pb.Delegation, error)
 	Subscribe(updates chan pb.Delegation) uint64
 	Unsubscribe(id uint64) error
 }
@@ -149,8 +149,8 @@ func (s *Service) ObserveDelegations(ctx context.Context, retries int, party, no
 
 }
 
-func (s *Service) GetAllDelegations() ([]*pb.Delegation, error) {
-	return s.delegationStore.GetAllDelegations()
+func (s *Service) GetAllDelegations(skip, limit uint64, descending bool) ([]*pb.Delegation, error) {
+	return s.delegationStore.GetAllDelegations(skip, limit, descending)
 }
 func (s *Service) GetAllDelegationsOnEpoch(epochSeq string, skip, limit uint64, descending bool) ([]*pb.Delegation, error) {
 	return s.delegationStore.GetAllDelegationsOnEpoch(epochSeq, skip, limit, descending)
@@ -158,8 +158,8 @@ func (s *Service) GetAllDelegationsOnEpoch(epochSeq string, skip, limit uint64, 
 func (s *Service) GetPartyDelegations(party string, skip, limit uint64, descending bool) ([]*pb.Delegation, error) {
 	return s.delegationStore.GetPartyDelegations(party, skip, limit, descending)
 }
-func (s *Service) GetPartyDelegationsOnEpoch(party string, epochSeq string) ([]*pb.Delegation, error) {
-	return s.delegationStore.GetPartyDelegationsOnEpoch(party, epochSeq)
+func (s *Service) GetPartyDelegationsOnEpoch(party string, epochSeq string, skip, limit uint64, descending bool) ([]*pb.Delegation, error) {
+	return s.delegationStore.GetPartyDelegationsOnEpoch(party, epochSeq, skip, limit, descending)
 }
 func (s *Service) GetPartyNodeDelegations(party string, node string, skip, limit uint64, descending bool) ([]*pb.Delegation, error) {
 	return s.delegationStore.GetPartyNodeDelegations(party, node, skip, limit, descending)
@@ -170,6 +170,6 @@ func (s *Service) GetPartyNodeDelegationsOnEpoch(party string, node string, epoc
 func (s *Service) GetNodeDelegations(nodeID string, skip, limit uint64, descending bool) ([]*pb.Delegation, error) {
 	return s.delegationStore.GetNodeDelegations(nodeID, skip, limit, descending)
 }
-func (s *Service) GetNodeDelegationsOnEpoch(nodeID string, epochSeq string) ([]*pb.Delegation, error) {
-	return s.delegationStore.GetNodeDelegationsOnEpoch(nodeID, epochSeq)
+func (s *Service) GetNodeDelegationsOnEpoch(nodeID string, epochSeq string, skip, limit uint64, descending bool) ([]*pb.Delegation, error) {
+	return s.delegationStore.GetNodeDelegationsOnEpoch(nodeID, epochSeq, skip, limit, descending)
 }
