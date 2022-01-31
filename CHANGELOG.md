@@ -1,9 +1,27 @@
 # Changelog
 
-## Unreleased (0.48.0)
+## Unreleased (0.49.0)
 
 ### 🚨 Breaking changes
-- [](https://github.com/vegaprotocol/data-node/pull/) - 
+- [](https://github.com/vegaprotocol/data-node/pull/) -
+
+
+### 🗑️  Deprecation
+- [](https://github.com/vegaprotocol/data-node/pull/) -
+
+
+### 🛠  Improvements
+- [](https://github.com/vegaprotocol/data-node/pull/) -
+
+
+### 🐛 Fixes
+- [](https://github.com/vegaprotocol/data-node/pull/) -
+
+
+## 0.48.0
+
+### 🚨 Breaking changes
+- [](https://github.com/vegaprotocol/data-node/pull/) -
 
 ### 🗑️  Deprecation
 - [](https://github.com/vegaprotocol/data-node/pull/) -
@@ -17,13 +35,13 @@
 - [289](https://github.com/vegaprotocol/data-node/pull/289) - Add support for pagination of delegations
 - [254](https://github.com/vegaprotocol/data-node/pull/254) - Move to `ghcr.io` container registry
 - [290](https://github.com/vegaprotocol/data-node/pull/290) - Update pegged orders offset
-- [296](https://github.com/vegaprotocol/data-node/pull/296) - Expose validator performance score attributes on Node object 
+- [296](https://github.com/vegaprotocol/data-node/pull/296) - Expose validator performance score attributes on Node object
 - [298](https://github.com/vegaprotocol/data-node/pull/298) - Remove creation of vendor directory
 - [304](https://github.com/vegaprotocol/data-node/pull/304) - Added endpoint to support multiple versions of transaction request
 - [316](https://github.com/vegaprotocol/data-node/pull/316) - Add basic framework for connecting to `postgres` database
 
 ### 🐛 Fixes
-- [277](https://github.com/vegaprotocol/data-node/pull/277) - Now returns not-found error instead of internal error when proposal not found 
+- [277](https://github.com/vegaprotocol/data-node/pull/277) - Now returns not-found error instead of internal error when proposal not found
 - [274](https://github.com/vegaprotocol/data-node/issues/274) - Bug fix for proposal NO vote showing incorrect weight and tokens
 - [288](https://github.com/vegaprotocol/data-node/pull/288) - Add back `assetId` GraphQL resolver for `RewardPerAssetDetail`, change `RiskFactor` fields to strings.
 - [317](https://github.com/vegaprotocol/data-node/pull/317) - Fix `graphql` support for free-form governance proposals
