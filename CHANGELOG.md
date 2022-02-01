@@ -21,7 +21,7 @@
 - [298](https://github.com/vegaprotocol/data-node/pull/298) - Remove creation of vendor directory
 - [304](https://github.com/vegaprotocol/data-node/pull/304) - Added endpoint to support multiple versions of transaction request
 - [316](https://github.com/vegaprotocol/data-node/pull/316) - Add basic framework for connecting to `postgres` database
-
+- [323](https://github.com/vegaprotocol/data-node/pull/323) - Add initial `sql` storage package
 ### 🐛 Fixes
 - [277](https://github.com/vegaprotocol/data-node/pull/277) - Now returns not-found error instead of internal error when proposal not found 
 - [274](https://github.com/vegaprotocol/data-node/issues/274) - Bug fix for proposal NO vote showing incorrect weight and tokens
