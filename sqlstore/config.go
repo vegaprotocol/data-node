@@ -1,5 +1,16 @@
 package sqlstore
 
+import (
+	"time"
+
+	"code.vegaprotocol.io/data-node/config/encoding"
+)
+
+const (
+	packageLogName              = "sqlstore"
+	defaultStorageAccessTimeout = 5 * time.Second
+)
+
 type Config struct {
 	Enabled       bool
 	Host          string
@@ -8,6 +19,7 @@ type Config struct {
 	Password      string
 	Database      string
 	WipeOnStartup bool
+	Level         encoding.LogLevel `long:"log-level"`
 }
 
 func NewDefaultConfig() Config {
