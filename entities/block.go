@@ -6,6 +6,6 @@ import (
 
 type Block struct {
 	VegaTime time.Time
-	Height   int
+	Height   int64
 	Hash     []byte
 }

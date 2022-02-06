@@ -28,7 +28,7 @@ create table parties
 create table accounts
 (
     id        SERIAL PRIMARY KEY,
-    party_id  BYTEA                    NOT NULL REFERENCES parties (id),
+    party_id  BYTEA,
     asset_id  BYTEA                    NOT NULL REFERENCES assets (id),
     market_id BYTEA,
     type      INT,
