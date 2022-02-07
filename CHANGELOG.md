@@ -23,7 +23,7 @@
 - [316](https://github.com/vegaprotocol/data-node/pull/316) - Add basic framework for connecting to `postgres` database
 - [323](https://github.com/vegaprotocol/data-node/pull/323) - Add initial `sql` storage package
 - [324](https://github.com/vegaprotocol/data-node/pull/324) - Embed the facility to run a file based event store into the datanode 
-- [326](https://github.com/vegaprotocol/data-node/pull/326) - Add `BlockNr()` methods to implementors of event interface
+- [326](https://github.com/vegaprotocol/data-node/pull/326) - Add `BlockNr()` methods to implementers of event interface
 
 ### 🐛 Fixes
 - [277](https://github.com/vegaprotocol/data-node/pull/277) - Now returns not-found error instead of internal error when proposal not found 
