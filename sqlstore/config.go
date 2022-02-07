@@ -1,14 +1,7 @@
 package sqlstore
 
 import (
-	"time"
-
 	"code.vegaprotocol.io/data-node/config/encoding"
-)
-
-const (
-	packageLogName              = "sqlstore"
-	defaultStorageAccessTimeout = 5 * time.Second
 )
 
 type Config struct {
