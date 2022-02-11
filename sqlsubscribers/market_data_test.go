@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
@@ -25,10 +26,12 @@ func testShouldCallStoreAddIfBlockHeightIsReceived(t *testing.T) {
 	store := mocks.NewMockMarketDataStore(ctrl)
 	blockStore := mocks.NewMockBlockStore(ctrl)
 
-	store.EXPECT().Add(gomock.Any()).Times(1)
+	timeout := time.Second * 5
+
+	store.EXPECT().Add(gomock.Any(), gomock.Any()).Times(1)
 	blockStore.EXPECT().WaitForBlockHeight(gomock.Any()).Times(1)
 
-	subscriber := NewMarketData(context.Background(), logging.NewTestLogger(), store, blockStore)
+	subscriber := NewMarketData(context.Background(), store, blockStore, logging.NewTestLogger(), timeout)
 	subscriber.Push(events.NewMarketDataEvent(context.Background(), types.MarketData{}))
 }
 
@@ -38,11 +41,12 @@ func testShouldNotCallStoreAddIfBlockHeightNotReceived(t *testing.T) {
 	store := mocks.NewMockMarketDataStore(ctrl)
 	blockStore := mocks.NewMockBlockStore(ctrl)
 
-	store.EXPECT().Add(gomock.Any()).Times(0)
+	timeout := time.Second * 5
+	store.EXPECT().Add(gomock.Any(), gomock.Any()).Times(0)
 	blockStore.EXPECT().WaitForBlockHeight(int64(0)).DoAndReturn(func(int64) (entities.Block, error) {
 		return entities.Block{}, errors.New("some error")
 	})
 
-	subscriber := NewMarketData(context.Background(), logging.NewTestLogger(), store, blockStore)
+	subscriber := NewMarketData(context.Background(), store, blockStore, logging.NewTestLogger(), timeout)
 	subscriber.Push(events.NewMarketDataEvent(context.Background(), types.MarketData{}))
 }
