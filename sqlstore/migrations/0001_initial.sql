@@ -49,8 +49,14 @@ create table ledger
     type            TEXT
 );
 
+drop type if exists auction_trigger_type;
+create type auction_trigger_type as enum('AUCTION_TRIGGER_UNSPECIFIED', 'AUCTION_TRIGGER_BATCH', 'AUCTION_TRIGGER_OPENING', 'AUCTION_TRIGGER_PRICE', 'AUCTION_TRIGGER_LIQUIDITY');
+
+drop type if exists market_trading_mode_type;
+create type market_trading_mode_type as enum('TRADING_MODE_UNSPECIFIED', 'TRADING_MODE_CONTINUOUS', 'TRADING_MODE_BATCH_AUCTION', 'TRADING_MODE_OPENING_AUCTION', 'TRADING_MODE_MONITORING_AUCTION');
+
 create table market_data (
-    market text not null,
+    market bytea not null,
     market_timestamp timestamp with time zone not null,
     vega_time timestamp with time zone not null references blocks(vega_time),
     mark_price numeric(32),
@@ -69,9 +75,9 @@ create table market_data (
     auction_start bigint,
     indicative_price numeric(32),
     indicative_volume bigint,
-    market_trading_mode text,
-    auction_trigger text,
-    extension_trigger text,
+    market_trading_mode market_trading_mode_type,
+    auction_trigger auction_trigger_type,
+    extension_trigger auction_trigger_type,
     target_stake numeric(32),
     supplied_stake numeric(32),
     price_monitoring_bounds jsonb,
@@ -85,6 +91,8 @@ create table market_data (
 
 -- +goose Down
 drop table if exists market_data;
+drop type if exists market_trading_mode_type;
+drop type if exists auction_trigger_type;
 drop table if exists ledger;
 drop table if exists accounts;
 drop table if exists parties;

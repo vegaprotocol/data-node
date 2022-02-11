@@ -1,6 +1,8 @@
 package entities
 
 import (
+	"bytes"
+	"encoding/hex"
 	"time"
 
 	types "code.vegaprotocol.io/protos/vega"
@@ -36,7 +38,7 @@ type MarketData struct {
 	// Arithmetic average of the best static bid price and best static offer price
 	StaticMidPrice *decimal.Decimal
 	// Market identifier for the data
-	Market string
+	Market []byte
 	// Timestamp at which this mark price was relevant, in nanoseconds since the epoch
 	// - See [`VegaTimeResponse`](#api.VegaTimeResponse).`timestamp`
 	Timestamp time.Time
@@ -83,9 +85,9 @@ func (trigger PriceMonitoringTrigger) Equals(other PriceMonitoringTrigger) bool 
 }
 
 type PriceMonitoringBound struct {
-	MinValidPrice string                  `json:"minValidPrice,omitempty"`
-	MaxValidPrice string                  `json:"maxValidPrice,omitempty"`
-	Trigger       *PriceMonitoringTrigger `json:"trigger,omitempty"`
+	MinValidPrice string                 `json:"minValidPrice,omitempty"`
+	MaxValidPrice string                 `json:"maxValidPrice,omitempty"`
+	Trigger       PriceMonitoringTrigger `json:"trigger,omitempty"`
 }
 
 func (bound PriceMonitoringBound) Equals(other PriceMonitoringBound) bool {
@@ -97,15 +99,7 @@ func (bound PriceMonitoringBound) Equals(other PriceMonitoringBound) bool {
 		return false
 	}
 
-	if bound.Trigger == nil && other.Trigger == nil {
-		return true
-	}
-
-	if (bound.Trigger == nil && other.Trigger != nil) || (bound.Trigger != nil && other.Trigger == nil) {
-		return false
-	}
-
-	return bound.Trigger.Equals(*other.Trigger)
+	return bound.Trigger.Equals(other.Trigger)
 }
 
 type LiquidityProviderFeeShare struct {
@@ -123,7 +117,11 @@ func (fee LiquidityProviderFeeShare) Equals(other LiquidityProviderFeeShare) boo
 func MarketDataFromProto(data types.MarketData) (*MarketData, error) {
 	var mark, bid, offer, staticBid, staticOffer, mid, staticMid, indicative, targetStake, suppliedStake *decimal.Decimal
 	var err error
+	var marketID []byte
 
+	if marketID, err = hex.DecodeString(data.Market); err != nil {
+		return nil, nil
+	}
 	if mark, err = parseDecimal(data.MarkPrice); err != nil {
 		return nil, err
 	}
@@ -168,7 +166,7 @@ func MarketDataFromProto(data types.MarketData) (*MarketData, error) {
 		BestStaticOfferVolume:      data.BestStaticOfferVolume,
 		MidPrice:                   mid,
 		StaticMidPrice:             staticMid,
-		Market:                     data.Market,
+		Market:                     marketID,
 		Timestamp:                  ts,
 		OpenInterest:               data.OpenInterest,
 		AuctionEnd:                 data.AuctionEnd,
@@ -241,12 +239,12 @@ func priceMonitoringBoundsFromProto(bounds *types.PriceMonitoringBounds) *PriceM
 	}
 }
 
-func priceMonitoringTriggerFromProto(trigger *types.PriceMonitoringTrigger) *PriceMonitoringTrigger {
+func priceMonitoringTriggerFromProto(trigger *types.PriceMonitoringTrigger) PriceMonitoringTrigger {
 	if trigger == nil {
-		return nil
+		return PriceMonitoringTrigger{}
 	}
 
-	return &PriceMonitoringTrigger{
+	return PriceMonitoringTrigger{
 		Horizon:          trigger.Horizon,
 		Probability:      trigger.Probability,
 		AuctionExtension: trigger.AuctionExtension,
@@ -294,7 +292,7 @@ func (md MarketData) Equal(other MarketData) bool {
 		md.AuctionEnd == other.AuctionEnd &&
 		md.AuctionStart == other.AuctionStart &&
 		md.IndicativeVolume == other.IndicativeVolume &&
-		md.Market == other.Market &&
+		marketsEqual(md.Market, other.Market) &&
 		md.MarketTradingMode == other.MarketTradingMode &&
 		md.AuctionTrigger == other.AuctionTrigger &&
 		md.ExtensionTrigger == other.ExtensionTrigger &&
@@ -302,6 +300,10 @@ func (md MarketData) Equal(other MarketData) bool {
 		md.Timestamp.Equal(other.Timestamp) &&
 		priceMonitoringBoundsMatches(md.PriceMonitoringBounds, other.PriceMonitoringBounds) &&
 		liquidityProviderFeeShareMatches(md.LiquidityProviderFeeShares, other.LiquidityProviderFeeShares)
+}
+
+func marketsEqual(a, b []byte) bool {
+	return bytes.Compare(a, b) == 0
 }
 
 func priceMonitoringBoundsMatches(bounds, other []*PriceMonitoringBound) bool {

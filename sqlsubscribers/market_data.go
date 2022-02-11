@@ -18,7 +18,7 @@ type MarketDataEvent interface {
 
 //go:generate go run github.com/golang/mock/mockgen -destination mocks/market_data_mock.go -package mocks code.vegaprotocol.io/data-node/sqlsubscribers MarketDataStore
 type MarketDataStore interface {
-	Add(context.Context, *entities.MarketData) error
+	Add(context.Context, ...*entities.MarketData) error
 }
 
 type MarketData struct {
@@ -46,14 +46,25 @@ func (md *MarketData) Types() []events.Type {
 }
 
 func (md *MarketData) Push(events ...events.Event) {
+	buffer := make([]*entities.MarketData, 0, len(events))
+
 	for _, e := range events {
 		if data, ok := e.(MarketDataEvent); ok {
-			md.consume(data)
+			md.consume(data, &buffer)
+		}
+	}
+
+	if len(buffer) > 0 {
+		ctx, cancel := context.WithTimeout(md.Base.Context(), md.dbTimeout)
+		defer cancel()
+
+		if err := md.store.Add(ctx, buffer...); err != nil {
+			md.log.Error("Inserting market data to SQL store failed.", logging.Error(err))
 		}
 	}
 }
 
-func (md *MarketData) consume(event MarketDataEvent) {
+func (md *MarketData) consume(event MarketDataEvent, buffer *[]*entities.MarketData) {
 	md.log.Debug("Received MarketData Event",
 		logging.Int64("block", event.BlockNr()),
 		logging.String("market", event.MarketData().Market),
@@ -65,21 +76,23 @@ func (md *MarketData) consume(event MarketDataEvent) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(md.Base.Context(), md.dbTimeout)
-	defer cancel()
+	var record *entities.MarketData
 
-	if err := md.addMarketData(ctx, event.MarketData(), block.VegaTime); err != nil {
-		md.log.Error("Adding market data failed", logging.Error(err))
+	if record, err = md.convertMarketDataProto(event.MarketData(), block.VegaTime); err != nil {
+		md.log.Error("Converting market data proto for persistence failed", logging.Error(err))
+		return
 	}
+
+	*buffer = append(*buffer, record)
 }
 
-func (md *MarketData) addMarketData(ctx context.Context, data types.MarketData, vegaTime time.Time) error {
+func (md *MarketData) convertMarketDataProto(data types.MarketData, vegaTime time.Time) (*entities.MarketData, error) {
 	record, err := entities.MarketDataFromProto(data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	record.VegaTime = vegaTime
 
-	return md.store.Add(ctx, record)
+	return record, nil
 }

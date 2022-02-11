@@ -36,15 +36,20 @@ func (m *MockMarketDataStore) EXPECT() *MockMarketDataStoreMockRecorder {
 }
 
 // Add mocks base method.
-func (m *MockMarketDataStore) Add(arg0 context.Context, arg1 *entities.MarketData) error {
+func (m *MockMarketDataStore) Add(arg0 context.Context, arg1 ...*entities.MarketData) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Add", arg0, arg1)
+	varargs := []interface{}{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Add", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Add indicates an expected call of Add.
-func (mr *MockMarketDataStoreMockRecorder) Add(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockMarketDataStoreMockRecorder) Add(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockMarketDataStore)(nil).Add), arg0, arg1)
+	varargs := append([]interface{}{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockMarketDataStore)(nil).Add), varargs...)
 }
