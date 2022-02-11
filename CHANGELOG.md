@@ -1,12 +1,18 @@
 # Changelog
 
-## Unreleased (0.48.0)
+## Unreleased
 
 ### 🚨 Breaking changes
-- [](https://github.com/vegaprotocol/data-node/pull/) - 
+
 
 ### 🗑️  Deprecation
-- [](https://github.com/vegaprotocol/data-node/pull/) -
+
+### 🛠  Improvements
+- [322](https://github.com/vegaprotocol/data-node/pull/322) - Update the definition of done and issue templates
+
+### 🐛 Fixes
+
+## 0.48.0
 
 ### 🛠  Improvements
 - [251](https://github.com/vegaprotocol/data-node/pull/251) - Updated proto and core and added support for the new events (state var and network limits)
@@ -25,6 +31,8 @@
 - [324](https://github.com/vegaprotocol/data-node/pull/324) - Embed the facility to run a file based event store into the datanode 
 - [326](https://github.com/vegaprotocol/data-node/pull/326) - Add `BlockNr()` methods to implementers of event interface
 - [331](https://github.com/vegaprotocol/data-node/pull/331) - Add support for running an embedded version of `Postgresql`
+- [336](https://github.com/vegaprotocol/data-node/pull/336) - Remove trading mode and future maturity
+- [338](https://github.com/vegaprotocol/data-node/pull/336) - Add `grpcui` web user interface
 - [330](https://github.com/vegaprotocol/data-node/pull/330) - Add support for storing market data events in the SQL store
  
 ### 🐛 Fixes
