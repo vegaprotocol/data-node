@@ -102,3 +102,7 @@ func (b *Base) SetID(id int) {
 func (b *Base) ID() int {
 	return b.id
 }
+
+func (b *Base) Context() context.Context {
+	return b.ctx
+}

@@ -98,12 +98,13 @@ type NodeCommand struct {
 	chainInfoStore        *storage.ChainInfo
 	transferStore         *storage.Transfers
 
-	sqlStore        *sqlstore.SqlStore
-	assetStoreSql   *sqlstore.Assets
-	blockStoreSql   *sqlstore.Blocks
-	accountStoreSql *sqlstore.Accounts
-	ledgerSql       *sqlstore.Ledger
-	partyStoreSql   *sqlstore.Parties
+	sqlStore           *sqlstore.SqlStore
+	assetStoreSql      *sqlstore.Assets
+	blockStoreSql      *sqlstore.Blocks
+	accountStoreSql    *sqlstore.Accounts
+	ledgerSql          *sqlstore.Ledger
+	partyStoreSql      *sqlstore.Parties
+	marketDataStoreSql *sqlstore.MarketData
 
 	vegaCoreServiceClient vegaprotoapi.CoreServiceClient
 
@@ -135,6 +136,7 @@ type NodeCommand struct {
 	assetSubSql            *sqlsubscribers.Asset
 	timeSubSql             *sqlsubscribers.Time
 	transferResponseSubSql *sqlsubscribers.TransferResponse
+	marketDataSubSql       *sqlsubscribers.MarketData
 
 	candleService     *candles.Svc
 	tradeService      *trades.Svc

@@ -13,16 +13,22 @@ import (
 
 var (
 	testStore       *sqlstore.SqlStore
-	sqlTestsEnabled bool = false
+	sqlTestsEnabled bool = true
 )
 
 func TestMain(m *testing.M) {
 	var err error
 	// TODO: Launch a test database instance; tests disabled for now
+
+	sqlConfig := sqlstore.NewDefaultConfig()
+	sqlConfig.Enabled = true
+	sqlConfig.UseEmbedded = true
+	sqlConfig.Port = 15432
+
 	if sqlTestsEnabled {
 		testStore, err = sqlstore.InitialiseStorage(
 			logging.NewTestLogger(),
-			sqlstore.NewDefaultConfig(),
+			sqlConfig,
 			&paths.DefaultPaths{},
 		)
 		if err != nil {

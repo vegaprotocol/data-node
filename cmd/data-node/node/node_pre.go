@@ -126,6 +126,7 @@ func (l *NodeCommand) setupSqlSubscribers() {
 	l.assetSubSql = sqlsubscribers.NewAsset(l.ctx, l.assetStoreSql, l.blockStoreSql, l.Log)
 	l.timeSubSql = sqlsubscribers.NewTimeSub(l.ctx, l.blockStoreSql, l.Log)
 	l.transferResponseSubSql = sqlsubscribers.NewTransferResponse(l.ctx, l.ledgerSql, l.accountStoreSql, l.partyStoreSql, l.blockStoreSql, l.Log)
+	l.marketDataSubSql = sqlsubscribers.NewMarketData(l.ctx, l.marketDataStoreSql, l.blockStoreSql, l.Log, l.conf.SqlStore.Timeout.Duration)
 }
 
 func (l *NodeCommand) setupStorages() error {
@@ -156,6 +157,7 @@ func (l *NodeCommand) setupStorages() error {
 		l.partyStoreSql = sqlstore.NewParties(sqlStore)
 		l.accountStoreSql = sqlstore.NewAccounts(sqlStore)
 		l.ledgerSql = sqlstore.NewLedger(sqlStore)
+		l.marketDataStoreSql = sqlstore.NewMarketData(sqlStore)
 		l.sqlStore = sqlStore
 	}
 
@@ -261,7 +263,7 @@ func (l *NodeCommand) preRun(_ []string) (err error) {
 	)
 
 	if l.conf.SqlStore.Enabled {
-		l.broker.SubscribeBatch(l.timeSubSql, l.assetSubSql, l.transferResponseSubSql)
+		l.broker.SubscribeBatch(l.timeSubSql, l.assetSubSql, l.transferResponseSubSql, l.marketDataSubSql)
 	}
 
 	nodeAddr := fmt.Sprintf("%v:%v", l.conf.API.CoreNodeIP, l.conf.API.CoreNodeGRPCPort)

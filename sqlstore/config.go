@@ -15,6 +15,7 @@ type Config struct {
 	WipeOnStartup encoding.Bool     `long:"wipe-on-startup"`
 	Level         encoding.LogLevel `long:"log-level"`
 	UseEmbedded   encoding.Bool     `long:"use-embedded" description:"Use an embedded version of Postgresql for the SQL data store"`
+	Timeout       encoding.Duration `long:"db-timeout" description:"Duration to wait before database requests should time out (e.g. 10s, 60s etc.)"`
 }
 
 func NewDefaultConfig() Config {
