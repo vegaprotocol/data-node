@@ -292,7 +292,7 @@ func (md MarketData) Equal(other MarketData) bool {
 		md.AuctionEnd == other.AuctionEnd &&
 		md.AuctionStart == other.AuctionStart &&
 		md.IndicativeVolume == other.IndicativeVolume &&
-		marketsEqual(md.Market, other.Market) &&
+		bytes.Equal(md.Market, other.Market) &&
 		md.MarketTradingMode == other.MarketTradingMode &&
 		md.AuctionTrigger == other.AuctionTrigger &&
 		md.ExtensionTrigger == other.ExtensionTrigger &&
@@ -300,10 +300,6 @@ func (md MarketData) Equal(other MarketData) bool {
 		md.Timestamp.Equal(other.Timestamp) &&
 		priceMonitoringBoundsMatches(md.PriceMonitoringBounds, other.PriceMonitoringBounds) &&
 		liquidityProviderFeeShareMatches(md.LiquidityProviderFeeShares, other.LiquidityProviderFeeShares)
-}
-
-func marketsEqual(a, b []byte) bool {
-	return bytes.Compare(a, b) == 0
 }
 
 func priceMonitoringBoundsMatches(bounds, other []*PriceMonitoringBound) bool {
