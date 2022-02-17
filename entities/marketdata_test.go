@@ -12,7 +12,7 @@ import (
 
 func TestMarketDataFromProto(t *testing.T) {
 	t.Run("should parse all valid prices", testParseAllValidPrices)
-	t.Run("should return nil prices if string is empty", testParseEmptyPrices)
+	t.Run("should return zero for prices if string is empty", testParseEmptyPrices)
 	t.Run("should return error if an invalid price string is provided", testParseInvalidPriceString)
 	t.Run("should parse valid market data records successfully", testParseMarketDataSuccessfully)
 }
@@ -45,32 +45,32 @@ func testParseAllValidPrices(t *testing.T) {
 	assert.NotNil(t, md.SuppliedStake)
 
 	want := decimal.NewFromInt(1)
-	assert.True(t, want.Equal(*md.MarkPrice))
-	assert.True(t, want.Equal(*md.BestBidPrice))
-	assert.True(t, want.Equal(*md.BestOfferPrice))
-	assert.True(t, want.Equal(*md.BestStaticBidPrice))
-	assert.True(t, want.Equal(*md.BestStaticOfferPrice))
-	assert.True(t, want.Equal(*md.MidPrice))
-	assert.True(t, want.Equal(*md.StaticMidPrice))
-	assert.True(t, want.Equal(*md.IndicativePrice))
-	assert.True(t, want.Equal(*md.TargetStake))
-	assert.True(t, want.Equal(*md.SuppliedStake))
+	assert.True(t, want.Equal(md.MarkPrice))
+	assert.True(t, want.Equal(md.BestBidPrice))
+	assert.True(t, want.Equal(md.BestOfferPrice))
+	assert.True(t, want.Equal(md.BestStaticBidPrice))
+	assert.True(t, want.Equal(md.BestStaticOfferPrice))
+	assert.True(t, want.Equal(md.MidPrice))
+	assert.True(t, want.Equal(md.StaticMidPrice))
+	assert.True(t, want.Equal(md.IndicativePrice))
+	assert.True(t, want.Equal(md.TargetStake))
+	assert.True(t, want.Equal(md.SuppliedStake))
 }
 
 func testParseEmptyPrices(t *testing.T) {
 	marketdata := types.MarketData{}
 	md, err := entities.MarketDataFromProto(marketdata)
 	assert.NoError(t, err)
-	assert.Nil(t, md.MarkPrice)
-	assert.Nil(t, md.BestBidPrice)
-	assert.Nil(t, md.BestOfferPrice)
-	assert.Nil(t, md.BestStaticBidPrice)
-	assert.Nil(t, md.BestStaticOfferPrice)
-	assert.Nil(t, md.MidPrice)
-	assert.Nil(t, md.StaticMidPrice)
-	assert.Nil(t, md.IndicativePrice)
-	assert.Nil(t, md.TargetStake)
-	assert.Nil(t, md.SuppliedStake)
+	assert.True(t, decimal.Zero.Equals(md.MarkPrice))
+	assert.True(t, decimal.Zero.Equals(md.BestBidPrice))
+	assert.True(t, decimal.Zero.Equals(md.BestOfferPrice))
+	assert.True(t, decimal.Zero.Equals(md.BestStaticBidPrice))
+	assert.True(t, decimal.Zero.Equals(md.BestStaticOfferPrice))
+	assert.True(t, decimal.Zero.Equals(md.MidPrice))
+	assert.True(t, decimal.Zero.Equals(md.StaticMidPrice))
+	assert.True(t, decimal.Zero.Equals(md.IndicativePrice))
+	assert.True(t, decimal.Zero.Equals(md.TargetStake))
+	assert.True(t, decimal.Zero.Equals(md.SuppliedStake))
 }
 
 func testParseInvalidPriceString(t *testing.T) {
@@ -234,8 +234,8 @@ func testParseMarketDataSuccessfully(t *testing.T) {
 				},
 			},
 			want: &entities.MarketData{
-				BestBidPrice:      getDecimalRef(100.0),
-				BestOfferPrice:    getDecimalRef(110.0),
+				BestBidPrice:      decimal.NewFromFloat(100.0),
+				BestOfferPrice:    decimal.NewFromFloat(110.0),
 				MarketTimestamp:   time.Unix(0, 0).UTC(),
 				AuctionTrigger:    "AUCTION_TRIGGER_PRICE",
 				MarketTradingMode: "TRADING_MODE_CONTINUOUS",
@@ -259,16 +259,16 @@ func testParseMarketDataSuccessfully(t *testing.T) {
 				},
 			},
 			want: &entities.MarketData{
-				BestBidPrice:      getDecimalRef(100.0),
-				BestOfferPrice:    getDecimalRef(110.0),
+				BestBidPrice:      decimal.NewFromFloat(100.0),
+				BestOfferPrice:    decimal.NewFromFloat(110.0),
 				MarketTimestamp:   time.Unix(0, 0).UTC(),
 				AuctionTrigger:    "AUCTION_TRIGGER_PRICE",
 				MarketTradingMode: "TRADING_MODE_CONTINUOUS",
 				ExtensionTrigger:  "AUCTION_TRIGGER_UNSPECIFIED",
 				PriceMonitoringBounds: []*entities.PriceMonitoringBound{
 					{
-						MinValidPrice: "100",
-						MaxValidPrice: "200",
+						MinValidPrice: 100,
+						MaxValidPrice: 200,
 					},
 				},
 			},
@@ -282,9 +282,4 @@ func testParseMarketDataSuccessfully(t *testing.T) {
 			assert.True(tt, tc.want.Equal(*got))
 		})
 	}
-}
-
-func getDecimalRef(v float64) *decimal.Decimal {
-	d := decimal.NewFromFloat(v)
-	return &d
 }

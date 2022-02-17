@@ -196,8 +196,8 @@ func getLatestMarketData(t *testing.T) {
 		LiquidityProviderFeeShares: []*entities.LiquidityProviderFeeShare{
 			{
 				Party:                 "af2bb48edd738353fcd7a2b6cea4821dd2382ec95497954535278dfbfff7b5b5",
-				EquityLikeShare:       "1",
-				AverageEntryValuation: "50000000000",
+				EquityLikeShare:       1,
+				AverageEntryValuation: 50000000000,
 			},
 		},
 		VegaTime: time.Date(2022, 2, 11, 10, 5, 41, 0, time.UTC),
@@ -342,13 +342,13 @@ func setupMarketData(t *testing.T) (*sqlstore.MarketData, error) {
 	return md, nil
 }
 
-func mustParseDecimal(t *testing.T, value string) *decimal.Decimal {
+func mustParseDecimal(t *testing.T, value string) decimal.Decimal {
 	d, err := decimal.NewFromString(value)
 	if err != nil {
 		t.Fatalf("could not parse decimal value: %s", err)
 	}
 
-	return &d
+	return d
 }
 
 func mustParseTimestamp(t *testing.T, value string) time.Time {

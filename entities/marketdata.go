@@ -3,6 +3,7 @@ package entities
 import (
 	"bytes"
 	"encoding/hex"
+	"strconv"
 	"time"
 
 	types "code.vegaprotocol.io/protos/vega"
@@ -13,30 +14,30 @@ import (
 type MarketData struct {
 	// Mark price, as an integer, for example `123456` is a correctly
 	// formatted price of `1.23456` assuming market configured to 5 decimal places
-	MarkPrice *decimal.Decimal
+	MarkPrice decimal.Decimal
 	// Highest price level on an order book for buy orders, as an integer, for example `123456` is a correctly
 	// formatted price of `1.23456` assuming market configured to 5 decimal places
-	BestBidPrice *decimal.Decimal
+	BestBidPrice decimal.Decimal
 	// Aggregated volume being bid at the best bid price
 	BestBidVolume uint64
 	// Aggregated volume being bid at the best bid price
-	BestOfferPrice *decimal.Decimal
+	BestOfferPrice decimal.Decimal
 	// Aggregated volume being offered at the best offer price, as an integer, for example `123456` is a correctly
 	// formatted price of `1.23456` assuming market configured to 5 decimal places
 	BestOfferVolume uint64
 	// Highest price on the order book for buy orders not including pegged orders
-	BestStaticBidPrice *decimal.Decimal
+	BestStaticBidPrice decimal.Decimal
 	// Total volume at the best static bid price excluding pegged orders
 	BestStaticBidVolume uint64
 	// Lowest price on the order book for sell orders not including pegged orders
-	BestStaticOfferPrice *decimal.Decimal
+	BestStaticOfferPrice decimal.Decimal
 	// Total volume at the best static offer price excluding pegged orders
 	BestStaticOfferVolume uint64
 	// Arithmetic average of the best bid price and best offer price, as an integer, for example `123456` is a correctly
 	// formatted price of `1.23456` assuming market configured to 5 decimal places
-	MidPrice *decimal.Decimal
+	MidPrice decimal.Decimal
 	// Arithmetic average of the best static bid price and best static offer price
-	StaticMidPrice *decimal.Decimal
+	StaticMidPrice decimal.Decimal
 	// Market identifier for the data
 	Market []byte
 	// MarketTimestamp at which this mark price was relevant, in nanoseconds since the epoch
@@ -49,7 +50,7 @@ type MarketData struct {
 	// Time until next auction (used in FBA's) - currently always 0
 	AuctionStart int64
 	// Indicative price (zero if not in auction)
-	IndicativePrice *decimal.Decimal
+	IndicativePrice decimal.Decimal
 	// Indicative volume (zero if not in auction)
 	IndicativeVolume uint64
 	// The current trading mode for the market
@@ -59,9 +60,9 @@ type MarketData struct {
 	// When a market auction is extended, this field indicates what caused the extension
 	ExtensionTrigger string
 	// Targeted stake for the given market
-	TargetStake *decimal.Decimal
+	TargetStake decimal.Decimal
 	// Available stake for the given market
-	SuppliedStake *decimal.Decimal
+	SuppliedStake decimal.Decimal
 	// One or more price monitoring bounds for the current timestamp
 	PriceMonitoringBounds []*PriceMonitoringBound
 	// the market value proxy
@@ -73,9 +74,9 @@ type MarketData struct {
 }
 
 type PriceMonitoringTrigger struct {
-	Horizon          int64   `json:"horizon,omitempty"`
-	Probability      float64 `json:"probability,omitempty"`
-	AuctionExtension int64   `json:"auctionExtension,omitempty"`
+	Horizon          uint64 `json:"horizon"`
+	Probability      uint64 `json:"probability"`
+	AuctionExtension uint64 `json:"auctionExtension"`
 }
 
 func (trigger PriceMonitoringTrigger) Equals(other PriceMonitoringTrigger) bool {
@@ -85,27 +86,21 @@ func (trigger PriceMonitoringTrigger) Equals(other PriceMonitoringTrigger) bool 
 }
 
 type PriceMonitoringBound struct {
-	MinValidPrice string                 `json:"minValidPrice,omitempty"`
-	MaxValidPrice string                 `json:"maxValidPrice,omitempty"`
-	Trigger       PriceMonitoringTrigger `json:"trigger,omitempty"`
+	MinValidPrice uint64                 `json:"minValidPrice"`
+	MaxValidPrice uint64                 `json:"maxValidPrice"`
+	Trigger       PriceMonitoringTrigger `json:"trigger"`
 }
 
 func (bound PriceMonitoringBound) Equals(other PriceMonitoringBound) bool {
-	if bound.MinValidPrice != other.MinValidPrice {
-		return false
-	}
-
-	if bound.MaxValidPrice != other.MaxValidPrice {
-		return false
-	}
-
-	return bound.Trigger.Equals(other.Trigger)
+	return bound.MinValidPrice == other.MinValidPrice &&
+		bound.MaxValidPrice == other.MaxValidPrice &&
+		bound.Trigger.Equals(other.Trigger)
 }
 
 type LiquidityProviderFeeShare struct {
-	Party                 string `json:"party,omitempty"`
-	EquityLikeShare       string `json:"equityLikeShare,omitempty"`
-	AverageEntryValuation string `json:"averageEntryValuation,omitempty"`
+	Party                 string `json:"party"`
+	EquityLikeShare       uint64 `json:"equityLikeShare"`
+	AverageEntryValuation uint64 `json:"averageEntryValuation"`
 }
 
 func (fee LiquidityProviderFeeShare) Equals(other LiquidityProviderFeeShare) bool {
@@ -115,7 +110,7 @@ func (fee LiquidityProviderFeeShare) Equals(other LiquidityProviderFeeShare) boo
 }
 
 func MarketDataFromProto(data types.MarketData) (*MarketData, error) {
-	var mark, bid, offer, staticBid, staticOffer, mid, staticMid, indicative, targetStake, suppliedStake *decimal.Decimal
+	var mark, bid, offer, staticBid, staticOffer, mid, staticMid, indicative, targetStake, suppliedStake decimal.Decimal
 	var err error
 	var marketID []byte
 
@@ -186,17 +181,17 @@ func MarketDataFromProto(data types.MarketData) (*MarketData, error) {
 	return marketData, nil
 }
 
-func parseDecimal(input string) (*decimal.Decimal, error) {
+func parseDecimal(input string) (decimal.Decimal, error) {
 	if input == "" {
-		return nil, nil
+		return decimal.Zero, nil
 	}
 
 	v, err := decimal.NewFromString(input)
 	if err != nil {
-		return nil, err
+		return decimal.Zero, err
 	}
 
-	return &v, nil
+	return v, nil
 }
 
 func parsePriceMonitoringBounds(bounds []*types.PriceMonitoringBounds) []*PriceMonitoringBound {
@@ -232,9 +227,12 @@ func priceMonitoringBoundsFromProto(bounds *types.PriceMonitoringBounds) *PriceM
 		return nil
 	}
 
+	minValidPrice, _ := strconv.ParseUint(bounds.MinValidPrice, 10, 64)
+	maxValidPrice, _ := strconv.ParseUint(bounds.MaxValidPrice, 10, 64)
+
 	return &PriceMonitoringBound{
-		MinValidPrice: bounds.MinValidPrice,
-		MaxValidPrice: bounds.MaxValidPrice,
+		MinValidPrice: minValidPrice,
+		MaxValidPrice: maxValidPrice,
 		Trigger:       priceMonitoringTriggerFromProto(bounds.Trigger),
 	}
 }
@@ -245,9 +243,9 @@ func priceMonitoringTriggerFromProto(trigger *types.PriceMonitoringTrigger) Pric
 	}
 
 	return PriceMonitoringTrigger{
-		Horizon:          trigger.Horizon,
-		Probability:      trigger.Probability,
-		AuctionExtension: trigger.AuctionExtension,
+		Horizon:          uint64(trigger.Horizon),
+		Probability:      uint64(trigger.Probability),
+		AuctionExtension: uint64(trigger.AuctionExtension),
 	}
 }
 
@@ -256,10 +254,13 @@ func liquidityProviderFeeShareFromProto(feeShare *types.LiquidityProviderFeeShar
 		return nil
 	}
 
+	equityLikeShare, _ := strconv.ParseUint(feeShare.EquityLikeShare, 10, 64)
+	averageEntryValuation, _ := strconv.ParseUint(feeShare.AverageEntryValuation, 10, 64)
+
 	return &LiquidityProviderFeeShare{
 		Party:                 feeShare.Party,
-		EquityLikeShare:       feeShare.EquityLikeShare,
-		AverageEntryValuation: feeShare.AverageEntryValuation,
+		EquityLikeShare:       equityLikeShare,
+		AverageEntryValuation: averageEntryValuation,
 	}
 }
 
@@ -274,16 +275,16 @@ func decimalRefIsEqual(value, other *decimal.Decimal) bool {
 }
 
 func (md MarketData) Equal(other MarketData) bool {
-	return decimalRefIsEqual(md.MarkPrice, other.MarkPrice) &&
-		decimalRefIsEqual(md.BestBidPrice, other.BestBidPrice) &&
-		decimalRefIsEqual(md.BestOfferPrice, other.BestOfferPrice) &&
-		decimalRefIsEqual(md.BestStaticBidPrice, other.BestStaticBidPrice) &&
-		decimalRefIsEqual(md.BestStaticOfferPrice, other.BestStaticOfferPrice) &&
-		decimalRefIsEqual(md.MidPrice, other.MidPrice) &&
-		decimalRefIsEqual(md.StaticMidPrice, other.StaticMidPrice) &&
-		decimalRefIsEqual(md.IndicativePrice, other.IndicativePrice) &&
-		decimalRefIsEqual(md.TargetStake, other.TargetStake) &&
-		decimalRefIsEqual(md.SuppliedStake, other.SuppliedStake) &&
+	return md.MarkPrice.Equals(other.MarkPrice) &&
+		md.BestBidPrice.Equals(other.BestBidPrice) &&
+		md.BestOfferPrice.Equals(other.BestOfferPrice) &&
+		md.BestStaticBidPrice.Equals(other.BestStaticBidPrice) &&
+		md.BestStaticOfferPrice.Equals(other.BestStaticOfferPrice) &&
+		md.MidPrice.Equals(other.MidPrice) &&
+		md.StaticMidPrice.Equals(other.StaticMidPrice) &&
+		md.IndicativePrice.Equals(other.IndicativePrice) &&
+		md.TargetStake.Equals(other.TargetStake) &&
+		md.SuppliedStake.Equals(other.SuppliedStake) &&
 		md.BestBidVolume == other.BestBidVolume &&
 		md.BestOfferVolume == other.BestOfferVolume &&
 		md.BestStaticBidVolume == other.BestStaticBidVolume &&

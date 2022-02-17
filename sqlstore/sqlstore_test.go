@@ -12,33 +12,25 @@ import (
 )
 
 var (
-	testStore       *sqlstore.SqlStore
-	sqlTestsEnabled bool = true
+	testStore *sqlstore.SqlStore
 )
 
 func TestMain(m *testing.M) {
 	var err error
-	// TODO: Launch a test database instance; tests disabled for now
 
-	sqlConfig := sqlstore.NewDefaultConfig()
-	sqlConfig.Enabled = true
-	sqlConfig.UseEmbedded = true
-	sqlConfig.Port = 15432
-
-	if sqlTestsEnabled {
-		testStore, err = sqlstore.InitialiseStorage(
-			logging.NewTestLogger(),
-			sqlConfig,
-			&paths.DefaultPaths{},
-		)
-		if err != nil {
-			panic(err)
-		}
-
-		defer testStore.Stop()
-
-		m.Run()
+	sqlConfig := NewTestConfig(15432)
+	testStore, err = sqlstore.InitialiseStorage(
+		logging.NewTestLogger(),
+		sqlConfig,
+		&paths.DefaultPaths{},
+	)
+	if err != nil {
+		panic(err)
 	}
+
+	defer testStore.Stop()
+
+	m.Run()
 }
 
 // Generate a 256 bit pseudo-random hash ID based on the time
@@ -47,4 +39,13 @@ func generateID() []byte {
 	currentTimeString := strconv.FormatInt(currentTime, 10)
 	hash := sha256.Sum256([]byte(currentTimeString))
 	return hash[:]
+}
+
+func NewTestConfig(port int) sqlstore.Config {
+	sqlConfig := sqlstore.NewDefaultConfig()
+	sqlConfig.Enabled = true
+	sqlConfig.UseEmbedded = true
+	sqlConfig.Port = port
+
+	return sqlConfig
 }
