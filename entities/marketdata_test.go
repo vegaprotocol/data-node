@@ -188,7 +188,7 @@ func testParseMarketDataSuccessfully(t *testing.T) {
 				marketdata: types.MarketData{},
 			},
 			want: &entities.MarketData{
-				Timestamp:         time.Unix(0, 0).UTC(),
+				MarketTimestamp:   time.Unix(0, 0).UTC(),
 				AuctionTrigger:    "AUCTION_TRIGGER_UNSPECIFIED",
 				MarketTradingMode: "TRADING_MODE_UNSPECIFIED",
 				ExtensionTrigger:  "AUCTION_TRIGGER_UNSPECIFIED",
@@ -202,7 +202,7 @@ func testParseMarketDataSuccessfully(t *testing.T) {
 				},
 			},
 			want: &entities.MarketData{
-				Timestamp:         time.Unix(0, 0).UTC(),
+				MarketTimestamp:   time.Unix(0, 0).UTC(),
 				AuctionTrigger:    "AUCTION_TRIGGER_PRICE",
 				MarketTradingMode: "TRADING_MODE_UNSPECIFIED",
 				ExtensionTrigger:  "AUCTION_TRIGGER_UNSPECIFIED",
@@ -217,7 +217,7 @@ func testParseMarketDataSuccessfully(t *testing.T) {
 				},
 			},
 			want: &entities.MarketData{
-				Timestamp:         time.Unix(0, 0).UTC(),
+				MarketTimestamp:   time.Unix(0, 0).UTC(),
 				AuctionTrigger:    "AUCTION_TRIGGER_PRICE",
 				MarketTradingMode: "TRADING_MODE_CONTINUOUS",
 				ExtensionTrigger:  "AUCTION_TRIGGER_UNSPECIFIED",
@@ -236,7 +236,7 @@ func testParseMarketDataSuccessfully(t *testing.T) {
 			want: &entities.MarketData{
 				BestBidPrice:      getDecimalRef(100.0),
 				BestOfferPrice:    getDecimalRef(110.0),
-				Timestamp:         time.Unix(0, 0).UTC(),
+				MarketTimestamp:   time.Unix(0, 0).UTC(),
 				AuctionTrigger:    "AUCTION_TRIGGER_PRICE",
 				MarketTradingMode: "TRADING_MODE_CONTINUOUS",
 				ExtensionTrigger:  "AUCTION_TRIGGER_UNSPECIFIED",
@@ -261,7 +261,7 @@ func testParseMarketDataSuccessfully(t *testing.T) {
 			want: &entities.MarketData{
 				BestBidPrice:      getDecimalRef(100.0),
 				BestOfferPrice:    getDecimalRef(110.0),
-				Timestamp:         time.Unix(0, 0).UTC(),
+				MarketTimestamp:   time.Unix(0, 0).UTC(),
 				AuctionTrigger:    "AUCTION_TRIGGER_PRICE",
 				MarketTradingMode: "TRADING_MODE_CONTINUOUS",
 				ExtensionTrigger:  "AUCTION_TRIGGER_UNSPECIFIED",

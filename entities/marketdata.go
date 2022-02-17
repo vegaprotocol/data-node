@@ -39,9 +39,9 @@ type MarketData struct {
 	StaticMidPrice *decimal.Decimal
 	// Market identifier for the data
 	Market []byte
-	// Timestamp at which this mark price was relevant, in nanoseconds since the epoch
+	// MarketTimestamp at which this mark price was relevant, in nanoseconds since the epoch
 	// - See [`VegaTimeResponse`](#api.VegaTimeResponse).`timestamp`
-	Timestamp time.Time
+	MarketTimestamp time.Time
 	// The sum of the size of all positions greater than 0 on the market
 	OpenInterest uint64
 	// Time in seconds until the end of the auction (0 if currently not in auction period)
@@ -167,7 +167,7 @@ func MarketDataFromProto(data types.MarketData) (*MarketData, error) {
 		MidPrice:                   mid,
 		StaticMidPrice:             staticMid,
 		Market:                     marketID,
-		Timestamp:                  ts,
+		MarketTimestamp:            ts,
 		OpenInterest:               data.OpenInterest,
 		AuctionEnd:                 data.AuctionEnd,
 		AuctionStart:               data.AuctionStart,
@@ -297,7 +297,7 @@ func (md MarketData) Equal(other MarketData) bool {
 		md.AuctionTrigger == other.AuctionTrigger &&
 		md.ExtensionTrigger == other.ExtensionTrigger &&
 		md.MarketValueProxy == other.MarketValueProxy &&
-		md.Timestamp.Equal(other.Timestamp) &&
+		md.MarketTimestamp.Equal(other.MarketTimestamp) &&
 		priceMonitoringBoundsMatches(md.PriceMonitoringBounds, other.PriceMonitoringBounds) &&
 		liquidityProviderFeeShareMatches(md.LiquidityProviderFeeShares, other.LiquidityProviderFeeShares)
 }

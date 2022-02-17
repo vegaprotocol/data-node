@@ -13,7 +13,7 @@ import (
 
 var (
 	testStore       *sqlstore.SqlStore
-	sqlTestsEnabled bool = false
+	sqlTestsEnabled bool = true
 )
 
 func TestMain(m *testing.M) {
@@ -34,6 +34,8 @@ func TestMain(m *testing.M) {
 		if err != nil {
 			panic(err)
 		}
+
+		defer testStore.Stop()
 
 		m.Run()
 	}

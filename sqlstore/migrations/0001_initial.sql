@@ -89,7 +89,26 @@ create table market_data (
     )
 );
 
+create or replace view market_data_snapshot as
+with cte_market_data_latest(market, market_timestamp) as (
+    select market, max(market_timestamp)
+    from market_data
+    group by market
+)
+select md.market, md.market_timestamp, vega_time, mark_price, best_bid_price, best_bid_volume, best_offer_price, best_offer_volume,
+       best_static_bid_price, best_static_bid_volume, best_static_offer_price, best_static_offer_volume,
+       mid_price, static_mid_price, open_interest, auction_end, auction_start, indicative_price, indicative_volume,
+       market_trading_mode, auction_trigger, extension_trigger, target_stake, supplied_stake, price_monitoring_bounds,
+       market_value_proxy, liquidity_provider_fee_shares
+from market_data md
+join cte_market_data_latest mx
+on md.market = mx.market
+and md.market_timestamp = mx.market_timestamp
+;
+
+
 -- +goose Down
+drop view if exists market_data_snapshot;
 drop table if exists market_data;
 drop type if exists market_trading_mode_type;
 drop type if exists auction_trigger_type;
