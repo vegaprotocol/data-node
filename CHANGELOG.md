@@ -33,6 +33,8 @@
 - [331](https://github.com/vegaprotocol/data-node/pull/331) - Add support for running an embedded version of `Postgresql`
 - [336](https://github.com/vegaprotocol/data-node/pull/336) - Remove trading mode and future maturity
 - [338](https://github.com/vegaprotocol/data-node/pull/336) - Add `grpcui` web user interface
+- [327](https://github.com/vegaprotocol/data-node/pull/327) - Add balances `sql` store and upgrade `gqlgen`
+- [338](https://github.com/vegaprotocol/data-node/pull/338) - Fix compatibility with new `protoc-gen-xxx` tools used in `protos` repository
 - [330](https://github.com/vegaprotocol/data-node/pull/330) - Add support for storing market data events in the SQL store
  
 ### 🐛 Fixes
@@ -40,6 +42,7 @@
 - [274](https://github.com/vegaprotocol/data-node/issues/274) - Bug fix for proposal NO vote showing incorrect weight and tokens
 - [288](https://github.com/vegaprotocol/data-node/pull/288) - Add back `assetId` GraphQL resolver for `RewardPerAssetDetail`, change `RiskFactor` fields to strings.
 - [317](https://github.com/vegaprotocol/data-node/pull/317) - Fix `graphql` support for free-form governance proposals
+- [345](https://github.com/vegaprotocol/data-node/issues/345) - Add the missing events conversion to data node
 
 ## 0.47.1
 *`2021-12-20`*

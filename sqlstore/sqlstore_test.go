@@ -12,24 +12,26 @@ import (
 )
 
 var (
-	testStore *sqlstore.SqlStore
+	testStore       *sqlstore.SQLStore
+	sqlTestsEnabled bool = false
 )
 
 func TestMain(m *testing.M) {
 	var err error
 
 	sqlConfig := NewTestConfig(15432)
-	testStore, err = sqlstore.InitialiseStorage(
-		logging.NewTestLogger(),
-		sqlConfig,
-		&paths.DefaultPaths{},
-	)
-	if err != nil {
-		panic(err)
+	if sqlTestsEnabled {
+		testStore, err = sqlstore.InitialiseStorage(
+			logging.NewTestLogger(),
+			sqlConfig,
+			&paths.DefaultPaths{},
+		)
+		if err != nil {
+			panic(err)
+		}
+
+		defer testStore.Stop()
 	}
-
-	defer testStore.Stop()
-
 	m.Run()
 }
 

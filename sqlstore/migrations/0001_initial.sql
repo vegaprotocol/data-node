@@ -37,6 +37,15 @@ create table accounts
     UNIQUE(party_id, asset_id, market_id, type)
 );
 
+create table balances
+(
+    account_id INT                      NOT NULL REFERENCES accounts(id),
+    vega_time  TIMESTAMP WITH TIME ZONE NOT NULL REFERENCES blocks(vega_time),
+    balance    NUMERIC(32, 0)           NOT NULL,
+
+    PRIMARY KEY(vega_time, account_id)
+);
+
 create table ledger
 (
     id              SERIAL                   PRIMARY KEY,
@@ -47,6 +56,33 @@ create table ledger
     transfer_time   TIMESTAMP WITH TIME ZONE NOT NULL,
     reference       TEXT,
     type            TEXT
+);
+
+
+-- Create a function that always returns the first non-NULL value:
+CREATE OR REPLACE FUNCTION public.first_agg (anyelement, anyelement)
+  RETURNS anyelement
+  LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE AS
+'SELECT $1';
+
+-- Then wrap an aggregate around it:
+CREATE AGGREGATE public.first (anyelement) (
+  SFUNC    = public.first_agg
+, STYPE    = anyelement
+, PARALLEL = safe
+);
+
+-- Create a function that always returns the last non-NULL value:
+CREATE OR REPLACE FUNCTION public.last_agg (anyelement, anyelement)
+  RETURNS anyelement
+  LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE AS
+'SELECT $2';
+
+-- Then wrap an aggregate around it:
+CREATE AGGREGATE public.last (anyelement) (
+  SFUNC    = public.last_agg
+, STYPE    = anyelement
+, PARALLEL = safe
 );
 
 drop type if exists auction_trigger_type;
@@ -108,11 +144,17 @@ and md.market_timestamp = mx.market_timestamp
 
 
 -- +goose Down
+DROP AGGREGATE public.first(anyelement);
+DROP AGGREGATE public.last(anyelement);
+DROP FUNCTION public.first_agg(anyelement, anyelement);
+DROP FUNCTION public.last_agg(anyelement, anyelement);
+
 drop view if exists market_data_snapshot;
 drop table if exists market_data;
 drop type if exists market_trading_mode_type;
 drop type if exists auction_trigger_type;
 drop table if exists ledger;
+drop table if exists balances;
 drop table if exists accounts;
 drop table if exists parties;
 drop table if exists assets;

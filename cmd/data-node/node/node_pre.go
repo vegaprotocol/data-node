@@ -89,7 +89,7 @@ func (l *NodeCommand) persistentPre(args []string) (err error) {
 		return err
 	}
 	l.setupSubscribers()
-	l.setupSqlSubscribers()
+	l.setupSQLSubscribers()
 	return nil
 }
 
@@ -118,14 +118,14 @@ func (l *NodeCommand) setupSubscribers() {
 	l.transferSub = subscribers.NewTransferSub(l.ctx, l.transferStore, l.Log, true)
 }
 
-func (l *NodeCommand) setupSqlSubscribers() {
-	if !l.conf.SqlStore.Enabled {
+func (l *NodeCommand) setupSQLSubscribers() {
+	if !l.conf.SQLStore.Enabled {
 		return
 	}
 
-	l.assetSubSql = sqlsubscribers.NewAsset(l.ctx, l.assetStoreSql, l.blockStoreSql, l.Log)
-	l.timeSubSql = sqlsubscribers.NewTimeSub(l.ctx, l.blockStoreSql, l.Log)
-	l.transferResponseSubSql = sqlsubscribers.NewTransferResponse(l.ctx, l.ledgerSql, l.accountStoreSql, l.partyStoreSql, l.blockStoreSql, l.Log)
+	l.assetSubSQL = sqlsubscribers.NewAsset(l.ctx, l.assetStoreSQL, l.blockStoreSQL, l.Log)
+	l.timeSubSQL = sqlsubscribers.NewTimeSub(l.ctx, l.blockStoreSQL, l.Log)
+	l.transferResponseSubSQL = sqlsubscribers.NewTransferResponse(l.ctx, l.ledgerSQL, l.accountStoreSQL, l.balanceStoreSQL, l.partyStoreSQL, l.blockStoreSQL, l.Log)
 	l.marketDataSubSql = sqlsubscribers.NewMarketData(l.ctx, l.marketDataStoreSql, l.blockStoreSql, l.Log, l.conf.SqlStore.Timeout.Duration)
 }
 
@@ -146,17 +146,18 @@ func (l *NodeCommand) setupStorages() error {
 		return err
 	}
 
-	if l.conf.SqlStore.Enabled {
-		sqlStore, err := sqlstore.InitialiseStorage(l.Log, l.conf.SqlStore, l.vegaPaths)
+	if l.conf.SQLStore.Enabled {
+		sqlStore, err := sqlstore.InitialiseStorage(l.Log, l.conf.SQLStore, l.vegaPaths)
 		if err != nil {
 			return fmt.Errorf("couldn't initialise sql storage: %w", err)
 		}
 
-		l.assetStoreSql = sqlstore.NewAssets(sqlStore)
-		l.blockStoreSql = sqlstore.NewBlocks(sqlStore)
-		l.partyStoreSql = sqlstore.NewParties(sqlStore)
-		l.accountStoreSql = sqlstore.NewAccounts(sqlStore)
-		l.ledgerSql = sqlstore.NewLedger(sqlStore)
+		l.assetStoreSQL = sqlstore.NewAssets(sqlStore)
+		l.blockStoreSQL = sqlstore.NewBlocks(sqlStore)
+		l.partyStoreSQL = sqlstore.NewParties(sqlStore)
+		l.accountStoreSQL = sqlstore.NewAccounts(sqlStore)
+		l.balanceStoreSQL = sqlstore.NewBalances(sqlStore)
+		l.ledgerSQL = sqlstore.NewLedger(sqlStore)
 		l.marketDataStoreSql = sqlstore.NewMarketData(sqlStore)
 		l.sqlStore = sqlStore
 	}
@@ -262,8 +263,8 @@ func (l *NodeCommand) preRun(_ []string) (err error) {
 		l.stakingService, l.checkpointSub, l.transferSub,
 	)
 
-	if l.conf.SqlStore.Enabled {
-		l.broker.SubscribeBatch(l.timeSubSql, l.assetSubSql, l.transferResponseSubSql, l.marketDataSubSql)
+	if l.conf.SQLStore.Enabled {
+		l.broker.SubscribeBatch(l.timeSubSQL, l.assetSubSQL, l.transferResponseSubSQL)
 	}
 
 	nodeAddr := fmt.Sprintf("%v:%v", l.conf.API.CoreNodeIP, l.conf.API.CoreNodeGRPCPort)
