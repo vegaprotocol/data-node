@@ -3,7 +3,7 @@ module code.vegaprotocol.io/data-node
 go 1.17
 
 require (
-	code.vegaprotocol.io/protos v0.48.1-0.20220218115913-0a65a55ec8fe
+	code.vegaprotocol.io/protos v0.48.1-0.20220222145742-c58571c0866a
 	code.vegaprotocol.io/quant v0.2.5
 	code.vegaprotocol.io/shared v0.0.0-20220202150846-b6aba31dcdb0
 	code.vegaprotocol.io/vega v0.48.0-pre4.0.20220217134526-943c9551ac98
@@ -120,5 +120,3 @@ require (
 replace github.com/shopspring/decimal => github.com/vegaprotocol/decimal v1.2.1-0.20210705145732-aaa563729a0a
 
 replace github.com/fergusstrange/embedded-postgres => github.com/vegaprotocol/embedded-postgres v1.13.1-0.20220211112504-8b457d463043
-
-replace code.vegaprotocol.io/protos => ../protos

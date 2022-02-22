@@ -2537,52 +2537,34 @@ func getParty(ctx context.Context, log *logging.Logger, client TradingDataServic
 
 // Market Data Resolvers
 
-// GetMarketDataByID returns the current market data for a given market.
-func (r *myQueryResolver) GetMarketDataByID(ctx context.Context, id string) (*types.MarketData, error) {
-	req := &v2.MarketDataByIDRequest{
-		MarketId: id,
-	}
-
-	resp, err := r.tradingDataClientV2.GetMarketDataByID(ctx, req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.GetMarketData(), nil
-}
-
-// GetAllMarketsData returns the most current market data for all markets.
-func (r *myQueryResolver) GetAllMarketsData(ctx context.Context) ([]*types.MarketData, error) {
-	resp, err := r.tradingDataClientV2.GetMarketsData(ctx, &v2.MarketsDataRequest{})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.GetMarketsData(), nil
-}
-
 // GetMarketDataHistoryByID returns all the market data information for a given market between the dates specified.
-func (r *myQueryResolver) GetMarketDataHistoryByID(ctx context.Context, id string, start int, end int) ([]*types.MarketData, error) {
-	if start > end {
-		return nil, errors.New("start timestamp cannot be after end timestamp")
+func (r *myQueryResolver) GetMarketDataHistoryByID(ctx context.Context, id string, start *int, end *int) ([]*types.MarketData, error) {
+	var startTime, endTime int64
+
+	if start != nil {
+		startTime = int64(*start)
 	}
 
-	if start == end {
-		return nil, errors.New("end timestamp cannot be the same as start timestamp")
+	if end != nil {
+		endTime = int64(*end)
 	}
 
-	// Start and end timestamps in the request should be as Unix epoch time, but timestamps in vega will be stored to the nanosecond
-	startTime := time.Unix(int64(start), 0)
-	endTime := time.Unix(int64(end), 0)
-
-	req := &v2.MarketDataHistoryByIDRequest{
-		MarketId:       id,
-		StartTimestamp: startTime.UnixNano(),
-		EndTimestamp:   endTime.UnixNano(),
+	if startTime > 0 && endTime > 0 {
+		return r.getMarketDataHistoryByID(ctx, id, startTime, endTime)
 	}
 
+	if startTime > 0 {
+		return r.getMarketDataHistoryFromDateByID(ctx, id, startTime)
+	}
+
+	if endTime > 0 {
+		return r.getMarketDataHistoryToDateByID(ctx, id, endTime)
+	}
+
+	return r.getMarketDataByID(ctx, id)
+}
+
+func (r *myQueryResolver) getMarketData(ctx context.Context, req *v2.GetMarketDataHistoryByIDRequest) ([]*types.MarketData, error) {
 	resp, err := r.tradingDataClientV2.GetMarketDataHistoryByID(ctx, req)
 
 	if err != nil {
@@ -2592,37 +2574,45 @@ func (r *myQueryResolver) GetMarketDataHistoryByID(ctx context.Context, id strin
 	return resp.GetMarketData(), nil
 }
 
-// GetMarketDataHistoryFromDateTimeByID returns all the market data from the time given to the most recent for the market specified.
-func (r *myQueryResolver) GetMarketDataHistoryFromDateTimeByID(ctx context.Context, id string, start int) ([]*types.MarketData, error) {
-	startTime := time.Unix(int64(start), 0)
-
-	req := &v2.MarketDataHistoryFromDateByIDRequest{
-		MarketId:       id,
-		StartTimestamp: startTime.Unix(),
+func (r *myQueryResolver) getMarketDataByID(ctx context.Context, id string) ([]*types.MarketData, error) {
+	req := v2.GetMarketDataHistoryByIDRequest{
+		MarketId: id,
 	}
 
-	resp, err := r.tradingDataClientV2.GetMarketDataHistoryFromDateByID(ctx, req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.GetMarketData(), nil
+	return r.getMarketData(ctx, &req)
 }
 
-// GetMarketDataHistoryToDateTimeByID returns all the market data from the earliest up to the time given for the market specified.
-func (r *myQueryResolver) GetMarketDataHistoryToDateTimeByID(ctx context.Context, id string, to int) ([]*types.MarketData, error) {
-	endTime := time.Unix(int64(to), 0)
-	req := &v2.MarketDataHistoryToDateByIDRequest{
+func (r *myQueryResolver) getMarketDataHistoryByID(ctx context.Context, id string, start, end int64) ([]*types.MarketData, error) {
+	startTime := time.Unix(start, 0).UnixNano()
+	endTime := time.Unix(end, 0).UnixNano()
+
+	req := v2.GetMarketDataHistoryByIDRequest{
+		MarketId:       id,
+		StartTimestamp: &startTime,
+		EndTimestamp:   &endTime,
+	}
+
+	return r.getMarketData(ctx, &req)
+}
+
+func (r *myQueryResolver) getMarketDataHistoryFromDateByID(ctx context.Context, id string, start int64) ([]*types.MarketData, error) {
+	startTime := time.Unix(start, 0).UnixNano()
+
+	req := v2.GetMarketDataHistoryByIDRequest{
+		MarketId:       id,
+		StartTimestamp: &startTime,
+	}
+
+	return r.getMarketData(ctx, &req)
+}
+
+func (r *myQueryResolver) getMarketDataHistoryToDateByID(ctx context.Context, id string, end int64) ([]*types.MarketData, error) {
+	endTime := time.Unix(end, 0).UnixNano()
+
+	req := v2.GetMarketDataHistoryByIDRequest{
 		MarketId:     id,
-		EndTimestamp: endTime.Unix(),
+		EndTimestamp: &endTime,
 	}
 
-	resp, err := r.tradingDataClientV2.GetMarketDataHistoryToDateByID(ctx, req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.GetMarketData(), nil
+	return r.getMarketData(ctx, &req)
 }

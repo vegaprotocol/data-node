@@ -50,20 +50,6 @@ func (bs *tradingDataServiceV2) QueryBalanceHistory(ctx context.Context, req *v2
 	return &v2.QueryBalanceHistoryResponse{Balances: pbBalances}, nil
 }
 
-func (bs *tradingDataServiceV2) GetMarketDataByID(ctx context.Context, req *v2.MarketDataByIDRequest) (*v2.MarketDataByIDResponse, error) {
-	results, err := bs.marketDataStore.GetByID(ctx, req.MarketId)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not retrieve market data for given market ID: %w", err)
-	}
-
-	response := &v2.MarketDataByIDResponse{
-		MarketData: results.ToProto(),
-	}
-
-	return response, nil
-}
-
 func entityMarketDataListToProtoList(list []entities.MarketData) []*types.MarketData {
 	if len(list) == 0 {
 		return nil
@@ -78,61 +64,76 @@ func entityMarketDataListToProtoList(list []entities.MarketData) []*types.Market
 	return results
 }
 
-func (bs *tradingDataServiceV2) GetMarketsData(ctx context.Context, _ *v2.MarketsDataRequest) (*v2.MarketsDataResponse, error) {
-	results, err := bs.marketDataStore.GetAll(ctx)
+func (bs *tradingDataServiceV2) GetMarketDataHistoryByID(ctx context.Context, req *v2.GetMarketDataHistoryByIDRequest) (*v2.GetMarketDataHistoryByIDResponse, error) {
+	var startTime, endTime time.Time
 
-	if err != nil {
-		return nil, fmt.Errorf("could not retrieve latest market data snapshot: %w", err)
+	if req.StartTimestamp != nil {
+		startTime = time.Unix(0, *req.StartTimestamp)
 	}
 
-	response := v2.MarketsDataResponse{
-		MarketsData: entityMarketDataListToProtoList(results),
+	if req.EndTimestamp != nil {
+		endTime = time.Unix(0, *req.EndTimestamp)
 	}
 
-	return &response, nil
+	if req.StartTimestamp != nil && req.EndTimestamp != nil {
+		return bs.getMarketDataHistoryByID(ctx, req.MarketId, startTime, endTime)
+	}
+
+	if req.StartTimestamp != nil {
+		return bs.getMarketDataHistoryFromDateByID(ctx, req.MarketId, startTime)
+	}
+
+	if req.EndTimestamp != nil {
+		return bs.getMarketDataHistoryToDateByID(ctx, req.MarketId, endTime)
+	}
+
+	return bs.getMarketDataByID(ctx, req.MarketId)
 }
 
-func (bs *tradingDataServiceV2) GetMarketDataHistoryByID(ctx context.Context, req *v2.MarketDataHistoryByIDRequest) (*v2.MarketDataHistoryByIDResponse, error) {
-	startTime := time.Unix(0, req.StartTimestamp)
-	endTime := time.Unix(0, req.EndTimestamp)
-
-	results, err := bs.marketDataStore.GetBetweenDatesByID(ctx, req.MarketId, startTime, endTime)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
-	}
-
-	response := v2.MarketDataHistoryByIDResponse{
+func parseResults(results []entities.MarketData) (*v2.GetMarketDataHistoryByIDResponse, error) {
+	response := v2.GetMarketDataHistoryByIDResponse{
 		MarketData: entityMarketDataListToProtoList(results),
 	}
 
 	return &response, nil
 }
 
-func (bs *tradingDataServiceV2) GetMarketDataHistoryFromDateByID(ctx context.Context, req *v2.MarketDataHistoryFromDateByIDRequest) (*v2.MarketDataHistoryFromDateByIDResponse, error) {
-	from := time.Unix(0, req.StartTimestamp)
-	results, err := bs.marketDataStore.GetFromDateByID(ctx, req.MarketId, from)
+func (bs *tradingDataServiceV2) getMarketDataHistoryByID(ctx context.Context, id string, start, end time.Time) (*v2.GetMarketDataHistoryByIDResponse, error) {
+	results, err := bs.marketDataStore.GetBetweenDatesByID(ctx, id, start, end)
+
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
 	}
 
-	response := v2.MarketDataHistoryFromDateByIDResponse{
-		MarketData: entityMarketDataListToProtoList(results),
-	}
-
-	return &response, nil
+	return parseResults(results)
 }
 
-func (bs *tradingDataServiceV2) GetMarketDataHistoryToDateByID(ctx context.Context, req *v2.MarketDataHistoryToDateByIDRequest) (*v2.MarketDataHistoryToDateByIDResponse, error) {
-	to := time.Unix(0, req.EndTimestamp)
-	results, err := bs.marketDataStore.GetToDateByID(ctx, req.MarketId, to)
+func (bs *tradingDataServiceV2) getMarketDataByID(ctx context.Context, id string) (*v2.GetMarketDataHistoryByIDResponse, error) {
+	results, err := bs.marketDataStore.GetByID(ctx, id)
+
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
 	}
 
-	response := v2.MarketDataHistoryToDateByIDResponse{
-		MarketData: entityMarketDataListToProtoList(results),
+	return parseResults([]entities.MarketData{results})
+}
+
+func (bs *tradingDataServiceV2) getMarketDataHistoryFromDateByID(ctx context.Context, id string, start time.Time) (*v2.GetMarketDataHistoryByIDResponse, error) {
+	results, err := bs.marketDataStore.GetFromDateByID(ctx, id, start)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
 	}
 
-	return &response, nil
+	return parseResults(results)
+}
+
+func (bs *tradingDataServiceV2) getMarketDataHistoryToDateByID(ctx context.Context, id string, end time.Time) (*v2.GetMarketDataHistoryByIDResponse, error) {
+	results, err := bs.marketDataStore.GetToDateByID(ctx, id, end)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
+	}
+
+	return parseResults(results)
 }
