@@ -36,6 +36,106 @@ func (m *MockTradingDataServiceClientV2) EXPECT() *MockTradingDataServiceClientV
 	return m.recorder
 }
 
+// GetMarketDataByID mocks base method.
+func (m *MockTradingDataServiceClientV2) GetMarketDataByID(arg0 context.Context, arg1 *v2.MarketDataByIDRequest, arg2 ...grpc.CallOption) (*v2.MarketDataByIDResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetMarketDataByID", varargs...)
+	ret0, _ := ret[0].(*v2.MarketDataByIDResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMarketDataByID indicates an expected call of GetMarketDataByID.
+func (mr *MockTradingDataServiceClientV2MockRecorder) GetMarketDataByID(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMarketDataByID", reflect.TypeOf((*MockTradingDataServiceClientV2)(nil).GetMarketDataByID), varargs...)
+}
+
+// GetMarketDataHistoryByID mocks base method.
+func (m *MockTradingDataServiceClientV2) GetMarketDataHistoryByID(arg0 context.Context, arg1 *v2.MarketDataHistoryByIDRequest, arg2 ...grpc.CallOption) (*v2.MarketDataHistoryByIDResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetMarketDataHistoryByID", varargs...)
+	ret0, _ := ret[0].(*v2.MarketDataHistoryByIDResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMarketDataHistoryByID indicates an expected call of GetMarketDataHistoryByID.
+func (mr *MockTradingDataServiceClientV2MockRecorder) GetMarketDataHistoryByID(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMarketDataHistoryByID", reflect.TypeOf((*MockTradingDataServiceClientV2)(nil).GetMarketDataHistoryByID), varargs...)
+}
+
+// GetMarketDataHistoryFromDateByID mocks base method.
+func (m *MockTradingDataServiceClientV2) GetMarketDataHistoryFromDateByID(arg0 context.Context, arg1 *v2.MarketDataHistoryFromDateByIDRequest, arg2 ...grpc.CallOption) (*v2.MarketDataHistoryFromDateByIDResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetMarketDataHistoryFromDateByID", varargs...)
+	ret0, _ := ret[0].(*v2.MarketDataHistoryFromDateByIDResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMarketDataHistoryFromDateByID indicates an expected call of GetMarketDataHistoryFromDateByID.
+func (mr *MockTradingDataServiceClientV2MockRecorder) GetMarketDataHistoryFromDateByID(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMarketDataHistoryFromDateByID", reflect.TypeOf((*MockTradingDataServiceClientV2)(nil).GetMarketDataHistoryFromDateByID), varargs...)
+}
+
+// GetMarketDataHistoryToDateByID mocks base method.
+func (m *MockTradingDataServiceClientV2) GetMarketDataHistoryToDateByID(arg0 context.Context, arg1 *v2.MarketDataHistoryToDateByIDRequest, arg2 ...grpc.CallOption) (*v2.MarketDataHistoryToDateByIDResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetMarketDataHistoryToDateByID", varargs...)
+	ret0, _ := ret[0].(*v2.MarketDataHistoryToDateByIDResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMarketDataHistoryToDateByID indicates an expected call of GetMarketDataHistoryToDateByID.
+func (mr *MockTradingDataServiceClientV2MockRecorder) GetMarketDataHistoryToDateByID(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMarketDataHistoryToDateByID", reflect.TypeOf((*MockTradingDataServiceClientV2)(nil).GetMarketDataHistoryToDateByID), varargs...)
+}
+
+// GetMarketsData mocks base method.
+func (m *MockTradingDataServiceClientV2) GetMarketsData(arg0 context.Context, arg1 *v2.MarketsDataRequest, arg2 ...grpc.CallOption) (*v2.MarketsDataResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetMarketsData", varargs...)
+	ret0, _ := ret[0].(*v2.MarketsDataResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMarketsData indicates an expected call of GetMarketsData.
+func (mr *MockTradingDataServiceClientV2MockRecorder) GetMarketsData(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMarketsData", reflect.TypeOf((*MockTradingDataServiceClientV2)(nil).GetMarketsData), varargs...)
+}
+
 // QueryBalanceHistory mocks base method.
 func (m *MockTradingDataServiceClientV2) QueryBalanceHistory(arg0 context.Context, arg1 *v2.QueryBalanceHistoryRequest, arg2 ...grpc.CallOption) (*v2.QueryBalanceHistoryResponse, error) {
 	m.ctrl.T.Helper()

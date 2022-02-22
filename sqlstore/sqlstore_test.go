@@ -31,8 +31,8 @@ func TestMain(m *testing.M) {
 		}
 
 		defer testStore.Stop()
+		m.Run()
 	}
-	m.Run()
 }
 
 // Generate a 256 bit pseudo-random hash ID based on the time

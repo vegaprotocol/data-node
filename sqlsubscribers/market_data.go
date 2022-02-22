@@ -1,12 +1,10 @@
 package sqlsubscribers
 
 import (
-	"context"
 	"time"
 
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
-	"code.vegaprotocol.io/data-node/subscribers"
 	types "code.vegaprotocol.io/protos/vega"
 	"code.vegaprotocol.io/vega/events"
 )
@@ -18,73 +16,58 @@ type MarketDataEvent interface {
 
 //go:generate go run github.com/golang/mock/mockgen -destination mocks/market_data_mock.go -package mocks code.vegaprotocol.io/data-node/sqlsubscribers MarketDataStore
 type MarketDataStore interface {
-	Add(context.Context, ...*entities.MarketData) error
+	Add(*entities.MarketData) error
 }
 
 type MarketData struct {
-	*subscribers.Base
-	log        *logging.Logger
-	store      MarketDataStore
-	blockStore BlockStore
-	dbTimeout  time.Duration
+	log       *logging.Logger
+	store     MarketDataStore
+	dbTimeout time.Duration
+	vegaTime  time.Time
 }
 
-func NewMarketData(ctx context.Context, store MarketDataStore, blockStore BlockStore, log *logging.Logger, dbTimeout time.Duration) *MarketData {
+func (md *MarketData) Push(evt events.Event) {
+	switch e := evt.(type) {
+	case TimeUpdateEvent:
+		md.vegaTime = e.Time()
+	case MarketDataEvent:
+		md.consume(e)
+	default:
+		md.log.Error("Unknown event type in transfer response subscriber",
+			logging.String("type", e.Type().String()))
+	}
+}
+
+func (md *MarketData) Type() events.Type {
+	return events.MarketDataEvent
+}
+
+func NewMarketData(store MarketDataStore, log *logging.Logger, dbTimeout time.Duration) *MarketData {
 	return &MarketData{
-		Base:       subscribers.NewBase(ctx, 0, true),
-		log:        log,
-		store:      store,
-		blockStore: blockStore,
-		dbTimeout:  dbTimeout,
+		log:       log,
+		store:     store,
+		dbTimeout: dbTimeout,
 	}
 }
 
-func (md *MarketData) Types() []events.Type {
-	return []events.Type{
-		events.MarketDataEvent,
-	}
-}
-
-func (md *MarketData) Push(events ...events.Event) {
-	buffer := make([]*entities.MarketData, 0, len(events))
-
-	for _, e := range events {
-		if data, ok := e.(MarketDataEvent); ok {
-			md.consume(data, &buffer)
-		}
-	}
-
-	if len(buffer) > 0 {
-		ctx, cancel := context.WithTimeout(md.Base.Context(), md.dbTimeout)
-		defer cancel()
-
-		if err := md.store.Add(ctx, buffer...); err != nil {
-			md.log.Error("Inserting market data to SQL store failed.", logging.Error(err))
-		}
-	}
-}
-
-func (md *MarketData) consume(event MarketDataEvent, buffer *[]*entities.MarketData) {
+func (md *MarketData) consume(event MarketDataEvent) {
 	md.log.Debug("Received MarketData Event",
 		logging.Int64("block", event.BlockNr()),
 		logging.String("market", event.MarketData().Market),
 	)
 
-	block, err := md.blockStore.WaitForBlockHeight(event.BlockNr())
-	if err != nil {
-		md.log.Error("Can't add assert because we don't have block", logging.Error(err))
-		return
-	}
-
 	var record *entities.MarketData
+	var err error
 	mdProto := event.MarketData()
 
-	if record, err = md.convertMarketDataProto(&mdProto, block.VegaTime); err != nil {
+	if record, err = md.convertMarketDataProto(&mdProto, md.vegaTime); err != nil {
 		md.log.Error("Converting market data proto for persistence failed", logging.Error(err))
 		return
 	}
 
-	*buffer = append(*buffer, record)
+	if err := md.store.Add(record); err != nil {
+		md.log.Error("Inserting market data to SQL store failed.", logging.Error(err))
+	}
 }
 
 func (md *MarketData) convertMarketDataProto(data *types.MarketData, vegaTime time.Time) (*entities.MarketData, error) {

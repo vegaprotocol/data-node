@@ -33,11 +33,9 @@ func NewMarketData(sqlStore *SQLStore) *MarketData {
 	}
 }
 
-func (md *MarketData) Add(ctx context.Context, entries ...*entities.MarketData) error {
-	tx, err := md.pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
+func (md *MarketData) Add(data *entities.MarketData) error {
+	ctx, cancel := context.WithTimeout(context.Background(), md.conf.Timeout.Duration)
+	defer cancel()
 
 	query := fmt.Sprintf(`insert into market_data(%s) 
 	values ($1, $2, $3, $4, 
@@ -47,27 +45,18 @@ func (md *MarketData) Add(ctx context.Context, entries ...*entities.MarketData) 
 			$17, $18, $19, $20,
 			$21, $22, $23, $24,
 			$25, $26, $27)`, sqlColumns)
-	for _, data := range entries {
-		if _, err = tx.Exec(ctx, query,
-			data.Market, data.MarketTimestamp, data.VegaTime, data.MarkPrice,
-			data.BestBidPrice, data.BestBidVolume, data.BestOfferPrice, data.BestOfferVolume,
-			data.BestStaticBidPrice, data.BestStaticBidVolume, data.BestStaticOfferPrice, data.BestStaticOfferVolume,
-			data.MidPrice, data.StaticMidPrice, data.OpenInterest, data.AuctionEnd,
-			data.AuctionStart, data.IndicativePrice, data.IndicativeVolume, data.MarketTradingMode,
-			data.AuctionTrigger, data.ExtensionTrigger, data.TargetStake, data.SuppliedStake,
-			data.PriceMonitoringBounds, data.MarketValueProxy, data.LiquidityProviderFeeShares,
-		); err != nil {
-			err = fmt.Errorf("could not insert into database: %w", err)
-			if txErr := tx.Rollback(ctx); txErr != nil {
-				return fmt.Errorf("rollback failed: %s, %w", txErr, err)
-			}
 
-			return err
-		}
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("could not insert market data into the database, commit failed: %w", err)
+	if _, err := md.pool.Exec(ctx, query,
+		data.Market, data.MarketTimestamp, data.VegaTime, data.MarkPrice,
+		data.BestBidPrice, data.BestBidVolume, data.BestOfferPrice, data.BestOfferVolume,
+		data.BestStaticBidPrice, data.BestStaticBidVolume, data.BestStaticOfferPrice, data.BestStaticOfferVolume,
+		data.MidPrice, data.StaticMidPrice, data.OpenInterest, data.AuctionEnd,
+		data.AuctionStart, data.IndicativePrice, data.IndicativeVolume, data.MarketTradingMode,
+		data.AuctionTrigger, data.ExtensionTrigger, data.TargetStake, data.SuppliedStake,
+		data.PriceMonitoringBounds, data.MarketValueProxy, data.LiquidityProviderFeeShares,
+	); err != nil {
+		err = fmt.Errorf("could not insert into database: %w", err)
+		return err
 	}
 
 	return nil

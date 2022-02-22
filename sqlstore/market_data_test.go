@@ -92,7 +92,7 @@ func shouldInsertAValidMarketDataRecord(t *testing.T) {
 
 	market := []byte("deadbeef")
 
-	err = md.Add(ctx, &entities.MarketData{
+	err = md.Add(&entities.MarketData{
 		Market:            market,
 		MarketTimestamp:   time.Now(),
 		MarketTradingMode: "TRADING_MODE_MONITORING_AUCTION",
@@ -131,7 +131,7 @@ func shouldErrorIfNoVegaBlock(t *testing.T) {
 	assert.Equal(t, 0, rowCount)
 
 	market := []byte("deadbeef")
-	err = md.Add(ctx, &entities.MarketData{
+	err = md.Add(&entities.MarketData{
 		Market:            market,
 		MarketTimestamp:   time.Now(),
 		MarketTradingMode: "TRADING_MODE_MONITORING_AUCTION",
@@ -308,9 +308,6 @@ func setupMarketData(t *testing.T) (*sqlstore.MarketData, error) {
 
 	reader := csv.NewReader(bufio.NewReader(f))
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*100)
-	defer cancel()
-
 	var hash []byte
 	hash, err = hex.DecodeString("deadbeef")
 	assert.NoError(t, err)
@@ -336,7 +333,7 @@ func setupMarketData(t *testing.T) (*sqlstore.MarketData, error) {
 		// Add it to the database
 		err = bs.Add(block)
 
-		err = md.Add(ctx, marketData)
+		err = md.Add(marketData)
 	}
 
 	return md, nil

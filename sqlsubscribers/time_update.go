@@ -19,7 +19,6 @@ type TimeUpdateEvent interface {
 //go:generate go run github.com/golang/mock/mockgen -destination mocks/time_update_mock.go -package mocks code.vegaprotocol.io/data-node/sqlsubscribers BlockStore
 type BlockStore interface {
 	Add(entities.Block) error
-	WaitForBlockHeight(height int64) (entities.Block, error)
 }
 
 type Time struct {
@@ -41,22 +40,17 @@ func NewTimeSub(
 	return t
 }
 
-func (t *Time) Types() []events.Type {
-	return []events.Type{
-		events.TimeUpdate,
-	}
+func (t *Time) Type() events.Type {
+	return events.TimeUpdate
 }
 
-func (t *Time) Push(evts ...events.Event) {
-	for _, e := range evts {
-		switch et := e.(type) {
-
-		case TimeUpdateEvent:
-			t.consume(et)
-		default:
-			t.log.Panic("Unknown event type in time subscriber",
-				logging.String("Type", et.Type().String()))
-		}
+func (t *Time) Push(evt events.Event) {
+	switch et := evt.(type) {
+	case TimeUpdateEvent:
+		t.consume(et)
+	default:
+		t.log.Panic("Unknown event type in time subscriber",
+			logging.String("Type", et.Type().String()))
 	}
 }
 
