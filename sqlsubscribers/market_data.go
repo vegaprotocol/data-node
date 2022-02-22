@@ -77,8 +77,9 @@ func (md *MarketData) consume(event MarketDataEvent, buffer *[]*entities.MarketD
 	}
 
 	var record *entities.MarketData
+	mdProto := event.MarketData()
 
-	if record, err = md.convertMarketDataProto(event.MarketData(), block.VegaTime); err != nil {
+	if record, err = md.convertMarketDataProto(&mdProto, block.VegaTime); err != nil {
 		md.log.Error("Converting market data proto for persistence failed", logging.Error(err))
 		return
 	}
@@ -86,7 +87,7 @@ func (md *MarketData) consume(event MarketDataEvent, buffer *[]*entities.MarketD
 	*buffer = append(*buffer, record)
 }
 
-func (md *MarketData) convertMarketDataProto(data types.MarketData, vegaTime time.Time) (*entities.MarketData, error) {
+func (md *MarketData) convertMarketDataProto(data *types.MarketData, vegaTime time.Time) (*entities.MarketData, error) {
 	record, err := entities.MarketDataFromProto(data)
 	if err != nil {
 		return nil, err

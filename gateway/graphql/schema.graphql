@@ -426,6 +426,16 @@ type Query {
     filter: AccountFilter,
     groupBy: [AccountField])
     : [AggregatedBalance!]!
+
+  getMarketDataByID(id: String!): MarketData
+
+  getAllMarketsData: [MarketData!]
+
+  getMarketDataHistoryByID(id: String!, start: Int!, end: Int!): [MarketData]
+
+  getMarketDataHistoryFromDateTimeByID(id: String!, start: Int!): [MarketData]
+
+  getMarketDataHistoryToDateTimeByID(id: String!, to: Int!): [MarketData]
 }
 
 enum TransferStatus {

@@ -725,40 +725,45 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Asset                      func(childComplexity int, assetID string) int
-		Assets                     func(childComplexity int) int
-		Deposit                    func(childComplexity int, id string) int
-		Epoch                      func(childComplexity int, id *string) int
-		Erc20WithdrawalApproval    func(childComplexity int, withdrawalID string) int
-		EstimateOrder              func(childComplexity int, marketID string, partyID string, price *string, size string, side Side, timeInForce OrderTimeInForce, expiration *string, typeArg OrderType) int
-		HistoricBalances           func(childComplexity int, filter *v2.AccountFilter, groupBy []*v2.AccountField) int
-		KeyRotations               func(childComplexity int, id *string) int
-		LastBlockHeight            func(childComplexity int) int
-		Market                     func(childComplexity int, id string) int
-		Markets                    func(childComplexity int, id *string) int
-		NetworkParameters          func(childComplexity int) int
-		NetworkParametersProposals func(childComplexity int, inState *ProposalState) int
-		NewAssetProposals          func(childComplexity int, inState *ProposalState) int
-		NewFreeformProposals       func(childComplexity int, inState *ProposalState) int
-		NewMarketProposals         func(childComplexity int, inState *ProposalState) int
-		Node                       func(childComplexity int, id string) int
-		NodeData                   func(childComplexity int) int
-		NodeSignatures             func(childComplexity int, resourceID string) int
-		Nodes                      func(childComplexity int) int
-		OracleDataBySpec           func(childComplexity int, oracleSpecID string) int
-		OracleSpec                 func(childComplexity int, oracleSpecID string) int
-		OracleSpecs                func(childComplexity int) int
-		OrderByID                  func(childComplexity int, orderID string, version *int) int
-		OrderByReference           func(childComplexity int, reference string) int
-		OrderVersions              func(childComplexity int, orderID string, skip *int, first *int, last *int) int
-		Parties                    func(childComplexity int, id *string) int
-		Party                      func(childComplexity int, id string) int
-		Proposal                   func(childComplexity int, id *string, reference *string) int
-		Proposals                  func(childComplexity int, inState *ProposalState) int
-		Statistics                 func(childComplexity int) int
-		Transfers                  func(childComplexity int, pubkey string, isFrom *bool, isTo *bool) int
-		UpdateMarketProposals      func(childComplexity int, marketID *string, inState *ProposalState) int
-		Withdrawal                 func(childComplexity int, id string) int
+		Asset                                func(childComplexity int, assetID string) int
+		Assets                               func(childComplexity int) int
+		Deposit                              func(childComplexity int, id string) int
+		Epoch                                func(childComplexity int, id *string) int
+		Erc20WithdrawalApproval              func(childComplexity int, withdrawalID string) int
+		EstimateOrder                        func(childComplexity int, marketID string, partyID string, price *string, size string, side Side, timeInForce OrderTimeInForce, expiration *string, typeArg OrderType) int
+		GetAllMarketsData                    func(childComplexity int) int
+		GetMarketDataByID                    func(childComplexity int, id string) int
+		GetMarketDataHistoryByID             func(childComplexity int, id string, start int, end int) int
+		GetMarketDataHistoryFromDateTimeByID func(childComplexity int, id string, start int) int
+		GetMarketDataHistoryToDateTimeByID   func(childComplexity int, id string, to int) int
+		HistoricBalances                     func(childComplexity int, filter *v2.AccountFilter, groupBy []*v2.AccountField) int
+		KeyRotations                         func(childComplexity int, id *string) int
+		LastBlockHeight                      func(childComplexity int) int
+		Market                               func(childComplexity int, id string) int
+		Markets                              func(childComplexity int, id *string) int
+		NetworkParameters                    func(childComplexity int) int
+		NetworkParametersProposals           func(childComplexity int, inState *ProposalState) int
+		NewAssetProposals                    func(childComplexity int, inState *ProposalState) int
+		NewFreeformProposals                 func(childComplexity int, inState *ProposalState) int
+		NewMarketProposals                   func(childComplexity int, inState *ProposalState) int
+		Node                                 func(childComplexity int, id string) int
+		NodeData                             func(childComplexity int) int
+		NodeSignatures                       func(childComplexity int, resourceID string) int
+		Nodes                                func(childComplexity int) int
+		OracleDataBySpec                     func(childComplexity int, oracleSpecID string) int
+		OracleSpec                           func(childComplexity int, oracleSpecID string) int
+		OracleSpecs                          func(childComplexity int) int
+		OrderByID                            func(childComplexity int, orderID string, version *int) int
+		OrderByReference                     func(childComplexity int, reference string) int
+		OrderVersions                        func(childComplexity int, orderID string, skip *int, first *int, last *int) int
+		Parties                              func(childComplexity int, id *string) int
+		Party                                func(childComplexity int, id string) int
+		Proposal                             func(childComplexity int, id *string, reference *string) int
+		Proposals                            func(childComplexity int, inState *ProposalState) int
+		Statistics                           func(childComplexity int) int
+		Transfers                            func(childComplexity int, pubkey string, isFrom *bool, isTo *bool) int
+		UpdateMarketProposals                func(childComplexity int, marketID *string, inState *ProposalState) int
+		Withdrawal                           func(childComplexity int, id string) int
 	}
 
 	RecurringTransfer struct {
@@ -1291,6 +1296,11 @@ type QueryResolver interface {
 	Transfers(ctx context.Context, pubkey string, isFrom *bool, isTo *bool) ([]*v1.Transfer, error)
 	Statistics(ctx context.Context) (*v14.Statistics, error)
 	HistoricBalances(ctx context.Context, filter *v2.AccountFilter, groupBy []*v2.AccountField) ([]*v2.AggregatedBalance, error)
+	GetMarketDataByID(ctx context.Context, id string) (*vega.MarketData, error)
+	GetAllMarketsData(ctx context.Context) ([]*vega.MarketData, error)
+	GetMarketDataHistoryByID(ctx context.Context, id string, start int, end int) ([]*vega.MarketData, error)
+	GetMarketDataHistoryFromDateTimeByID(ctx context.Context, id string, start int) ([]*vega.MarketData, error)
+	GetMarketDataHistoryToDateTimeByID(ctx context.Context, id string, to int) ([]*vega.MarketData, error)
 }
 type RecurringTransferResolver interface {
 	StartEpoch(ctx context.Context, obj *v1.RecurringTransfer) (int, error)
@@ -4209,6 +4219,61 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.EstimateOrder(childComplexity, args["marketId"].(string), args["partyId"].(string), args["price"].(*string), args["size"].(string), args["side"].(Side), args["timeInForce"].(OrderTimeInForce), args["expiration"].(*string), args["type"].(OrderType)), true
 
+	case "Query.getAllMarketsData":
+		if e.complexity.Query.GetAllMarketsData == nil {
+			break
+		}
+
+		return e.complexity.Query.GetAllMarketsData(childComplexity), true
+
+	case "Query.getMarketDataByID":
+		if e.complexity.Query.GetMarketDataByID == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getMarketDataByID_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetMarketDataByID(childComplexity, args["id"].(string)), true
+
+	case "Query.getMarketDataHistoryByID":
+		if e.complexity.Query.GetMarketDataHistoryByID == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getMarketDataHistoryByID_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetMarketDataHistoryByID(childComplexity, args["id"].(string), args["start"].(int), args["end"].(int)), true
+
+	case "Query.getMarketDataHistoryFromDateTimeByID":
+		if e.complexity.Query.GetMarketDataHistoryFromDateTimeByID == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getMarketDataHistoryFromDateTimeByID_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetMarketDataHistoryFromDateTimeByID(childComplexity, args["id"].(string), args["start"].(int)), true
+
+	case "Query.getMarketDataHistoryToDateTimeByID":
+		if e.complexity.Query.GetMarketDataHistoryToDateTimeByID == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getMarketDataHistoryToDateTimeByID_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetMarketDataHistoryToDateTimeByID(childComplexity, args["id"].(string), args["to"].(int)), true
+
 	case "Query.historicBalances":
 		if e.complexity.Query.HistoricBalances == nil {
 			break
@@ -6072,6 +6137,16 @@ type Query {
     filter: AccountFilter,
     groupBy: [AccountField])
     : [AggregatedBalance!]!
+
+  getMarketDataByID(id: String!): MarketData
+
+  getAllMarketsData: [MarketData!]
+
+  getMarketDataHistoryByID(id: String!, start: Int!, end: Int!): [MarketData]
+
+  getMarketDataHistoryFromDateTimeByID(id: String!, start: Int!): [MarketData]
+
+  getMarketDataHistoryToDateTimeByID(id: String!, to: Int!): [MarketData]
 }
 
 enum TransferStatus {
@@ -9119,6 +9194,102 @@ func (ec *executionContext) field_Query_estimateOrder_args(ctx context.Context, 
 		}
 	}
 	args["type"] = arg7
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getMarketDataByID_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getMarketDataHistoryByID_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["start"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["start"] = arg1
+	var arg2 int
+	if tmp, ok := rawArgs["end"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("end"))
+		arg2, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["end"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getMarketDataHistoryFromDateTimeByID_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["start"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["start"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getMarketDataHistoryToDateTimeByID_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["to"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["to"] = arg1
 	return args, nil
 }
 
@@ -24220,6 +24391,194 @@ func (ec *executionContext) _Query_historicBalances(ctx context.Context, field g
 	return ec.marshalNAggregatedBalance2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐAggregatedBalanceᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_getMarketDataByID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_getMarketDataByID_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetMarketDataByID(rctx, args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*vega.MarketData)
+	fc.Result = res
+	return ec.marshalOMarketData2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐMarketData(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getAllMarketsData(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetAllMarketsData(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*vega.MarketData)
+	fc.Result = res
+	return ec.marshalOMarketData2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐMarketDataᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getMarketDataHistoryByID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_getMarketDataHistoryByID_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetMarketDataHistoryByID(rctx, args["id"].(string), args["start"].(int), args["end"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*vega.MarketData)
+	fc.Result = res
+	return ec.marshalOMarketData2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐMarketData(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getMarketDataHistoryFromDateTimeByID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_getMarketDataHistoryFromDateTimeByID_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetMarketDataHistoryFromDateTimeByID(rctx, args["id"].(string), args["start"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*vega.MarketData)
+	fc.Result = res
+	return ec.marshalOMarketData2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐMarketData(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getMarketDataHistoryToDateTimeByID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_getMarketDataHistoryToDateTimeByID_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetMarketDataHistoryToDateTimeByID(rctx, args["id"].(string), args["to"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*vega.MarketData)
+	fc.Result = res
+	return ec.marshalOMarketData2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐMarketData(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -38500,6 +38859,106 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
+		case "getMarketDataByID":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getMarketDataByID(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "getAllMarketsData":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getAllMarketsData(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "getMarketDataHistoryByID":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getMarketDataHistoryByID(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "getMarketDataHistoryFromDateTimeByID":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getMarketDataHistoryFromDateTimeByID(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "getMarketDataHistoryToDateTimeByID":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getMarketDataHistoryToDateTimeByID(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "__type":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -44252,6 +44711,94 @@ func (ec *executionContext) marshalOMarket2ᚖcodeᚗvegaprotocolᚗioᚋprotos�
 		return graphql.Null
 	}
 	return ec._Market(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOMarketData2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐMarketData(ctx context.Context, sel ast.SelectionSet, v []*vega.MarketData) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOMarketData2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐMarketData(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
+func (ec *executionContext) marshalOMarketData2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐMarketDataᚄ(ctx context.Context, sel ast.SelectionSet, v []*vega.MarketData) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNMarketData2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐMarketData(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalOMarketData2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐMarketData(ctx context.Context, sel ast.SelectionSet, v *vega.MarketData) graphql.Marshaler {

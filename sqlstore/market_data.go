@@ -12,7 +12,7 @@ import (
 )
 
 type MarketData struct {
-	*SqlStore
+	*SQLStore
 }
 
 const (
@@ -27,9 +27,9 @@ const (
 
 var ErrInvalidDateRange = errors.New("invalid date range, end date must be after start date")
 
-func NewMarketData(sqlStore *SqlStore) *MarketData {
+func NewMarketData(sqlStore *SQLStore) *MarketData {
 	return &MarketData{
-		SqlStore: sqlStore,
+		SQLStore: sqlStore,
 	}
 }
 

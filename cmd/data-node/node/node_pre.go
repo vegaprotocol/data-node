@@ -126,7 +126,7 @@ func (l *NodeCommand) setupSQLSubscribers() {
 	l.assetSubSQL = sqlsubscribers.NewAsset(l.ctx, l.assetStoreSQL, l.blockStoreSQL, l.Log)
 	l.timeSubSQL = sqlsubscribers.NewTimeSub(l.ctx, l.blockStoreSQL, l.Log)
 	l.transferResponseSubSQL = sqlsubscribers.NewTransferResponse(l.ctx, l.ledgerSQL, l.accountStoreSQL, l.balanceStoreSQL, l.partyStoreSQL, l.blockStoreSQL, l.Log)
-	l.marketDataSubSql = sqlsubscribers.NewMarketData(l.ctx, l.marketDataStoreSql, l.blockStoreSql, l.Log, l.conf.SqlStore.Timeout.Duration)
+	l.marketDataSubSQL = sqlsubscribers.NewMarketData(l.ctx, l.marketDataStoreSQL, l.blockStoreSQL, l.Log, l.conf.SQLStore.Timeout.Duration)
 }
 
 func (l *NodeCommand) setupStorages() error {
@@ -158,7 +158,7 @@ func (l *NodeCommand) setupStorages() error {
 		l.accountStoreSQL = sqlstore.NewAccounts(sqlStore)
 		l.balanceStoreSQL = sqlstore.NewBalances(sqlStore)
 		l.ledgerSQL = sqlstore.NewLedger(sqlStore)
-		l.marketDataStoreSql = sqlstore.NewMarketData(sqlStore)
+		l.marketDataStoreSQL = sqlstore.NewMarketData(sqlStore)
 		l.sqlStore = sqlStore
 	}
 
@@ -264,7 +264,7 @@ func (l *NodeCommand) preRun(_ []string) (err error) {
 	)
 
 	if l.conf.SQLStore.Enabled {
-		l.broker.SubscribeBatch(l.timeSubSQL, l.assetSubSQL, l.transferResponseSubSQL)
+		l.broker.SubscribeBatch(l.timeSubSQL, l.assetSubSQL, l.transferResponseSubSQL, l.marketDataSubSQL)
 	}
 
 	nodeAddr := fmt.Sprintf("%v:%v", l.conf.API.CoreNodeIP, l.conf.API.CoreNodeGRPCPort)

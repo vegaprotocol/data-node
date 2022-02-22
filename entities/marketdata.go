@@ -3,6 +3,7 @@ package entities
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -86,9 +87,10 @@ func (trigger PriceMonitoringTrigger) Equals(other PriceMonitoringTrigger) bool 
 }
 
 type PriceMonitoringBound struct {
-	MinValidPrice uint64                 `json:"minValidPrice"`
-	MaxValidPrice uint64                 `json:"maxValidPrice"`
-	Trigger       PriceMonitoringTrigger `json:"trigger"`
+	MinValidPrice  uint64                 `json:"minValidPrice"`
+	MaxValidPrice  uint64                 `json:"maxValidPrice"`
+	Trigger        PriceMonitoringTrigger `json:"trigger"`
+	ReferencePrice uint64                 `json:"referencePrice"`
 }
 
 func (bound PriceMonitoringBound) Equals(other PriceMonitoringBound) bool {
@@ -109,7 +111,7 @@ func (fee LiquidityProviderFeeShare) Equals(other LiquidityProviderFeeShare) boo
 		fee.AverageEntryValuation == other.AverageEntryValuation
 }
 
-func MarketDataFromProto(data types.MarketData) (*MarketData, error) {
+func MarketDataFromProto(data *types.MarketData) (*MarketData, error) {
 	var mark, bid, offer, staticBid, staticOffer, mid, staticMid, indicative, targetStake, suppliedStake decimal.Decimal
 	var err error
 	var marketID []byte
@@ -231,9 +233,10 @@ func priceMonitoringBoundsFromProto(bounds *types.PriceMonitoringBounds) *PriceM
 	maxValidPrice, _ := strconv.ParseUint(bounds.MaxValidPrice, 10, 64)
 
 	return &PriceMonitoringBound{
-		MinValidPrice: minValidPrice,
-		MaxValidPrice: maxValidPrice,
-		Trigger:       priceMonitoringTriggerFromProto(bounds.Trigger),
+		MinValidPrice:  minValidPrice,
+		MaxValidPrice:  maxValidPrice,
+		Trigger:        priceMonitoringTriggerFromProto(bounds.Trigger),
+		ReferencePrice: uint64(bounds.ReferencePrice),
 	}
 }
 
@@ -262,16 +265,6 @@ func liquidityProviderFeeShareFromProto(feeShare *types.LiquidityProviderFeeShar
 		EquityLikeShare:       equityLikeShare,
 		AverageEntryValuation: averageEntryValuation,
 	}
-}
-
-func decimalRefIsEqual(value, other *decimal.Decimal) bool {
-	if value == nil && other == nil {
-		return true
-	}
-	if value != nil && other != nil {
-		return value.Equal(*other)
-	}
-	return false
 }
 
 func (md MarketData) Equal(other MarketData) bool {
@@ -329,4 +322,86 @@ func liquidityProviderFeeShareMatches(feeShares, other []*LiquidityProviderFeeSh
 	}
 
 	return true
+}
+
+func (md MarketData) ToProto() *types.MarketData {
+	result := types.MarketData{
+		MarkPrice:                 md.MarkPrice.String(),
+		BestBidPrice:              md.BestBidPrice.String(),
+		BestBidVolume:             md.BestBidVolume,
+		BestOfferPrice:            md.BestOfferPrice.String(),
+		BestOfferVolume:           md.BestOfferVolume,
+		BestStaticBidPrice:        md.BestStaticBidPrice.String(),
+		BestStaticBidVolume:       md.BestStaticBidVolume,
+		BestStaticOfferPrice:      md.BestStaticOfferPrice.String(),
+		BestStaticOfferVolume:     md.BestStaticOfferVolume,
+		MidPrice:                  md.MidPrice.String(),
+		StaticMidPrice:            md.StaticMidPrice.String(),
+		Market:                    hex.EncodeToString(md.Market),
+		Timestamp:                 md.MarketTimestamp.UnixNano(),
+		OpenInterest:              md.OpenInterest,
+		AuctionEnd:                md.AuctionEnd,
+		AuctionStart:              md.AuctionStart,
+		IndicativePrice:           md.IndicativePrice.String(),
+		IndicativeVolume:          md.IndicativeVolume,
+		MarketTradingMode:         types.Market_TradingMode(types.Market_TradingMode_value[md.MarketTradingMode]),
+		Trigger:                   types.AuctionTrigger(types.Market_TradingMode_value[md.AuctionTrigger]),
+		ExtensionTrigger:          types.AuctionTrigger(types.Market_TradingMode_value[md.ExtensionTrigger]),
+		TargetStake:               md.TargetStake.String(),
+		SuppliedStake:             md.SuppliedStake.String(),
+		PriceMonitoringBounds:     priceMonitoringBoundsToProto(md.PriceMonitoringBounds),
+		MarketValueProxy:          md.MarketValueProxy,
+		LiquidityProviderFeeShare: liquidityProviderFeeSharesToProto(md.LiquidityProviderFeeShares),
+	}
+
+	return &result
+}
+
+func priceMonitoringBoundsToProto(bounds []*PriceMonitoringBound) []*types.PriceMonitoringBounds {
+	if len(bounds) == 0 {
+		return nil
+	}
+
+	results := make([]*types.PriceMonitoringBounds, 0, len(bounds))
+
+	for _, bound := range bounds {
+		protoBound := types.PriceMonitoringBounds{
+			MinValidPrice:  fmt.Sprintf("%d", bound.MinValidPrice),
+			MaxValidPrice:  fmt.Sprintf("%d", bound.MaxValidPrice),
+			Trigger:        priceMonitoringTriggerToProto(bound.Trigger),
+			ReferencePrice: float64(bound.ReferencePrice),
+		}
+
+		results = append(results, &protoBound)
+	}
+
+	return results
+}
+
+func liquidityProviderFeeSharesToProto(feeShares []*LiquidityProviderFeeShare) []*types.LiquidityProviderFeeShare {
+	if len(feeShares) == 0 {
+		return nil
+	}
+
+	results := make([]*types.LiquidityProviderFeeShare, 0, len(feeShares))
+
+	for _, feeShare := range feeShares {
+		protoFeeShare := types.LiquidityProviderFeeShare{
+			Party:                 feeShare.Party,
+			EquityLikeShare:       fmt.Sprintf("%d", feeShare.EquityLikeShare),
+			AverageEntryValuation: fmt.Sprintf("%d", feeShare.AverageEntryValuation),
+		}
+
+		results = append(results, &protoFeeShare)
+	}
+
+	return results
+}
+
+func priceMonitoringTriggerToProto(trigger PriceMonitoringTrigger) *types.PriceMonitoringTrigger {
+	return &types.PriceMonitoringTrigger{
+		Horizon:          int64(trigger.Horizon),
+		Probability:      float64(trigger.Probability),
+		AuctionExtension: int64(trigger.AuctionExtension),
+	}
 }
