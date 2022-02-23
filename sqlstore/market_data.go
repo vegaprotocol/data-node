@@ -77,29 +77,23 @@ func (md *MarketData) GetByID(ctx context.Context, marketID string) (entities.Ma
 	return marketData, err
 }
 
-func (md *MarketData) GetAll(ctx context.Context) (results []entities.MarketData, err error) {
-	query := fmt.Sprintf(`select %s from market_data_snapshot`, sqlColumns)
-	err = pgxscan.Select(ctx, md.pool, &results, query)
-	return
-}
-
-func (md *MarketData) GetBetweenDatesByID(ctx context.Context, marketID string, start, end time.Time) ([]entities.MarketData, error) {
+func (md *MarketData) GetBetweenDatesByID(ctx context.Context, marketID string, start, end time.Time, pagination Pagination) ([]entities.MarketData, error) {
 	if end.Before(start) {
 		return nil, ErrInvalidDateRange
 	}
 
-	return md.getBetweenDatesByID(ctx, marketID, &start, &end)
+	return md.getBetweenDatesByID(ctx, marketID, &start, &end, pagination)
 }
 
-func (md *MarketData) GetFromDateByID(ctx context.Context, marketID string, start time.Time) ([]entities.MarketData, error) {
-	return md.getBetweenDatesByID(ctx, marketID, &start, nil)
+func (md *MarketData) GetFromDateByID(ctx context.Context, marketID string, start time.Time, pagination Pagination) ([]entities.MarketData, error) {
+	return md.getBetweenDatesByID(ctx, marketID, &start, nil, pagination)
 }
 
-func (md *MarketData) GetToDateByID(ctx context.Context, marketID string, end time.Time) ([]entities.MarketData, error) {
-	return md.getBetweenDatesByID(ctx, marketID, nil, &end)
+func (md *MarketData) GetToDateByID(ctx context.Context, marketID string, end time.Time, pagination Pagination) ([]entities.MarketData, error) {
+	return md.getBetweenDatesByID(ctx, marketID, nil, &end, pagination)
 }
 
-func (md *MarketData) getBetweenDatesByID(ctx context.Context, marketID string, start, end *time.Time) (results []entities.MarketData, err error) {
+func (md *MarketData) getBetweenDatesByID(ctx context.Context, marketID string, start, end *time.Time, pagination Pagination) (results []entities.MarketData, err error) {
 	var market []byte
 
 	market, err = hex.DecodeString(marketID)
@@ -109,29 +103,31 @@ func (md *MarketData) getBetweenDatesByID(ctx context.Context, marketID string, 
 
 	selectStatement := fmt.Sprintf(`select %s from market_data`, sqlColumns)
 
+	ordering := "ASC"
+
+	if pagination.Descending {
+		ordering = "DESC"
+	}
+
+	paging := fmt.Sprintf("offset %d limit %d", pagination.Offset, pagination.Limit)
+
+	if pagination.Offset == 0 && pagination.Limit == 0 {
+		paging = ""
+	}
+
 	if start != nil && end != nil {
-		query := fmt.Sprintf(`%s where market = $1 and market_timestamp between $2 and $3`, selectStatement)
+		query := fmt.Sprintf(`%s where market = $1 and market_timestamp between $2 and $3 order by vega_time %s %s`,
+			selectStatement, ordering, paging)
 		err = pgxscan.Select(ctx, md.pool, &results, query, market, *start, *end)
 	} else if start != nil && end == nil {
-		query := fmt.Sprintf(`%s where market = $1 and market_timestamp >= $2`, selectStatement)
+		query := fmt.Sprintf(`%s where market = $1 and market_timestamp >= $2 order by vega_time %s %s`,
+			selectStatement, ordering, paging)
 		err = pgxscan.Select(ctx, md.pool, &results, query, market, *start)
 	} else if start == nil && end != nil {
-		query := fmt.Sprintf(`%s where market = $1 and market_timestamp <= $2`, selectStatement)
+		query := fmt.Sprintf(`%s where market = $1 and market_timestamp <= $2 order by vega_time %s %s`,
+			selectStatement, ordering, paging)
 		err = pgxscan.Select(ctx, md.pool, &results, query, market, *end)
 	}
-
-	return results, err
-}
-
-func (md *MarketData) GetAllBetweenDates(ctx context.Context, start, end time.Time) ([]entities.MarketData, error) {
-	if end.Before(start) {
-		return nil, ErrInvalidDateRange
-	}
-
-	selectStatement := fmt.Sprintf("select %s from market_data", sqlColumns)
-	query := fmt.Sprintf(`%s where market_timestamp between $1 and $2`, selectStatement)
-	var results []entities.MarketData
-	err := pgxscan.Select(ctx, md.pool, &results, query, start, end)
 
 	return results, err
 }

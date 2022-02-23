@@ -731,7 +731,7 @@ type ComplexityRoot struct {
 		Epoch                      func(childComplexity int, id *string) int
 		Erc20WithdrawalApproval    func(childComplexity int, withdrawalID string) int
 		EstimateOrder              func(childComplexity int, marketID string, partyID string, price *string, size string, side Side, timeInForce OrderTimeInForce, expiration *string, typeArg OrderType) int
-		GetMarketDataHistoryByID   func(childComplexity int, id string, start *int, end *int) int
+		GetMarketDataHistoryByID   func(childComplexity int, id string, start *int, end *int, skip *int, first *int, last *int) int
 		HistoricBalances           func(childComplexity int, filter *v2.AccountFilter, groupBy []*v2.AccountField) int
 		KeyRotations               func(childComplexity int, id *string) int
 		LastBlockHeight            func(childComplexity int) int
@@ -1292,7 +1292,7 @@ type QueryResolver interface {
 	Transfers(ctx context.Context, pubkey string, isFrom *bool, isTo *bool) ([]*v1.Transfer, error)
 	Statistics(ctx context.Context) (*v14.Statistics, error)
 	HistoricBalances(ctx context.Context, filter *v2.AccountFilter, groupBy []*v2.AccountField) ([]*v2.AggregatedBalance, error)
-	GetMarketDataHistoryByID(ctx context.Context, id string, start *int, end *int) ([]*vega.MarketData, error)
+	GetMarketDataHistoryByID(ctx context.Context, id string, start *int, end *int, skip *int, first *int, last *int) ([]*vega.MarketData, error)
 }
 type RecurringTransferResolver interface {
 	StartEpoch(ctx context.Context, obj *v1.RecurringTransfer) (int, error)
@@ -4221,7 +4221,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.GetMarketDataHistoryByID(childComplexity, args["id"].(string), args["start"].(*int), args["end"].(*int)), true
+		return e.complexity.Query.GetMarketDataHistoryByID(childComplexity, args["id"].(string), args["start"].(*int), args["end"].(*int), args["skip"].(*int), args["first"].(*int), args["last"].(*int)), true
 
 	case "Query.historicBalances":
 		if e.complexity.Query.HistoricBalances == nil {
@@ -6088,7 +6088,26 @@ type Query {
     : [AggregatedBalance!]!
 
   "get market data history for a specific market. If no dates are given, the latest snapshot will be returned. If only the start date is provided all history from the given date will be provided, and if only the end date is provided, all history from the start upto and including the end date will be provided."
-  getMarketDataHistoryByID(id: String!, start: Int, end: Int): [MarketData]
+  getMarketDataHistoryByID(
+    id: String!,
+    """
+    Optional start date time for the historic data query.
+    If both the start and end date is not provided, only the latest snapshot will be returned.
+    If only the start date is provided, all market data for the market from the start date forward will be returned.
+    """
+    start: Int,
+    """
+    Optional end date time for the historic data query.
+    If both the start and end date is not provided, only the latest snapshot will be returned.
+    If only the end date is provided, all market data for the market up to and including the end date will be returned.
+    """
+    end: Int,
+    "Pagination skip"
+    skip: Int,
+    "Pagination first element"
+    first: Int,
+    "Pagination last element"
+    last: Int): [MarketData]
 }
 
 enum TransferStatus {
@@ -9169,6 +9188,33 @@ func (ec *executionContext) field_Query_getMarketDataHistoryByID_args(ctx contex
 		}
 	}
 	args["end"] = arg2
+	var arg3 *int
+	if tmp, ok := rawArgs["skip"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("skip"))
+		arg3, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["skip"] = arg3
+	var arg4 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg4, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg4
+	var arg5 *int
+	if tmp, ok := rawArgs["last"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
+		arg5, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["last"] = arg5
 	return args, nil
 }
 
@@ -24295,7 +24341,7 @@ func (ec *executionContext) _Query_getMarketDataHistoryByID(ctx context.Context,
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetMarketDataHistoryByID(rctx, args["id"].(string), args["start"].(*int), args["end"].(*int))
+		return ec.resolvers.Query().GetMarketDataHistoryByID(rctx, args["id"].(string), args["start"].(*int), args["end"].(*int), args["skip"].(*int), args["first"].(*int), args["last"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

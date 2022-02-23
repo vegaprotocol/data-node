@@ -60,14 +60,16 @@ cloud.google.com/go/storage v1.8.0/go.mod h1:Wv1Oy7z6Yz3DshWRJFhqM/UCfaWIRTdp0RX
 cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9ullr3+Kg0=
 cloud.google.com/go/storage v1.14.0/go.mod h1:GrKmX003DSIwi9o29oFT7YDnHYwZoctc3fOKtUw0Xmo=
 code.vegaprotocol.io/oracles-relay v0.0.0-20210201140234-f047e1bf6df3/go.mod h1:1Gwg5D0PbFEE92Vip8EU0/+n80Kx3GwlGvP850S0op8=
-code.vegaprotocol.io/protos v0.48.1-0.20220222145742-c58571c0866a h1:jE1ZFrMX/Vp2p3y6aBt3EMUp8ujcB28zAPaWCnO2oGY=
-code.vegaprotocol.io/protos v0.48.1-0.20220222145742-c58571c0866a/go.mod h1:sGGn35s31oBNLNCC5tFiKtfNEPiKm3UghOKNaO+bq58=
+code.vegaprotocol.io/protos v0.48.1-0.20220217115305-b24b47ff9ff0/go.mod h1:sGGn35s31oBNLNCC5tFiKtfNEPiKm3UghOKNaO+bq58=
+code.vegaprotocol.io/protos v0.48.1-0.20220221113328-2bef6ffb4ee6/go.mod h1:sGGn35s31oBNLNCC5tFiKtfNEPiKm3UghOKNaO+bq58=
+code.vegaprotocol.io/protos v0.48.1-0.20220223105034-39a67eea6194 h1:2bABbzklS8v2mxMpR//i7JhtSpsbe6mPhQWR41XI+bQ=
+code.vegaprotocol.io/protos v0.48.1-0.20220223105034-39a67eea6194/go.mod h1:sGGn35s31oBNLNCC5tFiKtfNEPiKm3UghOKNaO+bq58=
 code.vegaprotocol.io/quant v0.2.5 h1:8h+TTHdz1LCO4oGXt8mbowXszd8CQP1MHlJOkthUp1E=
 code.vegaprotocol.io/quant v0.2.5/go.mod h1:HEzOoPKj8OIP49r9AZYeo5281M5ygeGWxopwvt8k6Es=
 code.vegaprotocol.io/shared v0.0.0-20220202150846-b6aba31dcdb0 h1:vDjKTd508FwIwoSdZBEvtEfmBeaYdodgLM96v253zKI=
 code.vegaprotocol.io/shared v0.0.0-20220202150846-b6aba31dcdb0/go.mod h1:pNHKwqRDkotUN0s6jErl7Eb2EpZa2HAf03lyPMTCUT0=
-code.vegaprotocol.io/vega v0.48.0-pre4.0.20220217134526-943c9551ac98 h1:/IBz6n4mvgxj6oNh9slkLB7iT3lsr1D1ChJM+YGwbzY=
-code.vegaprotocol.io/vega v0.48.0-pre4.0.20220217134526-943c9551ac98/go.mod h1:5IBdo7Km3vRk/AAr3OcsJ7riQTMHIMRnN83/wb5vqtE=
+code.vegaprotocol.io/vega v0.48.0-pre4.0.20220223100712-0dd63f170680 h1:eGG3jHRoWvRprrC3IKYDokvqCLSG7UDMXgUGRuJ8gNw=
+code.vegaprotocol.io/vega v0.48.0-pre4.0.20220223100712-0dd63f170680/go.mod h1:hH1qPDkJ8NETkUFNSFmvgr/gNPGvpIFM6q9r+iNeh68=
 code.vegaprotocol.io/vegawallet v0.12.1-0.20220217130931-e2d76ed75667 h1:e63TaeSaVFFyZ25w/zN9YFvA16YY6gKs/w4kusaqoJ4=
 code.vegaprotocol.io/vegawallet v0.12.1-0.20220217130931-e2d76ed75667/go.mod h1:rsWI0Juk/XhLkZpgesA9B9/gDRqcJANbKclA9F3Y9Lk=
 collectd.org v0.3.0/go.mod h1:A/8DzQBkF6abtvrT2j/AU/4tiBgJWYyh0y/oB/4MlWE=
@@ -1229,7 +1231,6 @@ github.com/rs/zerolog v1.13.0/go.mod h1:YbFCdg8HfsridGWAh22vktObvhZbQsZXe4/zB0OK
 github.com/rs/zerolog v1.15.0/go.mod h1:xYTKnLHcpfU2225ny5qZjxnj9NvkumZYjJHlAThCjNc=
 github.com/rs/zerolog v1.18.0/go.mod h1:9nvC1axdVrAHcu/s9taAVfBuIdTZLVQmKQyvrUjF5+I=
 github.com/rs/zerolog v1.26.0/go.mod h1:yBiM87lvSqX8h0Ww4sdzNSkVYZ8dL2xjZJG1lAuGZEo=
-github.com/rs/zerolog v1.26.1/go.mod h1:/wSSJWX7lVrsOwlbyTRSOJvqRlc+WjWlfes+CiJ+tmc=
 github.com/russross/blackfriday v1.5.2 h1:HyvC0ARfnZBqnXwABFeSZHpKvJHJJfPz81GNueLj0oo=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
@@ -1347,6 +1348,7 @@ github.com/tendermint/tendermint v0.34.0-rc4/go.mod h1:yotsojf2C1QBOw4dZrTcxbyxm
 github.com/tendermint/tendermint v0.34.0-rc6/go.mod h1:ugzyZO5foutZImv0Iyx/gOFCX6mjJTgbLHTwi17VDVg=
 github.com/tendermint/tendermint v0.34.0/go.mod h1:Aj3PIipBFSNO21r+Lq3TtzQ+uKESxkbA3yo/INM4QwQ=
 github.com/tendermint/tendermint v0.34.11/go.mod h1:aeHL7alPh4uTBIJQ8mgFEE8VwJLXI1VD3rVOmH2Mcy0=
+github.com/tendermint/tendermint v0.34.15/go.mod h1:/7EDAw02rD7GT8syC317cX9ZhZTCdaFVvYjU8W+yJSs=
 github.com/tendermint/tendermint v0.35.0 h1:YxMBeDGo+FbWwe4964XBup9dwxv/1f/uHE3pLqaM7eM=
 github.com/tendermint/tendermint v0.35.0/go.mod h1:BEA2df6j2yFbETYq7IljixC1EqRTvRqJwyNcExddJ8U=
 github.com/tendermint/tm-db v0.6.2/go.mod h1:GYtQ67SUvATOcoY8/+x6ylk8Qo02BQyLrAs+yAcLvGI=
@@ -1525,7 +1527,6 @@ golang.org/x/crypto v0.0.0-20210817164053-32db794688a5/go.mod h1:GvvjBRRGRdwPK5y
 golang.org/x/crypto v0.0.0-20210915214749-c084706c2272/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
-golang.org/x/crypto v0.0.0-20211215165025-cf75a172585e/go.mod h1:P+XmwS30IXTQdn5tA2iutPOUgjI07+tq3H3K9MVA1s8=
 golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce h1:Roh6XWxHFKrPgC/EQhVubSAGQ6Ozk6IdxHSzt1mR0EI=
 golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce/go.mod h1:IxCIyHEi3zRg3s0A5j5BB6A9Jmi73HwBIUl50j+osU4=
 golang.org/x/exp v0.0.0-20180321215751-8460e604b9de/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=

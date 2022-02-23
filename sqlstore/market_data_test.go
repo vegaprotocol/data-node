@@ -57,9 +57,7 @@ func Test_MarketData(t *testing.T) {
 	t.Run("Add should insert a valid market data record", shouldInsertAValidMarketDataRecord)
 	t.Run("Add should return an error if the vega block does not exist", shouldErrorIfNoVegaBlock)
 	t.Run("Get should return the latest market data record for a given market", getLatestMarketData)
-	t.Run("GetAll should return the latest market data record for all markets", getAllLatestMarketData)
 	t.Run("GetBetweenDatesByID should return the all the market data between dates given for the specified market", getAllForMarketBetweenDates)
-	t.Run("GetAllBetweenDates should return all the market data for all markets between the dates given", getAllBetweenDates)
 	t.Run("GetFromDateByID should return all market data for a given market with date greater than or equal to the given date", getForMarketFromDate)
 	t.Run("GetToDateByID should return all market data for a given market with date less than or equal to the given date", getForMarketToDate)
 }
@@ -208,20 +206,6 @@ func getLatestMarketData(t *testing.T) {
 	assert.True(t, want.Equal(got))
 }
 
-func getAllLatestMarketData(t *testing.T) {
-	store, err := setupMarketData(t)
-	if err != nil {
-		t.Fatalf("could not set up test: %s", err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-
-	got, err := store.GetAll(ctx)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(got))
-}
-
 func getAllForMarketBetweenDates(t *testing.T) {
 	store, err := setupMarketData(t)
 	if err != nil {
@@ -236,24 +220,22 @@ func getAllForMarketBetweenDates(t *testing.T) {
 	startDate := time.Date(2022, 2, 11, 10, 5, 30, 0, time.UTC)
 	endDate := time.Date(2022, 2, 11, 10, 06, 0, 0, time.UTC)
 
-	got, err := store.GetBetweenDatesByID(ctx, market, startDate, endDate)
-	assert.NoError(t, err)
-	assert.Equal(t, 8, len(got))
-}
+	pagination := sqlstore.Pagination{}
 
-func getAllBetweenDates(t *testing.T) {
-	store, err := setupMarketData(t)
-	require.NoError(t, err)
+	t.Run("should return all results if no pagination is provided", func(t *testing.T) {
+		got, err := store.GetBetweenDatesByID(ctx, market, startDate, endDate, pagination)
+		assert.NoError(t, err)
+		assert.Equal(t, 8, len(got))
+	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
+	t.Run("should return page of results if pagination is provided", func(t *testing.T) {
+		pagination.Offset = 5
+		pagination.Limit = 5
 
-	startDate := time.Date(2022, 2, 11, 10, 5, 30, 0, time.UTC)
-	endDate := time.Date(2022, 2, 11, 10, 06, 0, 0, time.UTC)
-
-	got, err := store.GetAllBetweenDates(ctx, startDate, endDate)
-	assert.NoError(t, err)
-	assert.Equal(t, 24, len(got))
+		got, err := store.GetBetweenDatesByID(ctx, market, startDate, endDate, pagination)
+		assert.NoError(t, err)
+		assert.Equal(t, 3, len(got))
+	})
 }
 
 func getForMarketFromDate(t *testing.T) {
@@ -267,9 +249,21 @@ func getForMarketFromDate(t *testing.T) {
 
 	market := "8cc0e020c0bc2f9eba77749d81ecec8283283b85941722c2cb88318aaf8b8cd8"
 
-	got, err := store.GetFromDateByID(ctx, market, startDate)
-	assert.NoError(t, err)
-	assert.Equal(t, 31, len(got))
+	pagination := sqlstore.Pagination{}
+
+	t.Run("should return all results if no pagination is provided", func(t *testing.T) {
+		got, err := store.GetFromDateByID(ctx, market, startDate, pagination)
+		assert.NoError(t, err)
+		assert.Equal(t, 31, len(got))
+	})
+
+	t.Run("should return a page of results if pagination is provided", func(t *testing.T) {
+		pagination.Offset = 5
+		pagination.Limit = 5
+		got, err := store.GetFromDateByID(ctx, market, startDate, pagination)
+		assert.NoError(t, err)
+		assert.Equal(t, 5, len(got))
+	})
 }
 
 func getForMarketToDate(t *testing.T) {
@@ -283,10 +277,21 @@ func getForMarketToDate(t *testing.T) {
 
 	market := "8cc0e020c0bc2f9eba77749d81ecec8283283b85941722c2cb88318aaf8b8cd8"
 
-	got, err := store.GetToDateByID(ctx, market, startDate)
-	assert.NoError(t, err)
-	assert.Equal(t, 18, len(got))
+	pagination := sqlstore.Pagination{}
 
+	t.Run("should return all results if no pagination is provided", func(t *testing.T) {
+		got, err := store.GetToDateByID(ctx, market, startDate, pagination)
+		assert.NoError(t, err)
+		assert.Equal(t, 18, len(got))
+	})
+
+	t.Run("should return a page of results if pagination is provided", func(t *testing.T) {
+		pagination.Offset = 10
+		pagination.Limit = 10
+		got, err := store.GetToDateByID(ctx, market, startDate, pagination)
+		assert.NoError(t, err)
+		assert.Equal(t, 8, len(got))
+	})
 }
 
 func setupMarketData(t *testing.T) (*sqlstore.MarketData, error) {
