@@ -336,8 +336,7 @@ func setupMarketData(t *testing.T) (*sqlstore.MarketData, error) {
 		}
 
 		// Add it to the database
-		err = bs.Add(block)
-		require.NoError(t, err)
+		_ = bs.Add(block)
 
 		err = md.Add(marketData)
 		require.NoError(t, err)

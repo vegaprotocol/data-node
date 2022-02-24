@@ -96,7 +96,7 @@ func (bs *tradingDataServiceV2) GetMarketDataHistoryByID(ctx context.Context, re
 	return bs.getMarketDataByID(ctx, req.MarketId)
 }
 
-func parseResults(results []entities.MarketData) (*v2.GetMarketDataHistoryByIDResponse, error) {
+func parseMarketDataResults(results []entities.MarketData) (*v2.GetMarketDataHistoryByIDResponse, error) {
 	response := v2.GetMarketDataHistoryByIDResponse{
 		MarketData: entityMarketDataListToProtoList(results),
 	}
@@ -111,7 +111,7 @@ func (bs *tradingDataServiceV2) getMarketDataHistoryByID(ctx context.Context, id
 		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
 	}
 
-	return parseResults(results)
+	return parseMarketDataResults(results)
 }
 
 func (bs *tradingDataServiceV2) getMarketDataByID(ctx context.Context, id string) (*v2.GetMarketDataHistoryByIDResponse, error) {
@@ -121,7 +121,7 @@ func (bs *tradingDataServiceV2) getMarketDataByID(ctx context.Context, id string
 		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
 	}
 
-	return parseResults([]entities.MarketData{results})
+	return parseMarketDataResults([]entities.MarketData{results})
 }
 
 func (bs *tradingDataServiceV2) getMarketDataHistoryFromDateByID(ctx context.Context, id string, start time.Time, pagination sqlstore.Pagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
@@ -131,7 +131,7 @@ func (bs *tradingDataServiceV2) getMarketDataHistoryFromDateByID(ctx context.Con
 		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
 	}
 
-	return parseResults(results)
+	return parseMarketDataResults(results)
 }
 
 func (bs *tradingDataServiceV2) getMarketDataHistoryToDateByID(ctx context.Context, id string, end time.Time, pagination sqlstore.Pagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
@@ -141,5 +141,5 @@ func (bs *tradingDataServiceV2) getMarketDataHistoryToDateByID(ctx context.Conte
 		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
 	}
 
-	return parseResults(results)
+	return parseMarketDataResults(results)
 }

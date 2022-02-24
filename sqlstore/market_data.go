@@ -103,30 +103,25 @@ func (md *MarketData) getBetweenDatesByID(ctx context.Context, marketID string, 
 
 	selectStatement := fmt.Sprintf(`select %s from market_data`, sqlColumns)
 
-	ordering := "ASC"
-
-	if pagination.Descending {
-		ordering = "DESC"
-	}
-
-	paging := fmt.Sprintf("offset %d limit %d", pagination.Offset, pagination.Limit)
-
-	if pagination.Offset == 0 && pagination.Limit == 0 {
-		paging = ""
-	}
-
 	if start != nil && end != nil {
-		query := fmt.Sprintf(`%s where market = $1 and market_timestamp between $2 and $3 order by vega_time %s %s`,
-			selectStatement, ordering, paging)
-		err = pgxscan.Select(ctx, md.pool, &results, query, market, *start, *end)
+		query, args := orderAndPaginateQuery(
+			fmt.Sprintf(`%s where market = $1 and market_timestamp between $2 and $3`, selectStatement),
+			[]string{"vega_time"}, pagination,
+			market, *start, *end)
+
+		err = pgxscan.Select(ctx, md.pool, &results, query, args...)
 	} else if start != nil && end == nil {
-		query := fmt.Sprintf(`%s where market = $1 and market_timestamp >= $2 order by vega_time %s %s`,
-			selectStatement, ordering, paging)
-		err = pgxscan.Select(ctx, md.pool, &results, query, market, *start)
+		query, args := orderAndPaginateQuery(fmt.Sprintf(`%s where market = $1 and market_timestamp >= $2`, selectStatement),
+			[]string{"vega_time"}, pagination,
+			market, *start)
+
+		err = pgxscan.Select(ctx, md.pool, &results, query, args...)
 	} else if start == nil && end != nil {
-		query := fmt.Sprintf(`%s where market = $1 and market_timestamp <= $2 order by vega_time %s %s`,
-			selectStatement, ordering, paging)
-		err = pgxscan.Select(ctx, md.pool, &results, query, market, *end)
+		query, args := orderAndPaginateQuery(fmt.Sprintf(`%s where market = $1 and market_timestamp <= $2`, selectStatement),
+			[]string{"vega_time"}, pagination,
+			market, *end)
+
+		err = pgxscan.Select(ctx, md.pool, &results, query, args...)
 	}
 
 	return results, err
