@@ -10,6 +10,7 @@
 ### 🛠  Improvements
 - [322](https://github.com/vegaprotocol/data-node/pull/322) - Update the definition of done and issue templates
 - [351](https://github.com/vegaprotocol/data-node/pull/351) - Update to latest Vega and downgrade to Tendermint `v.34.15`
+- [352](https://github.com/vegaprotocol/data-node/pull/352) - Update to latest Vega
 - [356](https://github.com/vegaprotocol/data-node/pull/356) - Added support for fractional positions
 
 ### 🐛 Fixes
@@ -38,6 +39,7 @@
 - [340](https://github.com/vegaprotocol/data-node/pull/340) - Add brokers for the new data stores to support sequential and concurrent event processing 
 - [327](https://github.com/vegaprotocol/data-node/pull/327) - Add balances `sql` store and upgrade `gqlgen`
 - [329](https://github.com/vegaprotocol/data-node/pull/327) - Add orders `sql` store
+- [354](https://github.com/vegaprotocol/data-node/pull/354) - Add network limits store and API
 - [338](https://github.com/vegaprotocol/data-node/pull/338) - Fix compatibility with new `protoc-gen-xxx` tools used in `protos` repository
 - [330](https://github.com/vegaprotocol/data-node/pull/330) - Add support for storing market data events in the SQL store
  

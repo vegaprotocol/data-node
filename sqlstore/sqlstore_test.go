@@ -14,7 +14,7 @@ import (
 var (
 	testStore       *sqlstore.SQLStore
 	sqlTestsEnabled bool = true
-	testDBPort           = 38742
+	testDBPort           = 38233
 )
 
 func TestMain(m *testing.M) {
@@ -27,11 +27,11 @@ func TestMain(m *testing.M) {
 			sqlConfig,
 			&paths.DefaultPaths{},
 		)
-		defer testStore.Stop()
 
 		if err != nil {
 			panic(err)
 		}
+		defer testStore.Stop()
 
 		m.Run()
 	}

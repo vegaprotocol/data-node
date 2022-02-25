@@ -475,6 +475,18 @@ type ComplexityRoot struct {
 		Proposed func(childComplexity int) int
 	}
 
+	NetworkLimits struct {
+		BootstrapBlockCount      func(childComplexity int) int
+		BootstrapFinished        func(childComplexity int) int
+		CanProposeAsset          func(childComplexity int) int
+		CanProposeMarket         func(childComplexity int) int
+		GenesisLoaded            func(childComplexity int) int
+		ProposeAssetEnabled      func(childComplexity int) int
+		ProposeAssetEnabledFrom  func(childComplexity int) int
+		ProposeMarketEnabled     func(childComplexity int) int
+		ProposeMarketEnabledFrom func(childComplexity int) int
+	}
+
 	NetworkParameter struct {
 		Key   func(childComplexity int) int
 		Value func(childComplexity int) int
@@ -737,6 +749,7 @@ type ComplexityRoot struct {
 		LastBlockHeight            func(childComplexity int) int
 		Market                     func(childComplexity int, id string) int
 		Markets                    func(childComplexity int, id *string) int
+		NetworkLimits              func(childComplexity int) int
 		NetworkParameters          func(childComplexity int) int
 		NetworkParametersProposals func(childComplexity int, inState *ProposalState) int
 		NewAssetProposals          func(childComplexity int, inState *ProposalState) int
@@ -1056,7 +1069,6 @@ type KeyRotationResolver interface {
 }
 type LiquidityOrderResolver interface {
 	Reference(ctx context.Context, obj *vega.LiquidityOrder) (PeggedReference, error)
-	Proportion(ctx context.Context, obj *vega.LiquidityOrder) (int, error)
 }
 type LiquidityOrderReferenceResolver interface {
 	Order(ctx context.Context, obj *vega.LiquidityOrderReference) (*vega.Order, error)
@@ -1165,9 +1177,6 @@ type NodeResolver interface {
 	Delegations(ctx context.Context, obj *vega.Node, partyID *string, skip *int, first *int, last *int) ([]*vega.Delegation, error)
 }
 type NodeDataResolver interface {
-	TotalNodes(ctx context.Context, obj *vega.NodeData) (int, error)
-	InactiveNodes(ctx context.Context, obj *vega.NodeData) (int, error)
-	ValidatingNodes(ctx context.Context, obj *vega.NodeData) (int, error)
 	Uptime(ctx context.Context, obj *vega.NodeData) (float64, error)
 }
 type NodeSignatureResolver interface {
@@ -1292,6 +1301,7 @@ type QueryResolver interface {
 	Transfers(ctx context.Context, pubkey string, isFrom *bool, isTo *bool) ([]*v1.Transfer, error)
 	Statistics(ctx context.Context) (*v14.Statistics, error)
 	HistoricBalances(ctx context.Context, filter *v2.AccountFilter, groupBy []*v2.AccountField) ([]*v2.AggregatedBalance, error)
+	NetworkLimits(ctx context.Context) (*vega.NetworkLimits, error)
 	GetMarketDataHistoryByID(ctx context.Context, id string, start *int, end *int, skip *int, first *int, last *int) ([]*vega.MarketData, error)
 }
 type RecurringTransferResolver interface {
@@ -3023,6 +3033,69 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.MarketTimestamps.Proposed(childComplexity), true
 
+	case "NetworkLimits.bootstrapBlockCount":
+		if e.complexity.NetworkLimits.BootstrapBlockCount == nil {
+			break
+		}
+
+		return e.complexity.NetworkLimits.BootstrapBlockCount(childComplexity), true
+
+	case "NetworkLimits.bootstrapFinished":
+		if e.complexity.NetworkLimits.BootstrapFinished == nil {
+			break
+		}
+
+		return e.complexity.NetworkLimits.BootstrapFinished(childComplexity), true
+
+	case "NetworkLimits.canProposeAsset":
+		if e.complexity.NetworkLimits.CanProposeAsset == nil {
+			break
+		}
+
+		return e.complexity.NetworkLimits.CanProposeAsset(childComplexity), true
+
+	case "NetworkLimits.canProposeMarket":
+		if e.complexity.NetworkLimits.CanProposeMarket == nil {
+			break
+		}
+
+		return e.complexity.NetworkLimits.CanProposeMarket(childComplexity), true
+
+	case "NetworkLimits.genesisLoaded":
+		if e.complexity.NetworkLimits.GenesisLoaded == nil {
+			break
+		}
+
+		return e.complexity.NetworkLimits.GenesisLoaded(childComplexity), true
+
+	case "NetworkLimits.proposeAssetEnabled":
+		if e.complexity.NetworkLimits.ProposeAssetEnabled == nil {
+			break
+		}
+
+		return e.complexity.NetworkLimits.ProposeAssetEnabled(childComplexity), true
+
+	case "NetworkLimits.proposeAssetEnabledFrom":
+		if e.complexity.NetworkLimits.ProposeAssetEnabledFrom == nil {
+			break
+		}
+
+		return e.complexity.NetworkLimits.ProposeAssetEnabledFrom(childComplexity), true
+
+	case "NetworkLimits.proposeMarketEnabled":
+		if e.complexity.NetworkLimits.ProposeMarketEnabled == nil {
+			break
+		}
+
+		return e.complexity.NetworkLimits.ProposeMarketEnabled(childComplexity), true
+
+	case "NetworkLimits.proposeMarketEnabledFrom":
+		if e.complexity.NetworkLimits.ProposeMarketEnabledFrom == nil {
+			break
+		}
+
+		return e.complexity.NetworkLimits.ProposeMarketEnabledFrom(childComplexity), true
+
 	case "NetworkParameter.key":
 		if e.complexity.NetworkParameter.Key == nil {
 			break
@@ -4277,6 +4350,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Markets(childComplexity, args["id"].(*string)), true
+
+	case "Query.networkLimits":
+		if e.complexity.Query.NetworkLimits == nil {
+			break
+		}
+
+		return e.complexity.Query.NetworkLimits(childComplexity), true
 
 	case "Query.networkParameters":
 		if e.complexity.Query.NetworkParameters == nil {
@@ -6086,6 +6166,9 @@ type Query {
     filter: AccountFilter,
     groupBy: [AccountField])
     : [AggregatedBalance!]!
+
+  "Current network limits"
+  networkLimits: NetworkLimits
 
   "get market data history for a specific market. If no dates are given, the latest snapshot will be returned. If only the start date is provided all history from the given date will be provided, and if only the end date is provided, all history from the start upto and including the end date will be provided."
   getMarketDataHistoryByID(
@@ -8507,7 +8590,27 @@ enum AccountField {
   AccountType
 }
 
-
+"Information about whether proposals are enabled, if we are still bootstrapping etc.."
+type NetworkLimits {
+    "Are market proposals allowed at this point in time"
+		canProposeMarket: Boolean!
+    "Are asset proposals allowed at this point in time"
+		canProposeAsset: Boolean!
+    "True once block count > bootstrapBlockCount"
+		bootstrapFinished: Boolean!
+    "Are market proposals enabled on this chain"
+		proposeMarketEnabled: Boolean!
+    "Are asset proposals enabled on this chain"
+		proposeAssetEnabled: Boolean!
+    "How many blocks before the chain comes out of bootstrap mode"
+		bootstrapBlockCount: Int!
+    "True once the genesis file is loaded"
+		genesisLoaded: Boolean!
+    "The date/timestamp in unix nanoseconds at which market proposals will be enabled (0 indicates not set)"
+		proposeMarketEnabledFrom: Timestamp!
+    "The date/timestamp in unix nanoseconds at which asset proposals will be enabled (0 indicates not set)"
+		proposeAssetEnabledFrom: Timestamp!
+}
 `, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -14226,14 +14329,14 @@ func (ec *executionContext) _LiquidityOrder_proportion(ctx context.Context, fiel
 		Object:     "LiquidityOrder",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.LiquidityOrder().Proportion(rctx, obj)
+		return obj.Proportion, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -14245,9 +14348,9 @@ func (ec *executionContext) _LiquidityOrder_proportion(ctx context.Context, fiel
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(uint32)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNInt2uint32(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _LiquidityOrder_offset(ctx context.Context, field graphql.CollectedField, obj *vega.LiquidityOrder) (ret graphql.Marshaler) {
@@ -17743,6 +17846,321 @@ func (ec *executionContext) _MarketTimestamps_close(ctx context.Context, field g
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _NetworkLimits_canProposeMarket(ctx context.Context, field graphql.CollectedField, obj *vega.NetworkLimits) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NetworkLimits",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CanProposeMarket, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _NetworkLimits_canProposeAsset(ctx context.Context, field graphql.CollectedField, obj *vega.NetworkLimits) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NetworkLimits",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CanProposeAsset, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _NetworkLimits_bootstrapFinished(ctx context.Context, field graphql.CollectedField, obj *vega.NetworkLimits) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NetworkLimits",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BootstrapFinished, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _NetworkLimits_proposeMarketEnabled(ctx context.Context, field graphql.CollectedField, obj *vega.NetworkLimits) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NetworkLimits",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ProposeMarketEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _NetworkLimits_proposeAssetEnabled(ctx context.Context, field graphql.CollectedField, obj *vega.NetworkLimits) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NetworkLimits",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ProposeAssetEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _NetworkLimits_bootstrapBlockCount(ctx context.Context, field graphql.CollectedField, obj *vega.NetworkLimits) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NetworkLimits",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BootstrapBlockCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uint32)
+	fc.Result = res
+	return ec.marshalNInt2uint32(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _NetworkLimits_genesisLoaded(ctx context.Context, field graphql.CollectedField, obj *vega.NetworkLimits) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NetworkLimits",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.GenesisLoaded, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _NetworkLimits_proposeMarketEnabledFrom(ctx context.Context, field graphql.CollectedField, obj *vega.NetworkLimits) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NetworkLimits",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ProposeMarketEnabledFrom, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNTimestamp2int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _NetworkLimits_proposeAssetEnabledFrom(ctx context.Context, field graphql.CollectedField, obj *vega.NetworkLimits) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NetworkLimits",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ProposeAssetEnabledFrom, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNTimestamp2int64(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _NetworkParameter_key(ctx context.Context, field graphql.CollectedField, obj *vega.NetworkParameter) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -19172,14 +19590,14 @@ func (ec *executionContext) _NodeData_totalNodes(ctx context.Context, field grap
 		Object:     "NodeData",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.NodeData().TotalNodes(rctx, obj)
+		return obj.TotalNodes, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -19191,9 +19609,9 @@ func (ec *executionContext) _NodeData_totalNodes(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(uint32)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNInt2uint32(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _NodeData_inactiveNodes(ctx context.Context, field graphql.CollectedField, obj *vega.NodeData) (ret graphql.Marshaler) {
@@ -19207,14 +19625,14 @@ func (ec *executionContext) _NodeData_inactiveNodes(ctx context.Context, field g
 		Object:     "NodeData",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.NodeData().InactiveNodes(rctx, obj)
+		return obj.InactiveNodes, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -19226,9 +19644,9 @@ func (ec *executionContext) _NodeData_inactiveNodes(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(uint32)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNInt2uint32(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _NodeData_validatingNodes(ctx context.Context, field graphql.CollectedField, obj *vega.NodeData) (ret graphql.Marshaler) {
@@ -19242,14 +19660,14 @@ func (ec *executionContext) _NodeData_validatingNodes(ctx context.Context, field
 		Object:     "NodeData",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.NodeData().ValidatingNodes(rctx, obj)
+		return obj.ValidatingNodes, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -19261,9 +19679,9 @@ func (ec *executionContext) _NodeData_validatingNodes(ctx context.Context, field
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(uint32)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNInt2uint32(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _NodeData_uptime(ctx context.Context, field graphql.CollectedField, obj *vega.NodeData) (ret graphql.Marshaler) {
@@ -24314,6 +24732,38 @@ func (ec *executionContext) _Query_historicBalances(ctx context.Context, field g
 	res := resTmp.([]*v2.AggregatedBalance)
 	fc.Result = res
 	return ec.marshalNAggregatedBalance2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐAggregatedBalanceᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_networkLimits(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().NetworkLimits(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*vega.NetworkLimits)
+	fc.Result = res
+	return ec.marshalONetworkLimits2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐNetworkLimits(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_getMarketDataHistoryByID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -33261,25 +33711,15 @@ func (ec *executionContext) _LiquidityOrder(ctx context.Context, sel ast.Selecti
 
 			})
 		case "proportion":
-			field := field
-
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._LiquidityOrder_proportion(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+				return ec._LiquidityOrder_proportion(ctx, field, obj)
 			}
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
+			out.Values[i] = innerFunc(ctx)
 
-			})
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "offset":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._LiquidityOrder_offset(ctx, field, obj)
@@ -35073,6 +35513,117 @@ func (ec *executionContext) _MarketTimestamps(ctx context.Context, sel ast.Selec
 	return out
 }
 
+var networkLimitsImplementors = []string{"NetworkLimits"}
+
+func (ec *executionContext) _NetworkLimits(ctx context.Context, sel ast.SelectionSet, obj *vega.NetworkLimits) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, networkLimitsImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("NetworkLimits")
+		case "canProposeMarket":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._NetworkLimits_canProposeMarket(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "canProposeAsset":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._NetworkLimits_canProposeAsset(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "bootstrapFinished":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._NetworkLimits_bootstrapFinished(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "proposeMarketEnabled":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._NetworkLimits_proposeMarketEnabled(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "proposeAssetEnabled":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._NetworkLimits_proposeAssetEnabled(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "bootstrapBlockCount":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._NetworkLimits_bootstrapBlockCount(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "genesisLoaded":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._NetworkLimits_genesisLoaded(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "proposeMarketEnabledFrom":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._NetworkLimits_proposeMarketEnabledFrom(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "proposeAssetEnabledFrom":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._NetworkLimits_proposeAssetEnabledFrom(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var networkParameterImplementors = []string{"NetworkParameter"}
 
 func (ec *executionContext) _NetworkParameter(ctx context.Context, sel ast.SelectionSet, obj *vega.NetworkParameter) graphql.Marshaler {
@@ -35756,65 +36307,35 @@ func (ec *executionContext) _NodeData(ctx context.Context, sel ast.SelectionSet,
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "totalNodes":
-			field := field
-
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._NodeData_totalNodes(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+				return ec._NodeData_totalNodes(ctx, field, obj)
 			}
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
+			out.Values[i] = innerFunc(ctx)
 
-			})
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "inactiveNodes":
-			field := field
-
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._NodeData_inactiveNodes(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+				return ec._NodeData_inactiveNodes(ctx, field, obj)
 			}
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
+			out.Values[i] = innerFunc(ctx)
 
-			})
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "validatingNodes":
-			field := field
-
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._NodeData_validatingNodes(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+				return ec._NodeData_validatingNodes(ctx, field, obj)
 			}
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
+			out.Values[i] = innerFunc(ctx)
 
-			})
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "uptime":
 			field := field
 
@@ -38625,6 +39146,26 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "networkLimits":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_networkLimits(ctx, field)
 				return res
 			}
 
@@ -42051,6 +42592,21 @@ func (ec *executionContext) marshalNInt2int32(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) unmarshalNInt2uint32(ctx context.Context, v interface{}) (uint32, error) {
+	res, err := marshallers.UnmarshalUint32(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2uint32(ctx context.Context, sel ast.SelectionSet, v uint32) graphql.Marshaler {
+	res := marshallers.MarshalUint32(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNInterval2codeᚗvegaprotocolᚗioᚋdataᚑnodeᚋgatewayᚋgraphqlᚐInterval(ctx context.Context, v interface{}) (Interval, error) {
 	var res Interval
 	err := res.UnmarshalGQL(v)
@@ -44455,6 +45011,13 @@ func (ec *executionContext) marshalOMarketData2ᚖcodeᚗvegaprotocolᚗioᚋpro
 		return graphql.Null
 	}
 	return ec._MarketData(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalONetworkLimits2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐNetworkLimits(ctx context.Context, sel ast.SelectionSet, v *vega.NetworkLimits) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._NetworkLimits(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalONetworkParameter2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐNetworkParameterᚄ(ctx context.Context, sel ast.SelectionSet, v []*vega.NetworkParameter) graphql.Marshaler {

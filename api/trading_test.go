@@ -273,6 +273,7 @@ func getTestGRPCServer(
 	sqlStore := sqlstore.SQLStore{}
 	sqlBalanceStore := sqlstore.NewBalances(&sqlStore)
 	sqlOrderStore := sqlstore.NewOrders(&sqlStore)
+	sqlNetworkLimitsStore := sqlstore.NewNetworkLimits(&sqlStore)
 	sqlMarketDataStore := sqlstore.NewMarketData(&sqlStore)
 
 	g := api.NewGRPCServer(
@@ -307,6 +308,7 @@ func getTestGRPCServer(
 		checkpointSvc,
 		sqlBalanceStore,
 		sqlOrderStore,
+		sqlNetworkLimitsStore,
 		sqlMarketDataStore,
 	)
 	if g == nil {

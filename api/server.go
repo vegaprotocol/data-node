@@ -84,9 +84,10 @@ type GRPCServer struct {
 
 	marketDepthService *subscribers.MarketDepthBuilder
 
-	balanceStore    *sqlstore.Balances
-	orderStore      *sqlstore.Orders
-	marketDataStore *sqlstore.MarketData
+	balanceStore       *sqlstore.Balances
+	orderStore         *sqlstore.Orders
+	networkLimitsStore *sqlstore.NetworkLimits
+	marketDataStore    *sqlstore.MarketData
 
 	eventObserver *eventObserver
 
@@ -128,6 +129,7 @@ func NewGRPCServer(
 	checkpointSvc *checkpoint.Svc,
 	balanceStore *sqlstore.Balances,
 	orderStore *sqlstore.Orders,
+	networkLimitsStore *sqlstore.NetworkLimits,
 	marketDataStore *sqlstore.MarketData,
 ) *GRPCServer {
 	// setup logger
@@ -167,6 +169,7 @@ func NewGRPCServer(
 		checkpointSvc:           checkpointSvc,
 		balanceStore:            balanceStore,
 		orderStore:              orderStore,
+		networkLimitsStore:      networkLimitsStore,
 		marketDataStore:         marketDataStore,
 		eventObserver: &eventObserver{
 			log:          log,
@@ -314,9 +317,10 @@ func (g *GRPCServer) Start(ctx context.Context, lis net.Listener) error {
 	protoapi.RegisterTradingDataServiceServer(g.srv, tradingDataSvc)
 
 	tradingDataSvcV2 := &tradingDataServiceV2{
-		balanceStore:    g.balanceStore,
-		orderStore:      g.orderStore,
-		marketDataStore: g.marketDataStore,
+		balanceStore:       g.balanceStore,
+		orderStore:         g.orderStore,
+		networkLimitsStore: g.networkLimitsStore,
+		marketDataStore:    g.marketDataStore,
 	}
 	protoapi2.RegisterTradingDataServiceServer(g.srv, tradingDataSvcV2)
 
