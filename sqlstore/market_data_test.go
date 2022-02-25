@@ -70,7 +70,7 @@ func shouldInsertAValidMarketDataRecord(t *testing.T) {
 	require.NoError(t, err)
 
 	config := sqlstore.NewDefaultConfig()
-	config.Port = 15432
+	config.Port = testDBPort
 
 	connStr := connectionString(config)
 
@@ -92,7 +92,6 @@ func shouldInsertAValidMarketDataRecord(t *testing.T) {
 
 	err = md.Add(&entities.MarketData{
 		Market:            market,
-		MarketTimestamp:   time.Now(),
 		MarketTradingMode: "TRADING_MODE_MONITORING_AUCTION",
 		AuctionTrigger:    "AUCTION_TRIGGER_LIQUIDITY",
 		ExtensionTrigger:  "AUCTION_TRIGGER_UNSPECIFIED",
@@ -112,7 +111,7 @@ func shouldErrorIfNoVegaBlock(t *testing.T) {
 	require.NoError(t, err)
 
 	config := sqlstore.NewDefaultConfig()
-	config.Port = 15432
+	config.Port = testDBPort
 
 	connStr := connectionString(config)
 
@@ -131,7 +130,6 @@ func shouldErrorIfNoVegaBlock(t *testing.T) {
 	market := []byte("deadbeef")
 	err = md.Add(&entities.MarketData{
 		Market:            market,
-		MarketTimestamp:   time.Now(),
 		MarketTradingMode: "TRADING_MODE_MONITORING_AUCTION",
 		AuctionTrigger:    "AUCTION_TRIGGER_LIQUIDITY",
 		ExtensionTrigger:  "AUCTION_TRIGGER_UNSPECIFIED",
@@ -178,7 +176,6 @@ func getLatestMarketData(t *testing.T) {
 		MidPrice:              mustParseDecimal(t, "1000000765"),
 		StaticMidPrice:        mustParseDecimal(t, "1000000765"),
 		Market:                market,
-		MarketTimestamp:       time.Date(2022, 2, 11, 10, 5, 40, 649095000, time.UTC),
 		OpenInterest:          27,
 		AuctionEnd:            1644573937314794695,
 		AuctionStart:          1644573911314794695,
@@ -364,15 +361,6 @@ func mustParseTimestamp(t *testing.T, value string) time.Time {
 	return ts
 }
 
-func mustParseUint64(t *testing.T, value string) uint64 {
-	ui, err := strconv.ParseUint(value, 10, 64)
-	if err != nil {
-		t.Fatalf("could not parse uint64: %s", err)
-	}
-
-	return ui
-}
-
 func mustParseInt64(t *testing.T, value string) int64 {
 	i, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
@@ -422,22 +410,21 @@ func csvToMarketData(t *testing.T, line []string) *entities.MarketData {
 	return &entities.MarketData{
 		MarkPrice:                  mustParseDecimal(t, line[csvColumnMarkPrice]),
 		BestBidPrice:               mustParseDecimal(t, line[csvColumnBestBidPrice]),
-		BestBidVolume:              mustParseUint64(t, line[csvColumnBestBidVolume]),
+		BestBidVolume:              mustParseInt64(t, line[csvColumnBestBidVolume]),
 		BestOfferPrice:             mustParseDecimal(t, line[csvColumnBestOfferPrice]),
-		BestOfferVolume:            mustParseUint64(t, line[csvColumnBestOfferVolume]),
+		BestOfferVolume:            mustParseInt64(t, line[csvColumnBestOfferVolume]),
 		BestStaticBidPrice:         mustParseDecimal(t, line[csvColumnBestStaticBidPrice]),
-		BestStaticBidVolume:        mustParseUint64(t, line[csvColumnBestStaticBidVolume]),
+		BestStaticBidVolume:        mustParseInt64(t, line[csvColumnBestStaticBidVolume]),
 		BestStaticOfferPrice:       mustParseDecimal(t, line[csvColumnBestStaticOfferPrice]),
-		BestStaticOfferVolume:      mustParseUint64(t, line[csvColumnBestStaticOfferVolume]),
+		BestStaticOfferVolume:      mustParseInt64(t, line[csvColumnBestStaticOfferVolume]),
 		MidPrice:                   mustParseDecimal(t, line[csvColumnMidPrice]),
 		StaticMidPrice:             mustParseDecimal(t, line[csvColumnStaticMidPrice]),
 		Market:                     market,
-		MarketTimestamp:            mustParseTimestamp(t, line[csvColumnMarketTimestamp]),
-		OpenInterest:               mustParseUint64(t, line[csvColumnOpenInterest]),
+		OpenInterest:               mustParseInt64(t, line[csvColumnOpenInterest]),
 		AuctionEnd:                 mustParseInt64(t, line[csvColumnAuctionEnd]),
 		AuctionStart:               mustParseInt64(t, line[csvColumnAuctionStart]),
 		IndicativePrice:            mustParseDecimal(t, line[csvColumnIndicativePrice]),
-		IndicativeVolume:           mustParseUint64(t, line[csvColumnIndicativeVolume]),
+		IndicativeVolume:           mustParseInt64(t, line[csvColumnIndicativeVolume]),
 		MarketTradingMode:          line[csvColumnMarketTradingMode],
 		AuctionTrigger:             line[csvColumnAuctionTrigger],
 		ExtensionTrigger:           line[csvColumnExtensionTrigger],

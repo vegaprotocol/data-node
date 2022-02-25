@@ -24,7 +24,7 @@ type MarketData struct {
 	store     MarketDataStore
 	dbTimeout time.Duration
 	vegaTime  time.Time
-	seqNum    uint
+	seqNum    int
 }
 
 func (md *MarketData) Push(evt events.Event) {

@@ -133,7 +133,6 @@ create type market_trading_mode_type as enum('TRADING_MODE_UNSPECIFIED', 'TRADIN
 
 create table market_data (
     market bytea not null,
-    market_timestamp timestamp with time zone not null,
     vega_time timestamp with time zone not null references blocks(vega_time),
     seq_num int not null,
     mark_price numeric(32),
@@ -162,15 +161,17 @@ create table market_data (
     liquidity_provider_fee_shares jsonb
 );
 
-select create_hypertable('market_data', 'vega_time');
+select create_hypertable('market_data', 'vega_time', chunk_time_interval => INTERVAL '1 day');
+
+create index on market_data (market, vega_time);
 
 create or replace view market_data_snapshot as
-with cte_market_data_latest(market, market_timestamp) as (
-    select market, max(market_timestamp)
+with cte_market_data_latest(market, vega_time) as (
+    select market, max(vega_time)
     from market_data
     group by market
 )
-select md.market, md.market_timestamp, vega_time, seq_num, mark_price, best_bid_price, best_bid_volume, best_offer_price, best_offer_volume,
+select md.market, md.vega_time, seq_num, mark_price, best_bid_price, best_bid_volume, best_offer_price, best_offer_volume,
        best_static_bid_price, best_static_bid_volume, best_static_offer_price, best_static_offer_volume,
        mid_price, static_mid_price, open_interest, auction_end, auction_start, indicative_price, indicative_volume,
        market_trading_mode, auction_trigger, extension_trigger, target_stake, supplied_stake, price_monitoring_bounds,
@@ -178,7 +179,7 @@ select md.market, md.market_timestamp, vega_time, seq_num, mark_price, best_bid_
 from market_data md
 join cte_market_data_latest mx
 on md.market = mx.market
-and md.market_timestamp = mx.market_timestamp
+and md.vega_time = mx.vega_time
 ;
 
 

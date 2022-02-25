@@ -2,7 +2,6 @@ package entities_test
 
 import (
 	"testing"
-	"time"
 
 	"code.vegaprotocol.io/data-node/entities"
 	types "code.vegaprotocol.io/protos/vega"
@@ -188,7 +187,6 @@ func testParseMarketDataSuccessfully(t *testing.T) {
 				marketdata: types.MarketData{},
 			},
 			want: &entities.MarketData{
-				MarketTimestamp:   time.Unix(0, 0).UTC(),
 				AuctionTrigger:    "AUCTION_TRIGGER_UNSPECIFIED",
 				MarketTradingMode: "TRADING_MODE_UNSPECIFIED",
 				ExtensionTrigger:  "AUCTION_TRIGGER_UNSPECIFIED",
@@ -202,7 +200,6 @@ func testParseMarketDataSuccessfully(t *testing.T) {
 				},
 			},
 			want: &entities.MarketData{
-				MarketTimestamp:   time.Unix(0, 0).UTC(),
 				AuctionTrigger:    "AUCTION_TRIGGER_PRICE",
 				MarketTradingMode: "TRADING_MODE_UNSPECIFIED",
 				ExtensionTrigger:  "AUCTION_TRIGGER_UNSPECIFIED",
@@ -217,7 +214,6 @@ func testParseMarketDataSuccessfully(t *testing.T) {
 				},
 			},
 			want: &entities.MarketData{
-				MarketTimestamp:   time.Unix(0, 0).UTC(),
 				AuctionTrigger:    "AUCTION_TRIGGER_PRICE",
 				MarketTradingMode: "TRADING_MODE_CONTINUOUS",
 				ExtensionTrigger:  "AUCTION_TRIGGER_UNSPECIFIED",
@@ -236,7 +232,6 @@ func testParseMarketDataSuccessfully(t *testing.T) {
 			want: &entities.MarketData{
 				BestBidPrice:      decimal.NewFromFloat(100.0),
 				BestOfferPrice:    decimal.NewFromFloat(110.0),
-				MarketTimestamp:   time.Unix(0, 0).UTC(),
 				AuctionTrigger:    "AUCTION_TRIGGER_PRICE",
 				MarketTradingMode: "TRADING_MODE_CONTINUOUS",
 				ExtensionTrigger:  "AUCTION_TRIGGER_UNSPECIFIED",
@@ -261,7 +256,6 @@ func testParseMarketDataSuccessfully(t *testing.T) {
 			want: &entities.MarketData{
 				BestBidPrice:      decimal.NewFromFloat(100.0),
 				BestOfferPrice:    decimal.NewFromFloat(110.0),
-				MarketTimestamp:   time.Unix(0, 0).UTC(),
 				AuctionTrigger:    "AUCTION_TRIGGER_PRICE",
 				MarketTradingMode: "TRADING_MODE_CONTINUOUS",
 				ExtensionTrigger:  "AUCTION_TRIGGER_UNSPECIFIED",

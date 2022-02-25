@@ -3,13 +3,17 @@ package entities
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
 	types "code.vegaprotocol.io/protos/vega"
 	"github.com/shopspring/decimal"
 )
+
+var ErrMarketDataIntegerOverflow = errors.New("integer overflow encountered when converting market data for persistence")
 
 // MarketData represents a market data record that is stored in the SQL database
 type MarketData struct {
@@ -20,20 +24,20 @@ type MarketData struct {
 	// formatted price of `1.23456` assuming market configured to 5 decimal places
 	BestBidPrice decimal.Decimal
 	// Aggregated volume being bid at the best bid price
-	BestBidVolume uint64
+	BestBidVolume int64
 	// Aggregated volume being bid at the best bid price
 	BestOfferPrice decimal.Decimal
 	// Aggregated volume being offered at the best offer price, as an integer, for example `123456` is a correctly
 	// formatted price of `1.23456` assuming market configured to 5 decimal places
-	BestOfferVolume uint64
+	BestOfferVolume int64
 	// Highest price on the order book for buy orders not including pegged orders
 	BestStaticBidPrice decimal.Decimal
 	// Total volume at the best static bid price excluding pegged orders
-	BestStaticBidVolume uint64
+	BestStaticBidVolume int64
 	// Lowest price on the order book for sell orders not including pegged orders
 	BestStaticOfferPrice decimal.Decimal
 	// Total volume at the best static offer price excluding pegged orders
-	BestStaticOfferVolume uint64
+	BestStaticOfferVolume int64
 	// Arithmetic average of the best bid price and best offer price, as an integer, for example `123456` is a correctly
 	// formatted price of `1.23456` assuming market configured to 5 decimal places
 	MidPrice decimal.Decimal
@@ -41,11 +45,8 @@ type MarketData struct {
 	StaticMidPrice decimal.Decimal
 	// Market identifier for the data
 	Market []byte
-	// MarketTimestamp at which this mark price was relevant, in nanoseconds since the epoch
-	// - See [`VegaTimeResponse`](#api.VegaTimeResponse).`timestamp`
-	MarketTimestamp time.Time
 	// The sum of the size of all positions greater than 0 on the market
-	OpenInterest uint64
+	OpenInterest int64
 	// Time in seconds until the end of the auction (0 if currently not in auction period)
 	AuctionEnd int64
 	// Time until next auction (used in FBA's) - currently always 0
@@ -53,7 +54,7 @@ type MarketData struct {
 	// Indicative price (zero if not in auction)
 	IndicativePrice decimal.Decimal
 	// Indicative volume (zero if not in auction)
-	IndicativeVolume uint64
+	IndicativeVolume int64
 	// The current trading mode for the market
 	MarketTradingMode string
 	// When a market is in an auction trading mode, this field indicates what triggered the auction
@@ -73,7 +74,7 @@ type MarketData struct {
 	// Vega Block time at which the data was received from Vega Node
 	VegaTime time.Time
 	// SeqNum is the order in which the market data was received in the block
-	SeqNum uint
+	SeqNum int
 }
 
 type PriceMonitoringTrigger struct {
@@ -151,27 +152,37 @@ func MarketDataFromProto(data *types.MarketData) (*MarketData, error) {
 	if suppliedStake, err = parseDecimal(data.SuppliedStake); err != nil {
 		return nil, err
 	}
-	ts := time.Unix(0, data.Timestamp).UTC()
+
+	if data.BestBidVolume > math.MaxInt64 || data.BestOfferVolume > math.MaxInt64 || data.BestStaticBidVolume > math.MaxInt64 ||
+		data.BestStaticOfferVolume > math.MaxInt64 || data.OpenInterest > math.MaxInt64 || data.IndicativeVolume > math.MaxInt64 {
+		return nil, ErrMarketDataIntegerOverflow
+	}
+
+	bestBidVolume := int64(data.BestBidVolume)
+	bestOfferVolume := int64(data.BestOfferVolume)
+	bestStaticBidVolume := int64(data.BestStaticBidVolume)
+	bestStaticOfferVolume := int64(data.BestStaticOfferVolume)
+	openInterest := int64(data.OpenInterest)
+	indicativeVolume := int64(data.IndicativeVolume)
 
 	marketData := &MarketData{
 		MarkPrice:                  mark,
 		BestBidPrice:               bid,
-		BestBidVolume:              data.BestBidVolume,
+		BestBidVolume:              bestBidVolume,
 		BestOfferPrice:             offer,
-		BestOfferVolume:            data.BestOfferVolume,
+		BestOfferVolume:            bestOfferVolume,
 		BestStaticBidPrice:         staticBid,
-		BestStaticBidVolume:        data.BestStaticBidVolume,
+		BestStaticBidVolume:        bestStaticBidVolume,
 		BestStaticOfferPrice:       staticOffer,
-		BestStaticOfferVolume:      data.BestStaticOfferVolume,
+		BestStaticOfferVolume:      bestStaticOfferVolume,
 		MidPrice:                   mid,
 		StaticMidPrice:             staticMid,
 		Market:                     marketID,
-		MarketTimestamp:            ts,
-		OpenInterest:               data.OpenInterest,
+		OpenInterest:               openInterest,
 		AuctionEnd:                 data.AuctionEnd,
 		AuctionStart:               data.AuctionStart,
 		IndicativePrice:            indicative,
-		IndicativeVolume:           data.IndicativeVolume,
+		IndicativeVolume:           indicativeVolume,
 		MarketTradingMode:          data.MarketTradingMode.String(),
 		AuctionTrigger:             data.Trigger.String(),
 		ExtensionTrigger:           data.ExtensionTrigger.String(),
@@ -293,7 +304,6 @@ func (md MarketData) Equal(other MarketData) bool {
 		md.AuctionTrigger == other.AuctionTrigger &&
 		md.ExtensionTrigger == other.ExtensionTrigger &&
 		md.MarketValueProxy == other.MarketValueProxy &&
-		md.MarketTimestamp.Equal(other.MarketTimestamp) &&
 		priceMonitoringBoundsMatches(md.PriceMonitoringBounds, other.PriceMonitoringBounds) &&
 		liquidityProviderFeeShareMatches(md.LiquidityProviderFeeShares, other.LiquidityProviderFeeShares)
 }
@@ -330,22 +340,22 @@ func (md MarketData) ToProto() *types.MarketData {
 	result := types.MarketData{
 		MarkPrice:                 md.MarkPrice.String(),
 		BestBidPrice:              md.BestBidPrice.String(),
-		BestBidVolume:             md.BestBidVolume,
+		BestBidVolume:             uint64(md.BestBidVolume),
 		BestOfferPrice:            md.BestOfferPrice.String(),
-		BestOfferVolume:           md.BestOfferVolume,
+		BestOfferVolume:           uint64(md.BestOfferVolume),
 		BestStaticBidPrice:        md.BestStaticBidPrice.String(),
-		BestStaticBidVolume:       md.BestStaticBidVolume,
+		BestStaticBidVolume:       uint64(md.BestStaticBidVolume),
 		BestStaticOfferPrice:      md.BestStaticOfferPrice.String(),
-		BestStaticOfferVolume:     md.BestStaticOfferVolume,
+		BestStaticOfferVolume:     uint64(md.BestStaticOfferVolume),
 		MidPrice:                  md.MidPrice.String(),
 		StaticMidPrice:            md.StaticMidPrice.String(),
 		Market:                    hex.EncodeToString(md.Market),
-		Timestamp:                 md.MarketTimestamp.UnixNano(),
-		OpenInterest:              md.OpenInterest,
+		Timestamp:                 md.VegaTime.UnixNano(),
+		OpenInterest:              uint64(md.OpenInterest),
 		AuctionEnd:                md.AuctionEnd,
 		AuctionStart:              md.AuctionStart,
 		IndicativePrice:           md.IndicativePrice.String(),
-		IndicativeVolume:          md.IndicativeVolume,
+		IndicativeVolume:          uint64(md.IndicativeVolume),
 		MarketTradingMode:         types.Market_TradingMode(types.Market_TradingMode_value[md.MarketTradingMode]),
 		Trigger:                   types.AuctionTrigger(types.Market_TradingMode_value[md.AuctionTrigger]),
 		ExtensionTrigger:          types.AuctionTrigger(types.Market_TradingMode_value[md.ExtensionTrigger]),

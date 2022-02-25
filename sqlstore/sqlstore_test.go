@@ -14,12 +14,13 @@ import (
 var (
 	testStore       *sqlstore.SQLStore
 	sqlTestsEnabled bool = true
+	testDBPort           = 38742
 )
 
 func TestMain(m *testing.M) {
 	var err error
 
-	sqlConfig := NewTestConfig(15432)
+	sqlConfig := NewTestConfig(testDBPort)
 	if sqlTestsEnabled {
 		testStore, err = sqlstore.InitialiseStorage(
 			logging.NewTestLogger(),

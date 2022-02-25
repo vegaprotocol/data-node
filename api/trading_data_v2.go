@@ -170,10 +170,12 @@ func (bs *tradingDataServiceV2) GetMarketDataHistoryByID(ctx context.Context, re
 		endTime = time.Unix(0, *req.EndTimestamp)
 	}
 
-	pagination := sqlstore.Pagination{
-		Offset:     req.Pagination.Skip,
-		Limit:      req.Pagination.Limit,
-		Descending: req.Pagination.Descending,
+	pagination := sqlstore.Pagination{}
+
+	if req.Pagination != nil {
+		pagination.Offset = req.Pagination.Skip
+		pagination.Limit = req.Pagination.Limit
+		pagination.Descending = req.Pagination.Descending
 	}
 
 	if req.StartTimestamp != nil && req.EndTimestamp != nil {
