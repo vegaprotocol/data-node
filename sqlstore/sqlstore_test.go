@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 
 	sqlConfig := NewTestConfig(testDBPort)
 	if sqlTestsEnabled {
-		testStore, err = sqlstore.InitialiseStorage(
+		testStore, err = sqlstore.InitialiseTestStorage(
 			logging.NewTestLogger(),
 			sqlConfig,
 			&paths.DefaultPaths{},
