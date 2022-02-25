@@ -13,7 +13,7 @@ import (
 
 var (
 	testStore       *sqlstore.SQLStore
-	sqlTestsEnabled bool = false
+	sqlTestsEnabled bool = true
 )
 
 func TestMain(m *testing.M) {

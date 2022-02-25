@@ -225,7 +225,7 @@ func getAllForMarketBetweenDates(t *testing.T) {
 	t.Run("should return all results if no pagination is provided", func(t *testing.T) {
 		got, err := store.GetBetweenDatesByID(ctx, market, startDate, endDate, pagination)
 		assert.NoError(t, err)
-		assert.Equal(t, 8, len(got))
+		assert.Equal(t, 9, len(got))
 	})
 
 	t.Run("should return page of results if pagination is provided", func(t *testing.T) {
@@ -234,7 +234,7 @@ func getAllForMarketBetweenDates(t *testing.T) {
 
 		got, err := store.GetBetweenDatesByID(ctx, market, startDate, endDate, pagination)
 		assert.NoError(t, err)
-		assert.Equal(t, 3, len(got))
+		assert.Equal(t, 4, len(got))
 	})
 }
 
@@ -254,7 +254,7 @@ func getForMarketFromDate(t *testing.T) {
 	t.Run("should return all results if no pagination is provided", func(t *testing.T) {
 		got, err := store.GetFromDateByID(ctx, market, startDate, pagination)
 		assert.NoError(t, err)
-		assert.Equal(t, 31, len(got))
+		assert.Equal(t, 32, len(got))
 	})
 
 	t.Run("should return a page of results if pagination is provided", func(t *testing.T) {

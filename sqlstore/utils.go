@@ -32,8 +32,11 @@ func orderAndPaginateQuery(query string, orderColumns []string, pagination Pagin
 	if len(orderColumns) > 0 {
 		sbOrderBy.WriteString("ORDER BY")
 
+		sep := ""
+
 		for _, column := range orderColumns {
-			sbOrderBy.WriteString(fmt.Sprintf(" %s %s", column, ordering))
+			sbOrderBy.WriteString(fmt.Sprintf("%s %s %s", sep, column, ordering))
+			sep = ","
 		}
 	}
 

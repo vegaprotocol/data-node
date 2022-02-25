@@ -72,6 +72,8 @@ type MarketData struct {
 	LiquidityProviderFeeShares []*LiquidityProviderFeeShare
 	// Vega Block time at which the data was received from Vega Node
 	VegaTime time.Time
+	// SeqNum is the order in which the market data was received in the block
+	SeqNum uint
 }
 
 type PriceMonitoringTrigger struct {

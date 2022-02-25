@@ -16,7 +16,7 @@ type MarketData struct {
 }
 
 const (
-	sqlColumns = `market, market_timestamp, vega_time, mark_price, 
+	sqlColumns = `market, market_timestamp, vega_time, seq_num, mark_price, 
 		best_bid_price, best_bid_volume, best_offer_price, best_offer_volume,
 		best_static_bid_price, best_static_bid_volume, best_static_offer_price, best_static_offer_volume,
 		mid_price, static_mid_price, open_interest, auction_end, 
@@ -38,16 +38,16 @@ func (md *MarketData) Add(data *entities.MarketData) error {
 	defer cancel()
 
 	query := fmt.Sprintf(`insert into market_data(%s) 
-	values ($1, $2, $3, $4, 
-			$5, $6, $7, $8,
-			$9, $10, $11, $12,
-			$13, $14, $15, $16, 
-			$17, $18, $19, $20,
-			$21, $22, $23, $24,
-			$25, $26, $27)`, sqlColumns)
+	values ($1, $2, $3, $4, $5, 
+			$6, $7, $8,	$9, 
+			$10, $11, $12, $13, 
+			$14, $15, $16, $17, 
+			$18, $19, $20, $21, 
+			$22, $23, $24, $25, 
+			$26, $27, $28)`, sqlColumns)
 
 	if _, err := md.pool.Exec(ctx, query,
-		data.Market, data.MarketTimestamp, data.VegaTime, data.MarkPrice,
+		data.Market, data.MarketTimestamp, data.VegaTime, data.SeqNum, data.MarkPrice,
 		data.BestBidPrice, data.BestBidVolume, data.BestOfferPrice, data.BestOfferVolume,
 		data.BestStaticBidPrice, data.BestStaticBidVolume, data.BestStaticOfferPrice, data.BestStaticOfferVolume,
 		data.MidPrice, data.StaticMidPrice, data.OpenInterest, data.AuctionEnd,
@@ -105,20 +105,20 @@ func (md *MarketData) getBetweenDatesByID(ctx context.Context, marketID string, 
 
 	if start != nil && end != nil {
 		query, args := orderAndPaginateQuery(
-			fmt.Sprintf(`%s where market = $1 and market_timestamp between $2 and $3`, selectStatement),
-			[]string{"vega_time"}, pagination,
+			fmt.Sprintf(`%s where market = $1 and vega_time between $2 and $3`, selectStatement),
+			[]string{"vega_time", "seq_num"}, pagination,
 			market, *start, *end)
 
 		err = pgxscan.Select(ctx, md.pool, &results, query, args...)
 	} else if start != nil && end == nil {
-		query, args := orderAndPaginateQuery(fmt.Sprintf(`%s where market = $1 and market_timestamp >= $2`, selectStatement),
-			[]string{"vega_time"}, pagination,
+		query, args := orderAndPaginateQuery(fmt.Sprintf(`%s where market = $1 and vega_time >= $2`, selectStatement),
+			[]string{"vega_time", "seq_num"}, pagination,
 			market, *start)
 
 		err = pgxscan.Select(ctx, md.pool, &results, query, args...)
 	} else if start == nil && end != nil {
-		query, args := orderAndPaginateQuery(fmt.Sprintf(`%s where market = $1 and market_timestamp <= $2`, selectStatement),
-			[]string{"vega_time"}, pagination,
+		query, args := orderAndPaginateQuery(fmt.Sprintf(`%s where market = $1 and vega_time <= $2`, selectStatement),
+			[]string{"vega_time", "seq_num"}, pagination,
 			market, *end)
 
 		err = pgxscan.Select(ctx, md.pool, &results, query, args...)

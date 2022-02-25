@@ -1,4 +1,6 @@
 -- +goose Up
+create extension if not exists timescaledb;
+
 create table blocks
 (
     vega_time     TIMESTAMP WITH TIME ZONE NOT NULL PRIMARY KEY,
@@ -95,6 +97,7 @@ create table market_data (
     market bytea not null,
     market_timestamp timestamp with time zone not null,
     vega_time timestamp with time zone not null references blocks(vega_time),
+    seq_num int not null,
     mark_price numeric(32),
     best_bid_price numeric(32),
     best_bid_volume bigint,
@@ -118,12 +121,10 @@ create table market_data (
     supplied_stake numeric(32),
     price_monitoring_bounds jsonb,
     market_value_proxy text,
-    liquidity_provider_fee_shares jsonb,
-    primary key (
-        market,
-        market_timestamp
-    )
+    liquidity_provider_fee_shares jsonb
 );
+
+select create_hypertable('market_data', 'vega_time');
 
 create or replace view market_data_snapshot as
 with cte_market_data_latest(market, market_timestamp) as (
@@ -131,7 +132,7 @@ with cte_market_data_latest(market, market_timestamp) as (
     from market_data
     group by market
 )
-select md.market, md.market_timestamp, vega_time, mark_price, best_bid_price, best_bid_volume, best_offer_price, best_offer_volume,
+select md.market, md.market_timestamp, vega_time, seq_num, mark_price, best_bid_price, best_bid_volume, best_offer_price, best_offer_volume,
        best_static_bid_price, best_static_bid_volume, best_static_offer_price, best_static_offer_volume,
        mid_price, static_mid_price, open_interest, auction_end, auction_start, indicative_price, indicative_volume,
        market_trading_mode, auction_trigger, extension_trigger, target_stake, supplied_stake, price_monitoring_bounds,
@@ -159,3 +160,4 @@ drop table if exists accounts;
 drop table if exists parties;
 drop table if exists assets;
 drop table if exists blocks;
+drop extension if exists timescaledb;

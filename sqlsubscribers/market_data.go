@@ -24,13 +24,16 @@ type MarketData struct {
 	store     MarketDataStore
 	dbTimeout time.Duration
 	vegaTime  time.Time
+	seqNum    uint
 }
 
 func (md *MarketData) Push(evt events.Event) {
 	switch e := evt.(type) {
 	case TimeUpdateEvent:
+		md.seqNum = 0
 		md.vegaTime = e.Time()
 	case MarketDataEvent:
+		md.seqNum++
 		md.consume(e)
 	default:
 		md.log.Error("Unknown event type in transfer response subscriber",
@@ -60,7 +63,7 @@ func (md *MarketData) consume(event MarketDataEvent) {
 	var err error
 	mdProto := event.MarketData()
 
-	if record, err = md.convertMarketDataProto(&mdProto, md.vegaTime); err != nil {
+	if record, err = md.convertMarketDataProto(&mdProto); err != nil {
 		md.log.Error("Converting market data proto for persistence failed", logging.Error(err))
 		return
 	}
@@ -70,13 +73,14 @@ func (md *MarketData) consume(event MarketDataEvent) {
 	}
 }
 
-func (md *MarketData) convertMarketDataProto(data *types.MarketData, vegaTime time.Time) (*entities.MarketData, error) {
+func (md *MarketData) convertMarketDataProto(data *types.MarketData) (*entities.MarketData, error) {
 	record, err := entities.MarketDataFromProto(data)
 	if err != nil {
 		return nil, err
 	}
 
-	record.VegaTime = vegaTime
+	record.VegaTime = md.vegaTime
+	record.SeqNum = md.seqNum
 
 	return record, nil
 }
