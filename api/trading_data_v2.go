@@ -171,10 +171,10 @@ func (bs *tradingDataServiceV2) GetMarketDataHistoryByID(ctx context.Context, re
 		endTime = time.Unix(0, *req.EndTimestamp)
 	}
 
-	pagination := sqlstore.Pagination{}
+	pagination := entities.Pagination{}
 
 	if req.Pagination != nil {
-		pagination.Offset = req.Pagination.Skip
+		pagination.Skip = req.Pagination.Skip
 		pagination.Limit = req.Pagination.Limit
 		pagination.Descending = req.Pagination.Descending
 	}
@@ -202,7 +202,7 @@ func parseMarketDataResults(results []entities.MarketData) (*v2.GetMarketDataHis
 	return &response, nil
 }
 
-func (bs *tradingDataServiceV2) getMarketDataHistoryByID(ctx context.Context, id string, start, end time.Time, pagination sqlstore.Pagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
+func (bs *tradingDataServiceV2) getMarketDataHistoryByID(ctx context.Context, id string, start, end time.Time, pagination entities.Pagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
 	results, err := bs.marketDataStore.GetBetweenDatesByID(ctx, id, start, end, pagination)
 
 	if err != nil {
@@ -222,7 +222,7 @@ func (bs *tradingDataServiceV2) getMarketDataByID(ctx context.Context, id string
 	return parseMarketDataResults([]entities.MarketData{results})
 }
 
-func (bs *tradingDataServiceV2) getMarketDataHistoryFromDateByID(ctx context.Context, id string, start time.Time, pagination sqlstore.Pagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
+func (bs *tradingDataServiceV2) getMarketDataHistoryFromDateByID(ctx context.Context, id string, start time.Time, pagination entities.Pagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
 	results, err := bs.marketDataStore.GetFromDateByID(ctx, id, start, pagination)
 
 	if err != nil {
@@ -232,7 +232,7 @@ func (bs *tradingDataServiceV2) getMarketDataHistoryFromDateByID(ctx context.Con
 	return parseMarketDataResults(results)
 }
 
-func (bs *tradingDataServiceV2) getMarketDataHistoryToDateByID(ctx context.Context, id string, end time.Time, pagination sqlstore.Pagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
+func (bs *tradingDataServiceV2) getMarketDataHistoryToDateByID(ctx context.Context, id string, end time.Time, pagination entities.Pagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
 	results, err := bs.marketDataStore.GetToDateByID(ctx, id, end, pagination)
 
 	if err != nil {

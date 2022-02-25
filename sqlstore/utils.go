@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"code.vegaprotocol.io/data-node/entities"
 )
 
 // A handy little helper function for building queries. Appends 'value'
@@ -20,7 +22,7 @@ func nextBindVar(args *[]interface{}, value interface{}) string {
 
 // orderAndPaginateQuery is a helper function to simplify adding ordering and pagination statements to the end of a query
 // with the appropriate binding variables amd returns the query string and list of arguments to pass to the query execution handler
-func orderAndPaginateQuery(query string, orderColumns []string, pagination Pagination, args ...interface{}) (string, []interface{}) {
+func orderAndPaginateQuery(query string, orderColumns []string, pagination entities.Pagination, args ...interface{}) (string, []interface{}) {
 	ordering := "ASC"
 
 	if pagination.Descending {
@@ -42,8 +44,8 @@ func orderAndPaginateQuery(query string, orderColumns []string, pagination Pagin
 
 	var paging string
 
-	if pagination.Offset != 0 {
-		paging = fmt.Sprintf("%sOFFSET %s ", paging, nextBindVar(&args, pagination.Offset))
+	if pagination.Skip != 0 {
+		paging = fmt.Sprintf("%sOFFSET %s ", paging, nextBindVar(&args, pagination.Skip))
 	}
 
 	if pagination.Limit != 0 {

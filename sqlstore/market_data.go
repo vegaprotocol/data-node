@@ -77,7 +77,7 @@ func (md *MarketData) GetByID(ctx context.Context, marketID string) (entities.Ma
 	return marketData, err
 }
 
-func (md *MarketData) GetBetweenDatesByID(ctx context.Context, marketID string, start, end time.Time, pagination Pagination) ([]entities.MarketData, error) {
+func (md *MarketData) GetBetweenDatesByID(ctx context.Context, marketID string, start, end time.Time, pagination entities.Pagination) ([]entities.MarketData, error) {
 	if end.Before(start) {
 		return nil, ErrInvalidDateRange
 	}
@@ -85,15 +85,15 @@ func (md *MarketData) GetBetweenDatesByID(ctx context.Context, marketID string, 
 	return md.getBetweenDatesByID(ctx, marketID, &start, &end, pagination)
 }
 
-func (md *MarketData) GetFromDateByID(ctx context.Context, marketID string, start time.Time, pagination Pagination) ([]entities.MarketData, error) {
+func (md *MarketData) GetFromDateByID(ctx context.Context, marketID string, start time.Time, pagination entities.Pagination) ([]entities.MarketData, error) {
 	return md.getBetweenDatesByID(ctx, marketID, &start, nil, pagination)
 }
 
-func (md *MarketData) GetToDateByID(ctx context.Context, marketID string, end time.Time, pagination Pagination) ([]entities.MarketData, error) {
+func (md *MarketData) GetToDateByID(ctx context.Context, marketID string, end time.Time, pagination entities.Pagination) ([]entities.MarketData, error) {
 	return md.getBetweenDatesByID(ctx, marketID, nil, &end, pagination)
 }
 
-func (md *MarketData) getBetweenDatesByID(ctx context.Context, marketID string, start, end *time.Time, pagination Pagination) (results []entities.MarketData, err error) {
+func (md *MarketData) getBetweenDatesByID(ctx context.Context, marketID string, start, end *time.Time, pagination entities.Pagination) (results []entities.MarketData, err error) {
 	var market []byte
 
 	market, err = hex.DecodeString(marketID)

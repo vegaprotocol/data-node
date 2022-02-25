@@ -217,7 +217,7 @@ func getAllForMarketBetweenDates(t *testing.T) {
 	startDate := time.Date(2022, 2, 11, 10, 5, 30, 0, time.UTC)
 	endDate := time.Date(2022, 2, 11, 10, 06, 0, 0, time.UTC)
 
-	pagination := sqlstore.Pagination{}
+	pagination := entities.Pagination{}
 
 	t.Run("should return all results if no pagination is provided", func(t *testing.T) {
 		got, err := store.GetBetweenDatesByID(ctx, market, startDate, endDate, pagination)
@@ -226,7 +226,7 @@ func getAllForMarketBetweenDates(t *testing.T) {
 	})
 
 	t.Run("should return page of results if pagination is provided", func(t *testing.T) {
-		pagination.Offset = 5
+		pagination.Skip = 5
 		pagination.Limit = 5
 
 		got, err := store.GetBetweenDatesByID(ctx, market, startDate, endDate, pagination)
@@ -246,7 +246,7 @@ func getForMarketFromDate(t *testing.T) {
 
 	market := "8cc0e020c0bc2f9eba77749d81ecec8283283b85941722c2cb88318aaf8b8cd8"
 
-	pagination := sqlstore.Pagination{}
+	pagination := entities.Pagination{}
 
 	t.Run("should return all results if no pagination is provided", func(t *testing.T) {
 		got, err := store.GetFromDateByID(ctx, market, startDate, pagination)
@@ -255,7 +255,7 @@ func getForMarketFromDate(t *testing.T) {
 	})
 
 	t.Run("should return a page of results if pagination is provided", func(t *testing.T) {
-		pagination.Offset = 5
+		pagination.Skip = 5
 		pagination.Limit = 5
 		got, err := store.GetFromDateByID(ctx, market, startDate, pagination)
 		assert.NoError(t, err)
@@ -274,7 +274,7 @@ func getForMarketToDate(t *testing.T) {
 
 	market := "8cc0e020c0bc2f9eba77749d81ecec8283283b85941722c2cb88318aaf8b8cd8"
 
-	pagination := sqlstore.Pagination{}
+	pagination := entities.Pagination{}
 
 	t.Run("should return all results if no pagination is provided", func(t *testing.T) {
 		got, err := store.GetToDateByID(ctx, market, startDate, pagination)
@@ -283,7 +283,7 @@ func getForMarketToDate(t *testing.T) {
 	})
 
 	t.Run("should return a page of results if pagination is provided", func(t *testing.T) {
-		pagination.Offset = 10
+		pagination.Skip = 10
 		pagination.Limit = 10
 		got, err := store.GetToDateByID(ctx, market, startDate, pagination)
 		assert.NoError(t, err)
