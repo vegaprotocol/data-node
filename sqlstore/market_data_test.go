@@ -25,7 +25,7 @@ import (
 
 const (
 	csvColumnMarket = iota
-	csvColumnMarketTimestamp
+	_
 	csvColumnVegaTime
 	csvColumnMarkPrice
 	csvColumnBestBidPrice
