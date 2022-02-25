@@ -212,6 +212,7 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 	sqlBalanceStore := sqlstore.NewBalances(&sqlStore)
 	sqlMarketDataStore := sqlstore.NewMarketData(&sqlStore)
 
+	sqlOrderStore := sqlstore.NewOrders(&sqlStore)
 	eventSource, err := broker.NewEventSource(conf.Broker, logger)
 
 	if err != nil {
@@ -271,6 +272,7 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 		stakingService,
 		checkpointSvc,
 		sqlBalanceStore,
+		sqlOrderStore,
 		sqlMarketDataStore,
 	)
 	if srv == nil {

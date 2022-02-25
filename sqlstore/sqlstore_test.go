@@ -26,11 +26,12 @@ func TestMain(m *testing.M) {
 			sqlConfig,
 			&paths.DefaultPaths{},
 		)
+		defer testStore.Stop()
+
 		if err != nil {
 			panic(err)
 		}
 
-		defer testStore.Stop()
 		m.Run()
 	}
 }
