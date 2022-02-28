@@ -11,7 +11,6 @@ import (
 
 	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/sqlstore"
-	"code.vegaprotocol.io/shared/paths"
 )
 
 var (
@@ -31,7 +30,6 @@ func TestMain(m *testing.M) {
 		testStore, err = sqlstore.InitialiseTestStorage(
 			logging.NewTestLogger(),
 			sqlConfig,
-			&paths.DefaultPaths{},
 		)
 
 		if err != nil {
