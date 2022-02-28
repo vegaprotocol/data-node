@@ -204,9 +204,14 @@ func (l *NodeCommand) Run(cfgwatchr *config.Watcher, vegaPaths paths.Paths, args
 	return nil
 }
 
+const runSecondApi = true
+
 // runNode is the entry of node command.
 func (l *NodeCommand) runNode(args []string) error {
 	defer l.cancel()
+
+	ctx, cancel := context.WithCancel(l.ctx)
+	eg, ctx := errgroup.WithContext(ctx)
 
 	// gRPC server
 	grpcServer := api.NewGRPCServer(
@@ -249,17 +254,88 @@ func (l *NodeCommand) runNode(args []string) error {
 		func(cfg config.Config) { grpcServer.ReloadConf(cfg.API) },
 	)
 
-	ctx, cancel := context.WithCancel(l.ctx)
-	eg, ctx := errgroup.WithContext(ctx)
-
 	// start the grpc server
 	eg.Go(func() error { return grpcServer.Start(ctx, nil) })
+
+	portOffset := 100
+
+	here - swap
+	in
+	the
+	updated
+	services
+	and
+	test
+	API
+	is
+	indeed
+	seperate
+	for new
+	ports, then
+	clean
+	it
+	up
+
+	apiConfig := modifyForMigrationPorts(l.conf.API, portOffset)
+
+	grpcServer2 := api.NewGRPCServer(
+		l.Log,
+		apiConfig,
+		l.vegaCoreServiceClient,
+		l.timeService,
+		l.marketService,
+		l.partyService,
+		l.orderService,
+		l.liquidityService,
+		l.tradeService,
+		l.candleService,
+		l.accountsService,
+		l.transfersService,
+		l.riskService,
+		l.governanceService,
+		l.notaryService,
+		l.assetService,
+		l.feeService,
+		l.eventService,
+		l.oracleService,
+		l.withdrawalPlugin,
+		l.depositPlugin,
+		l.marketDepthSub,
+		l.netParamsService,
+		l.nodeService,
+		l.epochService,
+		l.delegationService,
+		l.rewardsSub,
+		l.stakingService,
+		l.checkpointSvc,
+		l.balanceStoreSQL,
+		l.orderStoreSQL,
+		l.networkLimitsStoreSQL,
+	)
+
+	// watch configs
+	l.configWatcher.OnConfigUpdate(
+		func(cfg config.Config) {
+			grpcServer2.ReloadConf(modifyForMigrationPorts(cfg.API, portOffset))
+		},
+	)
+
+	eg.Go(func() error { return grpcServer2.Start(ctx, nil) })
 
 	// start gateway
 	if l.conf.GatewayEnabled {
 		gty := server.New(l.conf.Gateway, l.Log)
-
 		eg.Go(func() error { return gty.Start(ctx) })
+
+		if runSecondApi {
+			conf2 := l.conf.Gateway
+			conf2.Node.Port = conf2.Node.Port + portOffset
+			conf2.GraphQL.Port = conf2.GraphQL.Port + portOffset
+			conf2.REST.Port = conf2.REST.Port + portOffset
+			gty2 := server.New(conf2, l.Log)
+			eg.Go(func() error { return gty2.Start(ctx) })
+		}
+
 	}
 
 	eg.Go(func() error {
@@ -298,4 +374,12 @@ func (l *NodeCommand) runNode(args []string) error {
 	}
 
 	return err
+}
+
+func modifyForMigrationPorts(original api.Config, portOffset int) api.Config {
+
+	apiConfig := original
+	apiConfig.WebUIPort = apiConfig.WebUIPort + portOffset
+	apiConfig.Port = apiConfig.Port + portOffset
+	return apiConfig
 }
