@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/jackc/pgx/v4/stdlib"
 	"github.com/pressly/goose/v3"
+	uuid "github.com/satori/go.uuid"
 )
 
 var (
@@ -110,10 +111,12 @@ func InitialiseTestStorage(log *logging.Logger, config Config, vegapaths paths.P
 		log:  log.Named("sql_store_test"),
 	}
 
+	testID := uuid.NewV4().String()
+
 	if s.conf.UseEmbedded {
 		// These will be deleted when the tests are completed by embedded postgres
-		embeddedPostgresRuntimePath := paths.JoinStatePath(paths.StatePath(vegapaths.StatePathFor(paths.DataNodeStorageHome)), "testing")
-		embeddedPostgresDataPath := paths.JoinStatePath(paths.StatePath(vegapaths.StatePathFor(paths.DataNodeStorageHome)), "testing", "node-data")
+		embeddedPostgresRuntimePath := paths.JoinStatePath(paths.StatePath(vegapaths.StatePathFor(paths.DataNodeStorageHome)), "testing", testID)
+		embeddedPostgresDataPath := paths.JoinStatePath(paths.StatePath(vegapaths.StatePathFor(paths.DataNodeStorageHome)), "testing", testID, "node-data")
 
 		if err := s.initializeEmbeddedPostgres(embeddedPostgresRuntimePath, embeddedPostgresDataPath); err != nil {
 			return nil, fmt.Errorf("use embedded database was true, but failed to start: %w", err)
