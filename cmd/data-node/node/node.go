@@ -264,23 +264,6 @@ func (l *NodeCommand) runNode(args []string) error {
 
 	portOffset := 100
 
-	here - swap
-	in
-	the
-	updated
-	services
-	and
-	test
-	API
-	is
-	indeed
-	seperate
-	for new
-	ports, then
-	clean
-	it
-	up
-
 	apiConfig := modifyForMigrationPorts(l.conf.API, portOffset)
 
 	grpcServer2 := api.NewGRPCServer(

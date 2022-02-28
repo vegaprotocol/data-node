@@ -49,7 +49,7 @@ import (
 // GRPCServer represent the grpc api provided by the vega node
 type GRPCServer struct {
 	Config
-
+	delegate              bool
 	log                   *logging.Logger
 	srv                   *grpc.Server
 	vegaCoreServiceClient CoreServiceClient
@@ -75,7 +75,7 @@ type GRPCServer struct {
 	oracleService           *oracles.Service
 	stakingService          *staking.Service
 	coreProxySvc            *coreProxyService
-	tradingDataService      *tradingDataService
+	tradingDataService      protoapi.TradingDataServiceServer
 	nodeService             *nodes.Service
 	epochService            *epochs.Service
 	delegationService       *delegations.Service
@@ -100,6 +100,7 @@ type GRPCServer struct {
 func NewGRPCServer(
 	log *logging.Logger,
 	config Config,
+	delegate bool,
 	coreServiceClient CoreServiceClient,
 	timeService *vegatime.Svc,
 	marketService MarketService,
@@ -140,6 +141,7 @@ func NewGRPCServer(
 	return &GRPCServer{
 		log:                     log,
 		Config:                  config,
+		delegate:                delegate,
 		vegaCoreServiceClient:   coreServiceClient,
 		orderService:            orderService,
 		liquidityService:        liquidityService,
@@ -313,8 +315,14 @@ func (g *GRPCServer) Start(ctx context.Context, lis net.Listener) error {
 		stakingService:          g.stakingService,
 		checkpointService:       g.checkpointSvc,
 	}
-	g.tradingDataService = tradingDataSvc
-	protoapi.RegisterTradingDataServiceServer(g.srv, tradingDataSvc)
+
+	if g.delegate {
+		g.tradingDataService = &tradingDataDelegator{tradingDataSvc, g.orderStore}
+	} else {
+		g.tradingDataService = tradingDataSvc
+	}
+
+	protoapi.RegisterTradingDataServiceServer(g.srv, g.tradingDataService)
 
 	tradingDataSvcV2 := &tradingDataServiceV2{
 		balanceStore:       g.balanceStore,
