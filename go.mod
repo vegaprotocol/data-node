@@ -6,7 +6,7 @@ require (
 	code.vegaprotocol.io/protos v0.49.1-0.20220301115549-f4781d5bd108
 	code.vegaprotocol.io/quant v0.2.5
 	code.vegaprotocol.io/shared v0.0.0-20220202150846-b6aba31dcdb0
-	code.vegaprotocol.io/vega v0.49.1-0.20220301111436-05ac7ba58da4
+	code.vegaprotocol.io/vega v0.49.1-0.20220301145608-aedf5350aed9
 	github.com/99designs/gqlgen v0.16.0
 	github.com/dgraph-io/badger/v2 v2.2007.3
 	github.com/fergusstrange/embedded-postgres v0.0.0-00010101000000-000000000000
