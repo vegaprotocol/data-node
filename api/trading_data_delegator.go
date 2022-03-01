@@ -1,12 +1,14 @@
 package api
 
 import (
+	"context"
+
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/metrics"
 	"code.vegaprotocol.io/data-node/sqlstore"
 	protoapi "code.vegaprotocol.io/protos/data-node/api/v1"
 	"code.vegaprotocol.io/protos/vega"
-	"context"
+
 	"google.golang.org/grpc/codes"
 )
 
@@ -64,7 +66,6 @@ func (t *tradingDataDelegator) TradesByOrder(ctx context.Context,
 	protoTrades := tradesToProto(trades)
 
 	return &protoapi.TradesByOrderResponse{Trades: protoTrades}, nil
-
 }
 
 // TradesByMarket provides a list of trades for a given market.
