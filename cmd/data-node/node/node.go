@@ -208,8 +208,6 @@ func (l *NodeCommand) Run(cfgwatchr *config.Watcher, vegaPaths paths.Paths, args
 	return nil
 }
 
-const runSecondApi = true
-
 // runNode is the entry of node command.
 func (l *NodeCommand) runNode(args []string) error {
 	defer l.cancel()
@@ -218,41 +216,7 @@ func (l *NodeCommand) runNode(args []string) error {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	// gRPC server
-	grpcServer := api.NewGRPCServer(
-		l.Log,
-		l.conf.API,
-		l.vegaCoreServiceClient,
-		l.timeService,
-		l.marketService,
-		l.partyService,
-		l.orderService,
-		l.liquidityService,
-		l.tradeService,
-		l.candleService,
-		l.accountsService,
-		l.transfersService,
-		l.riskService,
-		l.governanceService,
-		l.notaryService,
-		l.assetService,
-		l.feeService,
-		l.eventService,
-		l.oracleService,
-		l.withdrawalPlugin,
-		l.depositPlugin,
-		l.marketDepthSub,
-		l.netParamsService,
-		l.nodeService,
-		l.epochService,
-		l.delegationService,
-		l.rewardsSub,
-		l.stakingService,
-		l.checkpointSvc,
-		l.balanceStoreSQL,
-		l.orderStoreSQL,
-		l.networkLimitsStoreSQL,
-		l.marketDataStoreSQL,
-	)
+	grpcServer := l.createGRPCServer(l.conf.API, bool(l.conf.SQLStore.Enabled))
 
 	// watch configs
 	l.configWatcher.OnConfigUpdate(
@@ -262,66 +226,33 @@ func (l *NodeCommand) runNode(args []string) error {
 	// start the grpc server
 	eg.Go(func() error { return grpcServer.Start(ctx, nil) })
 
-	portOffset := 100
+	if l.conf.SQLStore.Enabled && l.conf.API.ExposeLegacyAPI {
+		l.Log.Info("Running legacy APIs", logging.Int("port offset", l.conf.API.LegacyAPIPortOffset))
 
-	apiConfig := modifyForMigrationPorts(l.conf.API, portOffset)
+		apiConfig := addLegacyPortOffsetToAPIPorts(l.conf.API, l.conf.API.LegacyAPIPortOffset)
+		legacyGRPCServer := l.createGRPCServer(apiConfig, false)
 
-	grpcServer2 := api.NewGRPCServer(
-		l.Log,
-		apiConfig,
-		l.vegaCoreServiceClient,
-		l.timeService,
-		l.marketService,
-		l.partyService,
-		l.orderService,
-		l.liquidityService,
-		l.tradeService,
-		l.candleService,
-		l.accountsService,
-		l.transfersService,
-		l.riskService,
-		l.governanceService,
-		l.notaryService,
-		l.assetService,
-		l.feeService,
-		l.eventService,
-		l.oracleService,
-		l.withdrawalPlugin,
-		l.depositPlugin,
-		l.marketDepthSub,
-		l.netParamsService,
-		l.nodeService,
-		l.epochService,
-		l.delegationService,
-		l.rewardsSub,
-		l.stakingService,
-		l.checkpointSvc,
-		l.balanceStoreSQL,
-		l.orderStoreSQL,
-		l.networkLimitsStoreSQL,
-	)
+		l.configWatcher.OnConfigUpdate(
+			func(cfg config.Config) {
+				legacyGRPCServer.ReloadConf(addLegacyPortOffsetToAPIPorts(cfg.API, l.conf.API.LegacyAPIPortOffset))
+			},
+		)
 
-	// watch configs
-	l.configWatcher.OnConfigUpdate(
-		func(cfg config.Config) {
-			grpcServer2.ReloadConf(modifyForMigrationPorts(cfg.API, portOffset))
-		},
-	)
-
-	eg.Go(func() error { return grpcServer2.Start(ctx, nil) })
+		eg.Go(func() error { return legacyGRPCServer.Start(ctx, nil) })
+	}
 
 	// start gateway
 	if l.conf.GatewayEnabled {
 		gty := server.New(l.conf.Gateway, l.Log)
 		eg.Go(func() error { return gty.Start(ctx) })
 
-		if runSecondApi {
-			conf2 := l.conf.Gateway
-			conf2.Node.Port = conf2.Node.Port + portOffset
-			conf2.GraphQL.Port = conf2.GraphQL.Port + portOffset
-			conf2.REST.Port = conf2.REST.Port + portOffset
-			gty2 := server.New(conf2, l.Log)
-			eg.Go(func() error { return gty2.Start(ctx) })
+		if l.conf.API.ExposeLegacyAPI {
+			legacyAPIGatewayConf := l.conf.Gateway
+			legacyAPIGatewayConf.Node.Port = legacyAPIGatewayConf.Node.Port + l.conf.API.LegacyAPIPortOffset
+			legacyAPIGatewayConf.GraphQL.Port = legacyAPIGatewayConf.GraphQL.Port + l.conf.API.LegacyAPIPortOffset
+			legacyAPIGatewayConf.REST.Port = legacyAPIGatewayConf.REST.Port + l.conf.API.LegacyAPIPortOffset
+			legacyGty := server.New(legacyAPIGatewayConf, l.Log)
+			eg.Go(func() error { return legacyGty.Start(ctx) })
 		}
 
 	}
@@ -364,7 +295,48 @@ func (l *NodeCommand) runNode(args []string) error {
 	return err
 }
 
-func modifyForMigrationPorts(original api.Config, portOffset int) api.Config {
+func (l *NodeCommand) createGRPCServer(config api.Config, useSQLStores bool) *api.GRPCServer {
+	grpcServer := api.NewGRPCServer(
+		l.Log,
+		config,
+		useSQLStores,
+		l.vegaCoreServiceClient,
+		l.timeService,
+		l.marketService,
+		l.partyService,
+		l.orderService,
+		l.liquidityService,
+		l.tradeService,
+		l.candleService,
+		l.accountsService,
+		l.transfersService,
+		l.riskService,
+		l.governanceService,
+		l.notaryService,
+		l.assetService,
+		l.feeService,
+		l.eventService,
+		l.oracleService,
+		l.withdrawalPlugin,
+		l.depositPlugin,
+		l.marketDepthSub,
+		l.netParamsService,
+		l.nodeService,
+		l.epochService,
+		l.delegationService,
+		l.rewardsSub,
+		l.stakingService,
+		l.checkpointSvc,
+		l.balanceStoreSQL,
+		l.orderStoreSQL,
+		l.networkLimitsStoreSQL,
+		l.marketDataStoreSQL,
+		l.tradeStoreSQL,
+	)
+	return grpcServer
+}
+
+func addLegacyPortOffsetToAPIPorts(original api.Config, portOffset int) api.Config {
 
 	apiConfig := original
 	apiConfig.WebUIPort = apiConfig.WebUIPort + portOffset
