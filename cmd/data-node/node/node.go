@@ -246,7 +246,7 @@ func (l *NodeCommand) runNode(args []string) error {
 		gty := server.New(l.conf.Gateway, l.Log)
 		eg.Go(func() error { return gty.Start(ctx) })
 
-		if l.conf.API.ExposeLegacyAPI {
+		if l.conf.SQLStore.Enabled && l.conf.API.ExposeLegacyAPI {
 			legacyAPIGatewayConf := l.conf.Gateway
 			legacyAPIGatewayConf.Node.Port = legacyAPIGatewayConf.Node.Port + l.conf.API.LegacyAPIPortOffset
 			legacyAPIGatewayConf.GraphQL.Port = legacyAPIGatewayConf.GraphQL.Port + l.conf.API.LegacyAPIPortOffset
