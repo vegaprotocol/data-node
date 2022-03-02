@@ -243,7 +243,8 @@ func (l *NodeCommand) runNode(args []string) error {
 
 	// start gateway
 	if l.conf.GatewayEnabled {
-		gty := server.New(l.conf.Gateway, l.Log)
+		gty := server.New(l.conf.Gateway, l.Log, l.vegaPaths)
+
 		eg.Go(func() error { return gty.Start(ctx) })
 
 		if l.conf.SQLStore.Enabled && l.conf.API.ExposeLegacyAPI {
@@ -251,7 +252,7 @@ func (l *NodeCommand) runNode(args []string) error {
 			legacyAPIGatewayConf.Node.Port = legacyAPIGatewayConf.Node.Port + l.conf.API.LegacyAPIPortOffset
 			legacyAPIGatewayConf.GraphQL.Port = legacyAPIGatewayConf.GraphQL.Port + l.conf.API.LegacyAPIPortOffset
 			legacyAPIGatewayConf.REST.Port = legacyAPIGatewayConf.REST.Port + l.conf.API.LegacyAPIPortOffset
-			legacyGty := server.New(legacyAPIGatewayConf, l.Log)
+			legacyGty := server.New(legacyAPIGatewayConf, l.Log, l.vegaPaths)
 			eg.Go(func() error { return legacyGty.Start(ctx) })
 		}
 
