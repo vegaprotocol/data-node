@@ -32,7 +32,7 @@ func (t *tradingDataDelegator) TradesByParty(ctx context.Context,
 
 	p := defaultEntityPagination
 	if req.Pagination != nil {
-		p = getPaginationFromV1Pagination(req.Pagination)
+		p = toEntityPagination(req.Pagination)
 	}
 
 	trades, err := t.tradeStore.GetByParty(ctx, req.PartyId, &req.MarketId, p)
@@ -75,7 +75,7 @@ func (t *tradingDataDelegator) TradesByMarket(ctx context.Context, req *protoapi
 
 	p := defaultEntityPagination
 	if req.Pagination != nil {
-		p = getPaginationFromV1Pagination(req.Pagination)
+		p = toEntityPagination(req.Pagination)
 	}
 
 	trades, err := t.tradeStore.GetByMarket(ctx, req.MarketId, p)
@@ -177,7 +177,7 @@ func (t *tradingDataDelegator) OrdersByParty(ctx context.Context,
 
 	p := defaultPaginationV2
 	if req.Pagination != nil {
-		p = getPaginationFromV1Pagination(req.Pagination)
+		p = toEntityPagination(req.Pagination)
 	}
 
 	orders, err := t.orderStore.GetByParty(ctx, req.PartyId, p)
@@ -195,7 +195,7 @@ func (t *tradingDataDelegator) OrdersByParty(ctx context.Context,
 	}, nil
 }
 
-func getPaginationFromV1Pagination(pagination *protoapi.Pagination) entities.Pagination {
+func toEntityPagination(pagination *protoapi.Pagination) entities.Pagination {
 	return entities.Pagination{
 		Skip:       pagination.Skip,
 		Limit:      pagination.Limit,

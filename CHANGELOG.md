@@ -9,7 +9,7 @@
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -
 
 ### 🛠  Improvements
-- [](https://github.com/vegaprotocol/data-node/pull/xxx) -
+- [358](https://github.com/vegaprotocol/data-node/pull/358) - Make SQL back stores the default used when SQL enabled 
 
 ### 🐛 Fixes
 - [387](https://github.com/vegaprotocol/data-node/pull/387) - Fixes incorrect data types in the `MarketData` proto message.
