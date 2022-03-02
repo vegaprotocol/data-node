@@ -42,7 +42,7 @@ func NewDefaultConfig() Config {
 		StreamRetries:       3,
 		CoreNodeIP:          "127.0.0.1",
 		CoreNodeGRPCPort:    3002,
-		ExposeLegacyAPI:     true,
+		ExposeLegacyAPI:     false,
 		LegacyAPIPortOffset: 100,
 	}
 }
