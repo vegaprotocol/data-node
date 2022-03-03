@@ -14,7 +14,7 @@ type Asset struct {
 	Name          string
 	Symbol        string
 	TotalSupply   decimal.Decimal // Maybe num.Uint if we can figure out how to add support to pgx
-	Decimals      uint64
+	Decimals      int
 	Quantum       int
 	Source        string
 	ERC20Contract string
@@ -48,7 +48,7 @@ func (a Asset) ToProto() *pb.Asset {
 			Name:        a.Name,
 			Symbol:      a.Symbol,
 			TotalSupply: a.TotalSupply.BigInt().String(),
-			Decimals:    a.Decimals,
+			Decimals:    uint64(a.Decimals),
 			Quantum:     fmt.Sprintf("%d", a.Quantum),
 		},
 	}

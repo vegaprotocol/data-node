@@ -205,7 +205,7 @@ func toEntityPagination(pagination *protoapi.Pagination) entities.Pagination {
 }
 
 func (t *tradingDataDelegator) AssetByID(ctx context.Context, req *protoapi.AssetByIDRequest) (*protoapi.AssetByIDResponse, error) {
-	defer metrics.StartAPIRequestAndTimeGRPC("AssetByID")()
+	defer metrics.StartAPIRequestAndTimeGRPC("AssetByID-SQL")()
 	if len(req.Id) <= 0 {
 		return nil, apiError(codes.InvalidArgument, errors.New("missing ID"))
 	}
@@ -221,7 +221,7 @@ func (t *tradingDataDelegator) AssetByID(ctx context.Context, req *protoapi.Asse
 }
 
 func (t *tradingDataDelegator) Assets(ctx context.Context, req *protoapi.AssetsRequest) (*protoapi.AssetsResponse, error) {
-	defer metrics.StartAPIRequestAndTimeGRPC("Assets")()
+	defer metrics.StartAPIRequestAndTimeGRPC("Assets-SQL")()
 
 	assets, err := t.assetStore.GetAll(ctx)
 

@@ -2,6 +2,7 @@ package sqlsubscribers
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -86,12 +87,18 @@ func (as *Asset) addAsset(va types.Asset, vegaTime time.Time) error {
 		return fmt.Errorf("unknown asset source: %v", source)
 	}
 
+	if va.Details.Decimals > math.MaxInt {
+		return fmt.Errorf("decimals value will cause integer overflow: %d", va.Details.Decimals)
+	}
+
+	decimals := int(va.Details.Decimals)
+
 	asset := entities.Asset{
 		ID:            id,
 		Name:          va.Details.Name,
 		Symbol:        va.Details.Symbol,
 		TotalSupply:   totalSupply,
-		Decimals:      va.Details.Decimals,
+		Decimals:      decimals,
 		Quantum:       quantum,
 		Source:        source,
 		ERC20Contract: erc20Contract,
