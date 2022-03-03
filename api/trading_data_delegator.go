@@ -220,14 +220,10 @@ func (t *tradingDataDelegator) AssetByID(ctx context.Context, req *protoapi.Asse
 	}, nil
 }
 
-func (t *tradingDataDelegator) Assets(ctx context.Context, req *protoapi.AssetsRequest) (*protoapi.AssetsResponse, error) {
+func (t *tradingDataDelegator) Assets(ctx context.Context, _ *protoapi.AssetsRequest) (*protoapi.AssetsResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("Assets-SQL")()
 
-	assets, err := t.assetStore.GetAll(ctx)
-
-	if err != nil {
-		return nil, apiError(codes.Internal, err)
-	}
+	assets, _ := t.assetStore.GetAll(ctx)
 
 	out := make([]*vega.Asset, 0, len(assets))
 	for _, v := range assets {
