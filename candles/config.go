@@ -11,13 +11,15 @@ const namedLogger = "candles"
 
 // Config represent the configuration of the candle package
 type Config struct {
-	Level encoding.LogLevel `long:"log-level"`
+	Level                       encoding.LogLevel `long:"log-level"`
+	CandleEventStreamBufferSize int               `long:"candle-evert-stream-buffer-size" description:"buffer size used by the candle events stream for the per client per candle channel"`
 }
 
 // NewDefaultConfig creates an instance of the package specific configuration, given a
 // pointer to a logger instance to be used for logging within the package.
 func NewDefaultConfig() Config {
 	return Config{
-		Level: encoding.LogLevel{Level: logging.InfoLevel},
+		Level:                       encoding.LogLevel{Level: logging.InfoLevel},
+		CandleEventStreamBufferSize: 100,
 	}
 }

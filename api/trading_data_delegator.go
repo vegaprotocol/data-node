@@ -2,26 +2,144 @@ package api
 
 import (
 	"context"
+	"encoding/hex"
+	"fmt"
+	"strconv"
 
 	"code.vegaprotocol.io/data-node/entities"
+	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/metrics"
 	"code.vegaprotocol.io/data-node/sqlstore"
 	protoapi "code.vegaprotocol.io/protos/data-node/api/v1"
 	"code.vegaprotocol.io/protos/vega"
 
 	"google.golang.org/grpc/codes"
+
+	"code.vegaprotocol.io/data-node/vegatime"
+	pbtypes "code.vegaprotocol.io/protos/vega"
 )
 
 type tradingDataDelegator struct {
 	*tradingDataService
-	orderStore *sqlstore.Orders
-	tradeStore *sqlstore.Trades
+	orderStore   *sqlstore.Orders
+	tradeStore   *sqlstore.Trades
+	candlesStore *sqlstore.Candles
 }
 
 var defaultEntityPagination = entities.Pagination{
 	Skip:       0,
 	Limit:      50,
 	Descending: true,
+}
+
+func (t *tradingDataDelegator) Candles(ctx context.Context,
+	request *protoapi.CandlesRequest) (*protoapi.CandlesResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("Candles-SQL")()
+
+	if request.Interval == pbtypes.Interval_INTERVAL_UNSPECIFIED {
+		return nil, apiError(codes.InvalidArgument, ErrMalformedRequest)
+	}
+
+	marketId, err := hex.DecodeString(request.MarketId)
+	if err != nil {
+		return nil, apiError(codes.InvalidArgument, ErrCandleServiceGetCandles, fmt.Errorf("market id is invalid:%w", err))
+	}
+
+	from := vegatime.UnixNano(request.SinceTimestamp)
+	interval := toV2IntervalString(request.Interval)
+	candles, err := t.candlesStore.GetCandlesForInterval(ctx, interval, &from, nil, marketId, entities.Pagination{})
+	if err != nil {
+		return nil, apiError(codes.Internal, ErrCandleServiceGetCandles,
+			fmt.Errorf("failed to get candles for interval:%w", err))
+	}
+
+	var protoCandles []*vega.Candle
+	for _, candle := range candles {
+		proto, err := candle.ToV1CandleProto(request.Interval)
+		if err != nil {
+			return nil, apiError(codes.Internal, ErrCandleServiceGetCandles,
+				fmt.Errorf("failed to convert candle to protobuf:%w", err))
+		}
+
+		protoCandles = append(protoCandles, proto)
+	}
+
+	return &protoapi.CandlesResponse{
+		Candles: protoCandles,
+	}, nil
+
+}
+
+func toV2IntervalString(interval vega.Interval) string {
+	return strconv.Itoa(int(interval)) + " seconds"
+}
+
+func (t *tradingDataDelegator) CandlesSubscribe(req *protoapi.CandlesSubscribeRequest,
+	srv protoapi.TradingDataService_CandlesSubscribeServer) error {
+
+	defer metrics.StartAPIRequestAndTimeGRPC("CandlesSubscribe-SQL")()
+	// Wrap context from the request into cancellable. We can close internal chan on error.
+	ctx, cancel := context.WithCancel(srv.Context())
+	defer cancel()
+
+	interval := toV2IntervalString(req.Interval)
+	ref, candlesChan, err := t.tradeStore.SubscribeToCandle(ctx, req.MarketId, interval)
+	if err != nil {
+		return apiError(codes.Internal, ErrStreamInternal,
+			fmt.Errorf("failed to convert candle to protobuf:%w", err))
+	}
+
+	if t.log.GetLevel() == logging.DebugLevel {
+		t.log.Debug("Candles subscriber - new rpc stream", logging.Uint64("ref", ref))
+	}
+
+	for {
+		select {
+		case candle, ok := <-candlesChan:
+
+			if !ok {
+				err = ErrChannelClosed
+				t.log.Error("Candles subscriber",
+					logging.Error(err),
+					logging.Uint64("ref", ref),
+				)
+				return apiError(codes.Internal, err)
+			}
+			proto, err := candle.ToV1CandleProto(req.Interval)
+			if err != nil {
+				return apiError(codes.Internal, ErrStreamInternal, err)
+			}
+
+			resp := &protoapi.CandlesSubscribeResponse{
+				Candle: proto,
+			}
+			if err := srv.Send(resp); err != nil {
+				t.log.Error("Candles subscriber - rpc stream error",
+					logging.Error(err),
+					logging.Uint64("ref", ref),
+				)
+				return apiError(codes.Internal, ErrStreamInternal, err)
+			}
+		case <-ctx.Done():
+			err = ctx.Err()
+			if t.log.GetLevel() == logging.DebugLevel {
+				t.log.Debug("Candles subscriber - rpc stream ctx error",
+					logging.Error(err),
+					logging.Uint64("ref", ref),
+				)
+			}
+			return apiError(codes.Internal, ErrStreamInternal, err)
+		}
+
+		if candlesChan == nil {
+			if t.log.GetLevel() == logging.DebugLevel {
+				t.log.Debug("Candles subscriber - rpc stream closed", logging.Uint64("ref", ref))
+			}
+			return apiError(codes.Internal, ErrStreamClosed)
+		}
+	}
+
+	return nil
 }
 
 // TradesByParty provides a list of trades for the given party.

@@ -44,6 +44,7 @@ func NewService(
 	nodeStore NodeStore,
 	epochStore EpochStore,
 ) *Service {
+
 	// setup logger
 	log = log.Named(namedLogger)
 	log.SetLevel(config.Level.Get())

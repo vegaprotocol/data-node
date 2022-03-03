@@ -7,18 +7,17 @@ import (
 
 	"code.vegaprotocol.io/protos/vega"
 
-	"github.com/holiman/uint256"
-
 	"github.com/shopspring/decimal"
 )
 
 type Trade struct {
+	SyntheticTime           time.Time
 	VegaTime                time.Time
 	SeqNum                  uint64
 	ID                      []byte
 	MarketID                []byte
 	Price                   decimal.Decimal
-	Size                    decimal.Decimal
+	Size                    uint64
 	Buyer                   []byte
 	Seller                  []byte
 	Aggressor               Side
@@ -40,7 +39,7 @@ func (t *Trade) ToProto() *vega.Trade {
 		Id:        hex.EncodeToString(t.ID),
 		MarketId:  hex.EncodeToString(t.MarketID),
 		Price:     t.Price.String(),
-		Size:      t.Size.UintNO().Uint64(),
+		Size:      t.Size,
 		Buyer:     hex.EncodeToString(t.Buyer),
 		Seller:    hex.EncodeToString(t.Seller),
 		Aggressor: t.Aggressor,
@@ -64,6 +63,9 @@ func (t *Trade) ToProto() *vega.Trade {
 }
 
 func TradeFromProto(t *vega.Trade, vegaTime time.Time, sequenceNumber uint64) (*Trade, error) {
+
+	syntheticTime := vegaTime.Add(time.Duration(sequenceNumber) * time.Microsecond)
+
 	id, err := hex.DecodeString(t.Id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode trade id:%w", err)
@@ -77,8 +79,6 @@ func TradeFromProto(t *vega.Trade, vegaTime time.Time, sequenceNumber uint64) (*
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode price:%w", err)
 	}
-
-	size := decimal.NewFromUint(uint256.NewInt(t.Size))
 
 	buyer, err := hex.DecodeString(t.Buyer)
 	if err != nil {
@@ -141,12 +141,13 @@ func TradeFromProto(t *vega.Trade, vegaTime time.Time, sequenceNumber uint64) (*
 	}
 
 	trade := Trade{
+		SyntheticTime:           syntheticTime,
 		VegaTime:                vegaTime,
 		SeqNum:                  sequenceNumber,
 		ID:                      id,
 		MarketID:                marketId,
 		Price:                   price,
-		Size:                    size,
+		Size:                    t.Size,
 		Buyer:                   buyer,
 		Seller:                  seller,
 		Aggressor:               t.Aggressor,

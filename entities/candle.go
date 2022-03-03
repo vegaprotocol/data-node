@@ -1,0 +1,33 @@
+package entities
+
+import (
+	"time"
+
+	"code.vegaprotocol.io/protos/vega"
+
+	"github.com/shopspring/decimal"
+)
+
+type Candle struct {
+	PeriodStart        time.Time
+	LastUpdateInPeriod time.Time
+	Open               decimal.Decimal
+	Close              decimal.Decimal
+	High               decimal.Decimal
+	Low                decimal.Decimal
+	Volume             uint64
+}
+
+func (c *Candle) ToV1CandleProto(interval vega.Interval) (*vega.Candle, error) {
+
+	return &vega.Candle{
+		Timestamp: c.PeriodStart.UnixNano(),
+		Datetime:  c.LastUpdateInPeriod.Format(time.RFC3339Nano),
+		High:      c.High.String(),
+		Low:       c.Low.String(),
+		Open:      c.Open.String(),
+		Close:     c.Close.String(),
+		Volume:    c.Volume,
+		Interval:  interval,
+	}, nil
+}

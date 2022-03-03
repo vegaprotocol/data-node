@@ -164,7 +164,8 @@ func (l *NodeCommand) setupStorages() error {
 		l.orderStoreSQL = sqlstore.NewOrders(sqlStore)
 		l.networkLimitsStoreSQL = sqlstore.NewNetworkLimits(sqlStore)
 		l.marketDataStoreSQL = sqlstore.NewMarketData(sqlStore)
-		l.tradeStoreSQL = sqlstore.NewTrades(sqlStore)
+		l.candleStoreSQL = sqlstore.NewCandles(sqlStore, l.conf.Candles.CandleEventStreamBufferSize)
+		l.tradeStoreSQL = sqlstore.NewTrades(sqlStore, l.candleStoreSQL)
 		l.sqlStore = sqlStore
 	}
 

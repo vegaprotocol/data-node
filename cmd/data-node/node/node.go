@@ -107,6 +107,7 @@ type NodeCommand struct {
 	ledgerSQL             *sqlstore.Ledger
 	partyStoreSQL         *sqlstore.Parties
 	orderStoreSQL         *sqlstore.Orders
+	candleStoreSQL        *sqlstore.Candles
 	tradeStoreSQL         *sqlstore.Trades
 	networkLimitsStoreSQL *sqlstore.NetworkLimits
 	marketDataStoreSQL    *sqlstore.MarketData
@@ -333,6 +334,7 @@ func (l *NodeCommand) createGRPCServer(config api.Config, useSQLStores bool) *ap
 		l.networkLimitsStoreSQL,
 		l.marketDataStoreSQL,
 		l.tradeStoreSQL,
+		l.candleStoreSQL,
 	)
 	return grpcServer
 }
