@@ -2,8 +2,10 @@ package entities
 
 import (
 	"encoding/hex"
+	"fmt"
 	"time"
 
+	pb "code.vegaprotocol.io/protos/vega"
 	"github.com/shopspring/decimal"
 )
 
@@ -12,7 +14,7 @@ type Asset struct {
 	Name          string
 	Symbol        string
 	TotalSupply   decimal.Decimal // Maybe num.Uint if we can figure out how to add support to pgx
-	Decimals      int
+	Decimals      uint64
 	Quantum       int
 	Source        string
 	ERC20Contract string
@@ -37,4 +39,32 @@ func (a Asset) HexID() string {
 	}
 
 	return hex.EncodeToString(a.ID)
+}
+
+func (a Asset) ToProto() *pb.Asset {
+	pbAsset := &pb.Asset{
+		Id: a.HexID(),
+		Details: &pb.AssetDetails{
+			Name:        a.Name,
+			Symbol:      a.Symbol,
+			TotalSupply: a.TotalSupply.BigInt().String(),
+			Decimals:    a.Decimals,
+			Quantum:     fmt.Sprintf("%d", a.Quantum),
+		},
+	}
+	if a.Source != "" {
+		pbAsset.Details.Source = &pb.AssetDetails_BuiltinAsset{
+			BuiltinAsset: &pb.BuiltinAsset{
+				MaxFaucetAmountMint: a.Source,
+			},
+		}
+	} else if a.ERC20Contract != "" {
+		pbAsset.Details.Source = &pb.AssetDetails_Erc20{
+			Erc20: &pb.ERC20{
+				ContractAddress: a.ERC20Contract,
+			},
+		}
+	}
+
+	return pbAsset
 }

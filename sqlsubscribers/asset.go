@@ -75,13 +75,27 @@ func (as *Asset) addAsset(va types.Asset, vegaTime time.Time) error {
 		return fmt.Errorf("bad quantum '%v'", va.Details.Quantum)
 	}
 
+	var source, erc20Contract string
+
+	switch src := va.Details.Source.(type) {
+	case *types.AssetDetails_BuiltinAsset:
+		source = src.BuiltinAsset.MaxFaucetAmountMint
+	case *types.AssetDetails_Erc20:
+		erc20Contract = src.Erc20.ContractAddress
+	default:
+		return fmt.Errorf("unknown asset source: %v", source)
+	}
+
 	asset := entities.Asset{
-		ID:          id,
-		Name:        va.Details.Name,
-		Symbol:      va.Details.Symbol,
-		TotalSupply: totalSupply,
-		Quantum:     quantum,
-		VegaTime:    vegaTime,
+		ID:            id,
+		Name:          va.Details.Name,
+		Symbol:        va.Details.Symbol,
+		TotalSupply:   totalSupply,
+		Decimals:      va.Details.Decimals,
+		Quantum:       quantum,
+		Source:        source,
+		ERC20Contract: erc20Contract,
+		VegaTime:      vegaTime,
 	}
 
 	err = as.store.Add(asset)
