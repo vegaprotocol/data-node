@@ -24,7 +24,7 @@ type Config struct {
 
 func NewDefaultConfig() Config {
 	return Config{
-		Enabled:                  false,
+		Enabled:                  true,
 		Host:                     "localhost",
 		Port:                     5432,
 		Username:                 "vega",
@@ -32,7 +32,7 @@ func NewDefaultConfig() Config {
 		Database:                 "vega",
 		WipeOnStartup:            true,
 		Level:                    encoding.LogLevel{Level: logging.InfoLevel},
-		UseEmbedded:              false,
+		UseEmbedded:              true,
 		FanOutBufferSize:         1000,
 		SqlEventBrokerBufferSize: 100,
 		Timeout:                  encoding.Duration{Duration: time.Second},
