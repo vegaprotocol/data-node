@@ -60,12 +60,16 @@ func filterAccountBalancesQuery(af entities.AccountFilter, pagination entities.P
 			partyIDs[i] = party.ID
 		}
 		where = fmt.Sprintf(`%s%sACCOUNTS.party_id=ANY(%s)`, where, and, nextBindVar(&args, partyIDs))
-		and = " AND "
+		if and == "" {
+			and = " AND "
+		}
 	}
 
 	if len(af.AccountTypes) > 0 {
 		where = fmt.Sprintf(`%s%stype=ANY(%s)`, where, and, nextBindVar(&args, af.AccountTypes))
-		and = " AND "
+		if and == "" {
+			and = " AND "
+		}
 	}
 
 	if len(af.Markets) > 0 {
@@ -75,7 +79,6 @@ func filterAccountBalancesQuery(af entities.AccountFilter, pagination entities.P
 		}
 
 		where = fmt.Sprintf(`%s%sACCOUNTS.market_id=ANY(%s)`, where, and, nextBindVar(&args, marketIDs))
-		and = " AND "
 	}
 
 	query := `SELECT DISTINCT ON (ACCOUNTS.id) ACCOUNTS.id, ACCOUNTS.party_id, ACCOUNTS.asset_id, ACCOUNTS.market_id, ACCOUNTS.type, 
