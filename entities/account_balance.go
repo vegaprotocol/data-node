@@ -2,7 +2,6 @@ package entities
 
 import (
 	"encoding/hex"
-	"strings"
 
 	"code.vegaprotocol.io/protos/vega"
 	"github.com/shopspring/decimal"
@@ -21,11 +20,8 @@ func (ab *AccountBalance) ToProto() *vega.Account {
 		owner = hex.EncodeToString(ab.PartyID)
 	}
 
-	var assetID string
-	if assetID = string(ab.AssetID); strings.HasPrefix(assetID, badAssetPrefix) {
-		assetID = strings.TrimPrefix(assetID, badAssetPrefix)
-	} else {
-		assetID = hex.EncodeToString(ab.AssetID)
+	asset := Asset{
+		ID: ab.AssetID,
 	}
 
 	if len(ab.MarketID) > 0 {
@@ -35,7 +31,7 @@ func (ab *AccountBalance) ToProto() *vega.Account {
 	return &vega.Account{
 		Owner:    owner,
 		Balance:  ab.Balance.String(),
-		Asset:    assetID,
+		Asset:    asset.HexID(),
 		MarketId: market,
 		Type:     ab.Account.Type,
 	}
