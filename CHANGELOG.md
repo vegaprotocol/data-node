@@ -14,7 +14,7 @@
 - [412](https://github.com/vegaprotocol/data-node/pull/412) - Migrate markets API to retrieve data from `Postgres`
 
 ### 🐛 Fixes
-- [](https://github.com/vegaprotocol/data-node/pull/xxx) -
+- [411](https://github.com/vegaprotocol/data-node/pull/411) - Fix a couple of incompatibilities in `data-node v2`
 
 
 ## 0.49.1
