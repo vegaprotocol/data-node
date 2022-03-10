@@ -6,8 +6,10 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
+	"syscall"
 	"testing"
 	"time"
 
@@ -31,6 +33,7 @@ var (
 	newClient               *graphql.Client
 	oldClient               *graphql.Client
 	integrationTestsEnabled bool = false
+	blockWhenDone           bool = false
 )
 
 func TestMain(m *testing.M) {
@@ -40,23 +43,43 @@ func TestMain(m *testing.M) {
 
 	cfg, err := newTestConfig()
 	if err != nil {
-		log.Fatal("couldn't set up config: %w", err)
+		log.Fatal("couldn't set up config: ", err)
 	}
 
 	if err := runTestNode(cfg); err != nil {
-		log.Fatal("running test node: %w", err)
+		log.Fatal("running test node: ", err)
 	}
 
 	newClient = graphql.NewClient(fmt.Sprintf("http://localhost:%v/query", cfg.Gateway.GraphQL.Port))
 	oldClient = graphql.NewClient(fmt.Sprintf("http://localhost:%v/query", cfg.Gateway.GraphQL.Port+cfg.API.LegacyAPIPortOffset))
 	if err := waitForEpoch(newClient, LastEpoch, PlaybackTimeout); err != nil {
-		log.Fatal("problem piping event stream: %w", err)
+		log.Fatal("problem piping event stream: ", err)
+
 	}
 
 	// Cheesy sleep to give everything chance to percolate
 	time.Sleep(5 * time.Second)
 
 	m.Run()
+
+	// When you're debugging tests, it's helpful to stop here so you can go in and poke around
+	// sending queries via the graphql playground etc..
+	if blockWhenDone {
+		waitForSIGTERM()
+	}
+}
+
+func waitForSIGTERM() {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM) // nolint
+	go func() {
+		<-c
+		os.Exit(1)
+	}()
+
+	for {
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func assertGraphQLQueriesReturnSame(t *testing.T, query string, oldResp, newResp interface{}) {
