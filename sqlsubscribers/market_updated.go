@@ -54,7 +54,7 @@ func (m *MarketUpdated) consume(event MarketUpdatedEvent) {
 		return
 	}
 
-	if err = m.store.Update(record); err != nil {
+	if err = m.store.Upsert(record); err != nil {
 		m.log.Error("Updating market to SQL store failed", logging.Error(err))
 	}
 }

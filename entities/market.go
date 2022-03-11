@@ -21,8 +21,8 @@ type Market struct {
 	OpeningAuction                []byte
 	PriceMonitoringSettings       []byte
 	LiquidityMonitoringParameters []byte
-	TradingMode                   string
-	State                         string
+	TradingMode                   MarketTradingMode
+	State                         MarketState
 	MarketTimestamps              []byte
 	PositionDecimalPlaces         int
 }
@@ -114,8 +114,8 @@ func NewMarketFromProto(market *vega.Market, vegaTime time.Time) (*Market, error
 		OpeningAuction:                openingAuction,
 		PriceMonitoringSettings:       priceMonitoringSettings,
 		LiquidityMonitoringParameters: liquidityMonitoringParameters,
-		TradingMode:                   market.TradingMode.String(),
-		State:                         market.State.String(),
+		TradingMode:                   MarketTradingMode(market.TradingMode),
+		State:                         MarketState(market.State),
 		MarketTimestamps:              marketTimestamps,
 		PositionDecimalPlaces:         positionDps,
 	}, nil
@@ -161,8 +161,8 @@ func (m Market) ToProto() (*vega.Market, error) {
 		OpeningAuction:                &openingAuction,
 		PriceMonitoringSettings:       &priceMonitoringSettings,
 		LiquidityMonitoringParameters: &liquidityMonitoringParameters,
-		TradingMode:                   vega.Market_TradingMode(vega.Market_TradingMode_value[m.TradingMode]),
-		State:                         vega.Market_State(vega.Market_State_value[m.State]),
+		TradingMode:                   vega.Market_TradingMode(m.TradingMode),
+		State:                         vega.Market_State(m.State),
 		MarketTimestamps:              &marketTimestamps,
 		PositionDecimalPlaces:         uint64(m.PositionDecimalPlaces),
 	}, nil

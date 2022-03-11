@@ -16,8 +16,7 @@ type MarketCreatedEvent interface {
 
 //go:generate go run github.com/golang/mock/mockgen -destination mocks/markets_mock.go -package mocks code.vegaprotocol.io/data-node/sqlsubscribers MarketsStore
 type MarketsStore interface {
-	Add(*entities.Market) error
-	Update(*entities.Market) error
+	Upsert(*entities.Market) error
 }
 
 type MarketCreated struct {
@@ -60,7 +59,7 @@ func (m *MarketCreated) consume(event MarketCreatedEvent) {
 		return
 	}
 
-	if err = m.store.Add(record); err != nil {
+	if err = m.store.Upsert(record); err != nil {
 		m.log.Error("Inserting market to SQL store failed", logging.Error(err))
 	}
 }

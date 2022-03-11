@@ -25,7 +25,7 @@ func shouldCallMarketSQLStoreAdd(t *testing.T) {
 
 	store := mocks.NewMockMarketsStore(ctrl)
 
-	store.EXPECT().Add(gomock.Any()).Times(1)
+	store.EXPECT().Upsert(gomock.Any()).Times(1)
 	subscriber := sqlsubscribers.NewMarketCreated(store, logging.NewTestLogger())
 	subscriber.Push(events.NewTime(context.Background(), time.Now()))
 	subscriber.Push(events.NewMarketCreatedEvent(context.Background(), getTestMarket()))

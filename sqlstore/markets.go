@@ -25,7 +25,7 @@ func NewMarkets(sqlStore *SQLStore) *Markets {
 	}
 }
 
-func (m *Markets) Add(market *entities.Market) error {
+func (m *Markets) Upsert(market *entities.Market) error {
 	ctx, cancel := context.WithTimeout(context.Background(), m.conf.Timeout.Duration)
 	defer cancel()
 
@@ -53,10 +53,6 @@ set
 	}
 
 	return nil
-}
-
-func (m *Markets) Update(market *entities.Market) error {
-	return m.Add(market)
 }
 
 func (m *Markets) GetByID(ctx context.Context, marketID string) (entities.Market, error) {
