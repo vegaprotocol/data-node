@@ -75,10 +75,17 @@ loop:
 		case <-time.Tick(50 * time.Millisecond):
 			resp, err = client.LiquidityProvisions(ctx, &apipb.LiquidityProvisionsRequest{
 				Market: lpMmarketID,
+			})
+			require.NotNil(t, resp)
+			require.NoError(t, err)
+
+			resp, err = client.LiquidityProvisions(ctx, &apipb.LiquidityProvisionsRequest{
+				Market: lpMmarketID,
 				Party:  lpPartyID,
 			})
 			require.NotNil(t, resp)
 			require.NoError(t, err)
+
 			if len(resp.LiquidityProvisions) > 0 {
 				break loop
 			}
