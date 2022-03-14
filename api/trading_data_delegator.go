@@ -24,12 +24,51 @@ type tradingDataDelegator struct {
 	rewardStore     *sqlstore.Rewards
 	marketsStore    *sqlstore.Markets
 	delegationStore *sqlstore.Delegations
+	epochStore      *sqlstore.Epochs
 }
 
 var defaultEntityPagination = entities.Pagination{
 	Skip:       0,
 	Limit:      50,
 	Descending: true,
+}
+
+/****************************** Epochs **************************************/
+
+func (t *tradingDataDelegator) GetEpoch(ctx context.Context, req *protoapi.GetEpochRequest) (*protoapi.GetEpochResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("GetEpoch SQL")()
+
+	var epoch entities.Epoch
+	var err error
+
+	if req.GetId() == 0 {
+		epoch, err = t.epochStore.GetCurrent(ctx)
+	} else {
+		epoch, err = t.epochStore.Get(ctx, int64(req.GetId()))
+	}
+
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+
+	protoEpoch := epoch.ToProto()
+
+	delegations, err := t.delegationStore.Get(ctx, nil, nil, &epoch.ID, nil)
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+
+	protoDelegations := make([]*vega.Delegation, len(delegations))
+	for i, delegation := range delegations {
+		protoDelegations[i] = delegation.ToProto()
+	}
+	protoEpoch.Delegations = protoDelegations
+
+	// TODO: Add in nodes once we've got them in the sql store too
+
+	return &protoapi.GetEpochResponse{
+		Epoch: protoEpoch,
+	}, nil
 }
 
 /****************************** Delegations **************************************/

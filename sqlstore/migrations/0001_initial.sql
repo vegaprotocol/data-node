@@ -255,12 +255,21 @@ create table if not exists markets (
     primary key (id, vega_time)
 );
 
+CREATE TABLE epochs(
+  id BIGINT NOT NULL,
+  start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+  expire_time TIMESTAMP WITH TIME ZONE NOT NULL,
+  end_time TIMESTAMP WITH TIME ZONE,
+  vega_time timestamp with time zone not null references blocks(vega_time)
+);
+
 -- +goose Down
 DROP AGGREGATE IF EXISTS public.first(anyelement);
 DROP AGGREGATE IF EXISTS public.last(anyelement);
 DROP FUNCTION IF EXISTS public.first_agg(anyelement, anyelement);
 DROP FUNCTION IF EXISTS public.last_agg(anyelement, anyelement);
 
+DROP TABLE IF EXISTS epochs;
 DROP TABLE IF EXISTS delegations;
 DROP TABLE IF EXISTS rewards;
 

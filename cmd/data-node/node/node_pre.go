@@ -134,6 +134,7 @@ func (l *NodeCommand) setupSQLSubscribers() {
 	l.marketCreatedSubSQL = sqlsubscribers.NewMarketCreated(l.marketsStoreSQL, l.Log)
 	l.marketUpdatedSubSQL = sqlsubscribers.NewMarketUpdated(l.marketsStoreSQL, l.Log)
 	l.delegationsSubSQL = sqlsubscribers.NewDelegation(l.delegationStoreSQL, l.Log)
+	l.epochSubSQL = sqlsubscribers.NewEpoch(l.epochStoreSQL, l.Log)
 }
 
 func (l *NodeCommand) setupStorages() error {
@@ -172,6 +173,7 @@ func (l *NodeCommand) setupStorages() error {
 		l.rewardStoreSQL = sqlstore.NewRewards(sqlStore)
 		l.marketsStoreSQL = sqlstore.NewMarkets(sqlStore)
 		l.delegationStoreSQL = sqlstore.NewDelegations(sqlStore)
+		l.epochStoreSQL = sqlstore.NewEpochs(sqlStore)
 		l.sqlStore = sqlStore
 	}
 
@@ -251,7 +253,8 @@ func (l *NodeCommand) preRun(_ []string) (err error) {
 			l.rewardsSubSQL,
 			l.delegationsSubSQL,
 			l.marketCreatedSubSQL,
-			l.marketUpdatedSubSQL)
+			l.marketUpdatedSubSQL,
+			l.epochSubSQL)
 	}
 
 	l.broker, err = broker.New(l.ctx, l.Log, l.conf.Broker, l.chainInfoStore, eventSource)
