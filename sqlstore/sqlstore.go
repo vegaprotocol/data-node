@@ -116,7 +116,6 @@ func InitialiseTestStorage(log *logging.Logger, config Config) (*SQLStore, error
 		testID := uuid.NewV4().String()
 
 		tempDir, err := ioutil.TempDir("", testID)
-
 		if err != nil {
 			return nil, err
 		}

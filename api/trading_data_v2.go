@@ -1,7 +1,9 @@
 package api
 
 import (
+	"code.vegaprotocol.io/data-node/vegatime"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
@@ -25,6 +27,8 @@ type tradingDataServiceV2 struct {
 	orderStore         *sqlstore.Orders
 	networkLimitsStore *sqlstore.NetworkLimits
 	marketDataStore    *sqlstore.MarketData
+	tradeStore         *sqlstore.Trades
+	candleStore        *sqlstore.Candles
 }
 
 func (t *tradingDataServiceV2) QueryBalanceHistory(ctx context.Context, req *v2.QueryBalanceHistoryRequest) (*v2.QueryBalanceHistoryResponse, error) {
@@ -114,12 +118,9 @@ func (t *tradingDataServiceV2) GetMarketDataHistoryByID(ctx context.Context, req
 		endTime = time.Unix(0, *req.EndTimestamp)
 	}
 
-	pagination := entities.Pagination{}
-
+	pagination := defaultPaginationV2
 	if req.Pagination != nil {
-		pagination.Skip = req.Pagination.Skip
-		pagination.Limit = req.Pagination.Limit
-		pagination.Descending = req.Pagination.Descending
+		pagination = entities.PaginationFromProto(req.Pagination)
 	}
 
 	if req.StartTimestamp != nil && req.EndTimestamp != nil {
@@ -196,4 +197,87 @@ func (t *tradingDataServiceV2) GetNetworkLimits(ctx context.Context, req *v2.Get
 	}
 
 	return &v2.GetNetworkLimitsResponse{Limits: limits.ToProto()}, nil
+}
+
+// Candles for a given market, time range and interval.  Interval must be a valid postgres interval value
+func (t *tradingDataServiceV2) Candles(ctx context.Context, request *v2.CandlesRequest) (*v2.CandlesResponse, error) {
+
+	marketId, err := hex.DecodeString(request.MarketId)
+	if err != nil {
+		return nil, apiError(codes.InvalidArgument, ErrCandleServiceGetCandles, fmt.Errorf("market id is invalid:%w", err))
+	}
+
+	err = t.candleStore.ValidateInterval(ctx, request.Interval)
+	if err != nil {
+		return nil, apiError(codes.InvalidArgument, ErrCandleServiceGetCandles, fmt.Errorf("interval is invalid:%w", err))
+	}
+
+	from := vegatime.UnixNano(request.FromTimestamp)
+	to := vegatime.UnixNano(request.ToTimestamp)
+
+	pagination := defaultPaginationV2
+	if request.Pagination != nil {
+		pagination = entities.PaginationFromProto(request.Pagination)
+	}
+
+	candles, err := t.candleStore.GetCandlesForInterval(ctx, request.Interval, &from, &to, marketId, pagination)
+	if err != nil {
+		return nil, fmt.Errorf("getting candles for interval:%w", err)
+	}
+
+	var protoCandles []*v2.Candle
+	for _, candle := range candles {
+		protoCandles = append(protoCandles, candle.ToV2CandleProto())
+	}
+
+	return &v2.CandlesResponse{Candles: protoCandles}, nil
+}
+
+// CandlesSubscribe subscribes to candle updates for a given market and interval.  Interval must be a valid postgres interval value
+func (t *tradingDataServiceV2) CandlesSubscribe(req *v2.CandlesSubscribeRequest, srv v2.TradingDataService_CandlesSubscribeServer) error {
+
+	ctx, cancel := context.WithCancel(srv.Context())
+	defer cancel()
+
+	marketId, err := hex.DecodeString(req.MarketId)
+	if err != nil {
+		return apiError(codes.InvalidArgument, ErrCandleServiceGetCandles, fmt.Errorf("market id is invalid:%w", err))
+	}
+
+	err = t.candleStore.ValidateInterval(ctx, req.Interval)
+	if err != nil {
+		return apiError(codes.InvalidArgument, ErrCandleServiceSubscribeToCandles, fmt.Errorf("interval is invalid:%w", err))
+	}
+
+	subscriptionId, candlesChan, err := t.tradeStore.SubscribeToCandle(ctx, marketId, req.Interval)
+	if err != nil {
+		return fmt.Errorf("subscribing to candles:%w", err)
+	}
+
+	for {
+		select {
+		case candle, ok := <-candlesChan:
+
+			if !ok {
+				return fmt.Errorf("channel closed")
+			}
+
+			resp := &v2.CandlesSubscribeResponse{
+				Candle: candle.ToV2CandleProto(),
+			}
+			if err = srv.Send(resp); err != nil {
+				return fmt.Errorf("sending candles:%w", err)
+			}
+		case <-ctx.Done():
+			t.tradeStore.UnsubscribeFromCandle(subscriptionId)
+			err = ctx.Err()
+			if err != nil {
+				return fmt.Errorf("context done:%w", err)
+			}
+			return nil
+		}
+
+	}
+
+	return nil
 }

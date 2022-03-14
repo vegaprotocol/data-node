@@ -81,7 +81,8 @@ var (
 	// RiskService...
 	ErrRiskServiceGetMarginLevelsByID = errors.New("failed to get margin levels")
 	// CandleService...
-	ErrCandleServiceGetCandles = errors.New("failed to get candles")
+	ErrCandleServiceGetCandles         = errors.New("failed to get candles")
+	ErrCandleServiceSubscribeToCandles = errors.New("failed to subscribe to candles")
 	// PartyService...
 	ErrPartyServiceGetAll  = errors.New("failed to get parties")
 	ErrPartyServiceGetByID = errors.New("failed to get party for ID")

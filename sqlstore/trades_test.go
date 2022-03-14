@@ -57,7 +57,7 @@ func GetTradesByOrderIdAndMarket(t *testing.T, market *string) {
 	defer testStore.DeleteEverything()
 	setupTradeIdBytes()
 
-	candleStore := sqlstore.NewCandles(testStore, 1)
+	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(1))
 	tradeStore := sqlstore.NewTrades(testStore, candleStore)
 
 	insertTestData(t, tradeStore)
@@ -85,7 +85,7 @@ func GetTradesByPartyAndMarketWithPagination(t *testing.T, market *string) {
 	setupTradeIdBytes()
 	defer testStore.DeleteEverything()
 
-	candleStore := sqlstore.NewCandles(testStore, 1)
+	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(1))
 	tradeStore := sqlstore.NewTrades(testStore, candleStore)
 
 	insertTestData(t, tradeStore)
@@ -120,7 +120,7 @@ func TestStorage_GetTradesByMarketWithPagination(t *testing.T) {
 
 	defer testStore.DeleteEverything()
 
-	candleStore := sqlstore.NewCandles(testStore, 1)
+	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(1))
 	tradeStore := sqlstore.NewTrades(testStore, candleStore)
 
 	insertTestData(t, tradeStore)

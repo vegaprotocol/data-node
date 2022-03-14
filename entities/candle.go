@@ -1,6 +1,7 @@
 package entities
 
 import (
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"time"
 
 	"code.vegaprotocol.io/protos/vega"
@@ -30,4 +31,16 @@ func (c *Candle) ToV1CandleProto(interval vega.Interval) (*vega.Candle, error) {
 		Volume:    c.Volume,
 		Interval:  interval,
 	}, nil
+}
+
+func (c *Candle) ToV2CandleProto() *v2.Candle {
+	return &v2.Candle{
+		Start:      c.PeriodStart.UnixNano(),
+		LastUpdate: c.LastUpdateInPeriod.UnixNano(),
+		High:       c.High.String(),
+		Low:        c.Low.String(),
+		Open:       c.Open.String(),
+		Close:      c.Close.String(),
+		Volume:     c.Volume,
+	}
 }

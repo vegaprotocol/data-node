@@ -47,7 +47,6 @@ func TestMain(m *testing.M) {
 		op := func() error {
 			connStr := connectionString(sqlConfig)
 			conn, err := pgx.Connect(ctx, connStr)
-
 			if err != nil {
 				return err
 			}

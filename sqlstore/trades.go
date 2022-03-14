@@ -1,13 +1,15 @@
 package sqlstore
 
 import (
-	"code.vegaprotocol.io/data-node/entities"
 	"context"
 	"encoding/hex"
 	"fmt"
+	"sync"
+
+	"code.vegaprotocol.io/data-node/entities"
+
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgx/v4"
-	"sync"
 )
 
 type Trades struct {
@@ -26,12 +28,11 @@ func NewTrades(sqlStore *SQLStore, candlesStore *Candles) *Trades {
 	return t
 }
 
-func (ts *Trades) SubscribeToCandle(ctx context.Context, marketID string, interval string) (uint64, <-chan entities.Candle, error) {
+func (ts *Trades) SubscribeToCandle(ctx context.Context, marketID []byte, interval string) (uint64, <-chan entities.Candle, error) {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 
 	return ts.candlesStore.subscribe(ctx, marketID, interval)
-
 }
 
 func (ts *Trades) UnsubscribeFromCandle(subscriberID uint64) error {
@@ -47,7 +48,8 @@ func (ts *Trades) OnTimeUpdateEvent(ctx context.Context) error {
 
 	var rows [][]interface{}
 	for _, t := range ts.trades {
-		rows = append(rows, []interface{}{t.SyntheticTime,
+		rows = append(rows, []interface{}{
+			t.SyntheticTime,
 			t.VegaTime,
 			t.SeqNum,
 			t.ID,
@@ -67,20 +69,22 @@ func (ts *Trades) OnTimeUpdateEvent(ctx context.Context) error {
 			t.SellerInfrastructureFee,
 			t.SellerLiquidityFee,
 			t.BuyerAuctionBatch,
-			t.SellerAuctionBatch})
+			t.SellerAuctionBatch,
+		})
 	}
 
 	if rows != nil {
 		copyCount, err := ts.pool.CopyFrom(
 			ctx,
 			pgx.Identifier{"trades"},
-			[]string{"synthetic_time", "vega_time", "seq_num", "id", "market_id", "price", "size", "buyer", "seller",
+			[]string{
+				"synthetic_time", "vega_time", "seq_num", "id", "market_id", "price", "size", "buyer", "seller",
 				"aggressor", "buy_order", "sell_order", "type", "buyer_maker_fee", "buyer_infrastructure_fee",
 				"buyer_liquidity_fee", "seller_maker_fee", "seller_infrastructure_fee", "seller_liquidity_fee",
-				"buyer_auction_batch", "seller_auction_batch"},
+				"buyer_auction_batch", "seller_auction_batch",
+			},
 			pgx.CopyFromRows(rows),
 		)
-
 		if err != nil {
 			return fmt.Errorf("failed to copy trades into database:%w", err)
 		}

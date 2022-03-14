@@ -213,7 +213,7 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 	sqlMarketDataStore := sqlstore.NewMarketData(&sqlStore)
 
 	sqlOrderStore := sqlstore.NewOrders(&sqlStore)
-	sqlCandleStore := sqlstore.NewCandles(&sqlStore, 1)
+	sqlCandleStore := sqlstore.NewCandles(&sqlStore, conf.Candles)
 	sqlTradeStore := sqlstore.NewTrades(&sqlStore, sqlCandleStore)
 	sqlNetworkLimitsStore := sqlstore.NewNetworkLimits(&sqlStore)
 	sqlAssetStore := sqlstore.NewAssets(&sqlStore)

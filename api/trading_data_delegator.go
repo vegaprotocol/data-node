@@ -84,11 +84,16 @@ func (t *tradingDataDelegator) CandlesSubscribe(req *protoapi.CandlesSubscribeRe
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
 
+	marketId, err := hex.DecodeString(req.MarketId)
+	if err != nil {
+		return apiError(codes.InvalidArgument, ErrCandleServiceGetCandles, fmt.Errorf("market id is invalid:%w", err))
+	}
+
 	interval := toV2IntervalString(req.Interval)
-	ref, candlesChan, err := t.tradeStore.SubscribeToCandle(ctx, req.MarketId, interval)
+	ref, candlesChan, err := t.tradeStore.SubscribeToCandle(ctx, marketId, interval)
 	if err != nil {
 		return apiError(codes.Internal, ErrStreamInternal,
-			fmt.Errorf("failed to convert candle to protobuf:%w", err))
+			fmt.Errorf("subscribing to candles:%w", err))
 	}
 
 	if t.log.GetLevel() == logging.DebugLevel {

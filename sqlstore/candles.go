@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/shopspring/decimal"
 	"strings"
 	"time"
+
+	"code.vegaprotocol.io/data-node/candles"
+
+	"github.com/shopspring/decimal"
 
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
@@ -15,22 +18,22 @@ import (
 
 type Candles struct {
 	*SQLStore
-	candleIdToEventStream    map[string]*candleEventStream
-	marketIdToEventStreams   map[string][]*candleEventStream
-	subscriptionIdToCandleId map[uint64]string
-	nextSubscriberId         uint64
-	candleEventChanSize      int
+	candleIdToEventStream     map[string]*candleEventStream
+	marketIdToEventStreams    map[string][]*candleEventStream
+	subscriptionIdToCandleId  map[uint64]string
+	nextSubscriberId          uint64
+	candleEventChanSize       int
+	periodBoundariesFetchSize int
 }
 
-const periodBoundariesFetchSize = 60
-
-func NewCandles(sqlStore *SQLStore, candleEventChanSize int) *Candles {
+func NewCandles(sqlStore *SQLStore, config candles.Config) *Candles {
 	c := &Candles{
-		SQLStore:                 sqlStore,
-		subscriptionIdToCandleId: map[uint64]string{},
-		candleIdToEventStream:    map[string]*candleEventStream{},
-		marketIdToEventStreams:   map[string][]*candleEventStream{},
-		candleEventChanSize:      candleEventChanSize,
+		SQLStore:                  sqlStore,
+		subscriptionIdToCandleId:  map[uint64]string{},
+		candleIdToEventStream:     map[string]*candleEventStream{},
+		marketIdToEventStreams:    map[string][]*candleEventStream{},
+		candleEventChanSize:       config.CandleEventStreamBufferSize,
+		periodBoundariesFetchSize: config.PeriodFetchSize,
 	}
 
 	return c
@@ -38,9 +41,9 @@ func NewCandles(sqlStore *SQLStore, candleEventChanSize int) *Candles {
 
 // GetCandlesForInterval gets the candles for a given interval, from and to are optional
 func (cs *Candles) GetCandlesForInterval(ctx context.Context, interval string, from *time.Time, to *time.Time, marketId []byte,
-	p entities.Pagination) ([]entities.Candle, error) {
-
-	interval, err := cs.ValidateAndNormaliseInterval(ctx, interval)
+	p entities.Pagination) ([]entities.Candle, error,
+) {
+	err := cs.ValidateInterval(ctx, interval)
 	if err != nil {
 		return nil, fmt.Errorf("invalid interval: %w", err)
 	}
@@ -74,22 +77,17 @@ func (cs *Candles) GetCandlesForInterval(ctx context.Context, interval string, f
 
 // Subscribe to a channel of new or updated candles. The subscriber id will be returned as an uint64 value
 // and must be retained for future reference and to unsubscribe.
-func (cs *Candles) subscribe(ctx context.Context, marketID string, interval string) (uint64, <-chan entities.Candle, error) {
-
-	interval, err := cs.ValidateAndNormaliseInterval(ctx, interval)
+func (cs *Candles) subscribe(ctx context.Context, marketIdBytes []byte, interval string) (uint64, <-chan entities.Candle, error) {
+	err := cs.ValidateInterval(ctx, interval)
 	if err != nil {
 		return 0, nil, fmt.Errorf("invalid interval: %w", err)
-	}
-
-	marketIdBytes, err := hex.DecodeString(marketID)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed to subscribe to candle, invalid market id: %w", err)
 	}
 
 	cs.nextSubscriberId++
 	subscriberId := cs.nextSubscriberId
 
-	candleId := marketID + "-" + interval
+	marketId := hex.EncodeToString(marketIdBytes)
+	candleId := marketId + "-" + interval
 	cs.subscriptionIdToCandleId[subscriberId] = candleId
 
 	if _, ok := cs.candleIdToEventStream[candleId]; !ok {
@@ -109,9 +107,9 @@ func (cs *Candles) subscribe(ctx context.Context, marketID string, interval stri
 		}
 
 		evtStream := newCandleEventStream(cs.log, lastCandle, interval, marketIdBytes, cs,
-			periodBoundariesFetchSize, cs.candleEventChanSize)
+			cs.periodBoundariesFetchSize, cs.candleEventChanSize)
 		cs.candleIdToEventStream[candleId] = evtStream
-		cs.marketIdToEventStreams[marketID] = append(cs.marketIdToEventStreams[marketID], evtStream)
+		cs.marketIdToEventStreams[marketId] = append(cs.marketIdToEventStreams[marketId], evtStream)
 	}
 
 	evtStream := cs.candleIdToEventStream[candleId]
@@ -124,7 +122,6 @@ func (cs *Candles) subscribe(ctx context.Context, marketID string, interval stri
 }
 
 func (cs *Candles) unsubscribe(subscriberID uint64) error {
-
 	if candleId, ok := cs.subscriptionIdToCandleId[subscriberID]; ok {
 		evtStream := cs.candleIdToEventStream[candleId]
 		evtStream.unsubscribe(subscriberID)
@@ -136,9 +133,8 @@ func (cs *Candles) unsubscribe(subscriberID uint64) error {
 	}
 }
 
-// GetCandlePeriodBoundaries returns a list of period boundaries starting at the first period before `from`
+// getCandlePeriodBoundaries returns a list of period boundaries starting at the first period before `from`
 func (cs *Candles) getCandlePeriodBoundaries(ctx context.Context, interval string, from time.Time, numBoundaries int) ([]time.Time, error) {
-
 	intervalSeconds, err := cs.getIntervalSeconds(ctx, interval)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get candle periods:%w", err)
@@ -162,7 +158,7 @@ func (cs *Candles) getCandlePeriodBoundaries(ctx context.Context, interval strin
 	}
 	for rows.Next() {
 		t := time.Time{}
-		err := rows.Scan(&t)
+		err = rows.Scan(&t)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get candle period boundaries: %w", err)
 		}
@@ -174,15 +170,23 @@ func (cs *Candles) getCandlePeriodBoundaries(ctx context.Context, interval strin
 	return periodBoundaries, nil
 }
 
-func (cs *Candles) ValidateAndNormaliseInterval(ctx context.Context, interval string) (string, error) {
-	interval = strings.Join(strings.Fields(interval), " ")
-
+func (cs *Candles) ValidateInterval(ctx context.Context, interval string) error {
 	_, err := cs.getIntervalSeconds(ctx, interval)
 	if err != nil {
-		return "", fmt.Errorf("invalid interval:%s", err)
+		return fmt.Errorf("invalid interval:%s", err)
 	}
 
-	return interval, nil
+	// The postgres time_bucket_ng api that supports year and months is marked as experimental, so intervals of this type
+	// are not currently support.
+	if strings.Contains(interval, "year") {
+		return fmt.Errorf("interval does not support years")
+	}
+
+	if strings.Contains(interval, "mon") {
+		return fmt.Errorf("interval does not support months")
+	}
+
+	return nil
 }
 
 func (cs *Candles) getIntervalSeconds(ctx context.Context, interval string) (int64, error) {

@@ -1,10 +1,11 @@
 package sqlstore
 
 import (
-	"code.vegaprotocol.io/data-node/logging"
 	"context"
 	"fmt"
 	"time"
+
+	"code.vegaprotocol.io/data-node/logging"
 
 	"code.vegaprotocol.io/data-node/entities"
 )
@@ -29,8 +30,8 @@ type candleEventStream struct {
 }
 
 func newCandleEventStream(log *logging.Logger, baseCandle entities.Candle, interval string, marketId []byte, periodBoundarySource periodBoundarySource,
-	periodBoundariesFetchSize int, candleEventChanSize int) *candleEventStream {
-
+	periodBoundariesFetchSize int, candleEventChanSize int,
+) *candleEventStream {
 	return &candleEventStream{
 		log:                       log,
 		baseCandle:                baseCandle,
@@ -41,7 +42,6 @@ func newCandleEventStream(log *logging.Logger, baseCandle entities.Candle, inter
 		subscribers:               map[uint64]chan entities.Candle{},
 		candleEventsChanSize:      candleEventChanSize,
 	}
-
 }
 
 func (s *candleEventStream) subscribe(subscriberId uint64) <-chan entities.Candle {
@@ -58,7 +58,6 @@ func (s *candleEventStream) unsubscribe(subscriberId uint64) {
 }
 
 func (s *candleEventStream) sendCandles(ctx context.Context, trades []*entities.Trade) error {
-
 	if len(trades) == 0 {
 		return nil
 	}
@@ -92,8 +91,8 @@ func (s *candleEventStream) sendCandles(ctx context.Context, trades []*entities.
 }
 
 func (s *candleEventStream) applyTrades(ctx context.Context, baseCandle entities.Candle,
-	trades []*entities.Trade) ([]entities.Candle, error) {
-
+	trades []*entities.Trade) ([]entities.Candle, error,
+) {
 	var candles []entities.Candle
 	for _, trade := range trades {
 
@@ -137,7 +136,6 @@ func (s *candleEventStream) applyTrades(ctx context.Context, baseCandle entities
 }
 
 func (s *candleEventStream) getCandlePeriodForTrade(ctx context.Context, trade *entities.Trade) (time.Time, error) {
-
 	if s.tradeTimeIsAfterLastPeriodBoundary(trade) {
 		err := s.updatePeriodBoundaries(ctx, trade)
 		if err != nil {
@@ -160,7 +158,6 @@ func (s *candleEventStream) tradeTimeIsAfterLastPeriodBoundary(trade *entities.T
 }
 
 func (s *candleEventStream) updatePeriodBoundaries(ctx context.Context, trade *entities.Trade) error {
-
 	var err error
 	s.periodBoundaries, err = s.candleStore.getCandlePeriodBoundaries(ctx, s.interval, trade.SyntheticTime,
 		s.periodBoundariesFetchSize)
