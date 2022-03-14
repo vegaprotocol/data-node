@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"strconv"
 
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/metrics"
@@ -22,12 +23,63 @@ type tradingDataDelegator struct {
 	marketDataStore *sqlstore.MarketData
 	rewardStore     *sqlstore.Rewards
 	marketsStore    *sqlstore.Markets
+	delegationStore *sqlstore.Delegations
 }
 
 var defaultEntityPagination = entities.Pagination{
 	Skip:       0,
 	Limit:      50,
 	Descending: true,
+}
+
+/****************************** Delegations **************************************/
+
+func (t *tradingDataDelegator) Delegations(ctx context.Context,
+	req *protoapi.DelegationsRequest) (*protoapi.DelegationsResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("Delegations SQL")()
+
+	var delegations []entities.Delegation
+	var err error
+
+	p := defaultPaginationV2
+	if req.Pagination != nil {
+		p = toEntityPagination(req.Pagination)
+	}
+
+	var epochID *int64
+	var partyID *string
+	var nodeID *string
+
+	if req.EpochSeq != "" {
+		epochNum, err := strconv.ParseInt(req.EpochSeq, 10, 64)
+		if err != nil {
+			return nil, apiError(codes.InvalidArgument, err)
+		}
+		epochID = &epochNum
+	}
+
+	if req.Party != "" {
+		partyID = &req.Party
+	}
+
+	if req.NodeId != "" {
+		nodeID = &req.NodeId
+	}
+
+	delegations, err = t.delegationStore.Get(ctx, partyID, nodeID, epochID, &p)
+
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+
+	protoDelegations := make([]*vega.Delegation, len(delegations))
+	for i, delegation := range delegations {
+		protoDelegations[i] = delegation.ToProto()
+	}
+
+	return &protoapi.DelegationsResponse{
+		Delegations: protoDelegations,
+	}, nil
 }
 
 /****************************** Rewards **************************************/

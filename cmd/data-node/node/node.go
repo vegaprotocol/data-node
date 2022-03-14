@@ -111,6 +111,7 @@ type NodeCommand struct {
 	networkLimitsStoreSQL *sqlstore.NetworkLimits
 	marketDataStoreSQL    *sqlstore.MarketData
 	rewardStoreSQL        *sqlstore.Rewards
+	delegationStoreSQL    *sqlstore.Delegations
 	marketsStoreSQL       *sqlstore.Markets
 
 	vegaCoreServiceClient vegaprotoapi.CoreServiceClient
@@ -149,6 +150,7 @@ type NodeCommand struct {
 	marketDataSubSQL       *sqlsubscribers.MarketData
 	tradesSubSQL           *sqlsubscribers.TradeSubscriber
 	rewardsSubSQL          *sqlsubscribers.Reward
+	delegationsSubSQL      *sqlsubscribers.Delegation
 	marketCreatedSubSQL    *sqlsubscribers.MarketCreated
 	marketUpdatedSubSQL    *sqlsubscribers.MarketUpdated
 
@@ -342,6 +344,7 @@ func (l *NodeCommand) createGRPCServer(config api.Config, useSQLStores bool) *ap
 		l.accountStoreSQL,
 		l.rewardStoreSQL,
 		l.marketsStoreSQL,
+		l.delegationStoreSQL,
 	)
 	return grpcServer
 }

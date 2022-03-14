@@ -230,6 +230,14 @@ CREATE TABLE rewards(
   vega_time        TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
+CREATE TABLE delegations(
+  party_id         BYTEA NOT NULL, -- REFERENCES parties(id), TODO once parties table is populated
+  node_id          BYTEA NOT NULL, -- REFERENCES nodes(id),   TODO once we have node table
+  epoch_id         BIGINT NOT NULL,
+  amount           NUMERIC(32, 0),
+  vega_time        TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
 create table if not exists markets (
     id bytea not null,
     vega_time timestamp with time zone not null references blocks(vega_time),
@@ -253,6 +261,7 @@ DROP AGGREGATE IF EXISTS public.last(anyelement);
 DROP FUNCTION IF EXISTS public.first_agg(anyelement, anyelement);
 DROP FUNCTION IF EXISTS public.last_agg(anyelement, anyelement);
 
+DROP TABLE IF EXISTS delegations;
 DROP TABLE IF EXISTS rewards;
 
 DROP TABLE IF EXISTS network_limits;

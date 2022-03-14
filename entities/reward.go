@@ -63,10 +63,17 @@ func RewardFromProto(pr eventspb.RewardPayoutEvent) (Reward, error) {
 			pr.PercentOfTotalReward, err)
 	}
 
+	amount, err := decimal.NewFromString(pr.Amount)
+	if err != nil {
+		return Reward{}, fmt.Errorf("parsing amount of reward: '%v': %w",
+			pr.Amount, err)
+	}
+
 	reward := Reward{
 		PartyID:        partyID,
 		AssetID:        assetID,
 		EpochID:        epochID,
+		Amount:         amount,
 		PercentOfTotal: percentOfTotal,
 		VegaTime:       time.Unix(0, pr.Timestamp),
 	}
