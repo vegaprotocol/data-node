@@ -216,6 +216,9 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 	sqlCandleStore := sqlstore.NewCandles(&sqlStore, 1)
 	sqlTradeStore := sqlstore.NewTrades(&sqlStore, sqlCandleStore)
 	sqlNetworkLimitsStore := sqlstore.NewNetworkLimits(&sqlStore)
+	sqlAssetStore := sqlstore.NewAssets(&sqlStore)
+	sqlAccountStore := sqlstore.NewAccounts(&sqlStore)
+
 	eventSource, err := broker.NewEventSource(conf.Broker, logger)
 
 	if err != nil {
@@ -280,6 +283,8 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 		sqlNetworkLimitsStore,
 		sqlMarketDataStore,
 		sqlTradeStore,
+		sqlAssetStore,
+		sqlAccountStore,
 		sqlCandleStore,
 	)
 	if srv == nil {

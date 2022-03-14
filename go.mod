@@ -3,11 +3,12 @@ module code.vegaprotocol.io/data-node
 go 1.17
 
 require (
-	code.vegaprotocol.io/protos v0.49.1-0.20220302152340-f3ee1b21f8db
+	code.vegaprotocol.io/protos v0.49.2-0.20220308174837-078cb0d6b54b
 	code.vegaprotocol.io/quant v0.2.5
 	code.vegaprotocol.io/shared v0.0.0-20220202150846-b6aba31dcdb0
-	code.vegaprotocol.io/vega v0.49.1-0.20220302155158-bb3c1e291b92
+	code.vegaprotocol.io/vega v0.49.2-0.20220309173250-d2d9338e1b1a
 	github.com/99designs/gqlgen v0.16.0
+	github.com/cenkalti/backoff/v4 v4.1.2
 	github.com/dgraph-io/badger/v2 v2.2007.3
 	github.com/fergusstrange/embedded-postgres v0.0.0-00010101000000-000000000000
 	github.com/fsnotify/fsnotify v1.5.1
@@ -15,12 +16,14 @@ require (
 	github.com/georgysavva/scany v0.3.0
 	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.2
+	github.com/google/go-cmp v0.5.7
 	github.com/gorilla/websocket v1.4.2
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.3
 	github.com/holiman/uint256 v1.2.0
 	github.com/jackc/pgtype v1.9.1
 	github.com/jackc/pgx/v4 v4.14.1
 	github.com/jessevdk/go-flags v1.4.0
+	github.com/machinebox/graphql v0.2.2
 	github.com/mwitkow/go-proto-validators v0.3.2
 	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose/v3 v3.5.1
@@ -40,7 +43,7 @@ require (
 )
 
 require (
-	code.vegaprotocol.io/vegawallet v0.13.0 // indirect
+	code.vegaprotocol.io/vegawallet v0.13.1 // indirect
 	github.com/BurntSushi/toml v1.0.0 // indirect
 	github.com/DataDog/zstd v1.4.1 // indirect
 	github.com/adrg/xdg v0.3.3 // indirect
@@ -48,7 +51,6 @@ require (
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
-	github.com/cenkalti/backoff/v4 v4.1.2 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/confio/ics23/go v0.6.3 // indirect

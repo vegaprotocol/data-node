@@ -277,6 +277,8 @@ func getTestGRPCServer(
 	sqlMarketDataStore := sqlstore.NewMarketData(&sqlStore)
 	sqlCandleDataStore := sqlstore.NewCandles(&sqlStore, 1)
 	sqlTradeStore := sqlstore.NewTrades(&sqlStore, sqlCandleDataStore)
+	sqlAssetStore := sqlstore.NewAssets(&sqlStore)
+	sqlAccountStore := sqlstore.NewAccounts(&sqlStore)
 
 	g := api.NewGRPCServer(
 		logger,
@@ -314,6 +316,8 @@ func getTestGRPCServer(
 		sqlNetworkLimitsStore,
 		sqlMarketDataStore,
 		sqlTradeStore,
+		sqlAssetStore,
+		sqlAccountStore,
 		sqlCandleDataStore,
 	)
 	if g == nil {

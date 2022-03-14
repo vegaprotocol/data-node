@@ -90,6 +90,8 @@ type GRPCServer struct {
 	networkLimitsStore *sqlstore.NetworkLimits
 	marketDataStore    *sqlstore.MarketData
 	tradeStore         *sqlstore.Trades
+	assetStore         *sqlstore.Assets
+	accountStore       *sqlstore.Accounts
 
 	eventObserver *eventObserver
 
@@ -135,6 +137,8 @@ func NewGRPCServer(
 	networkLimitsStore *sqlstore.NetworkLimits,
 	marketDataStore *sqlstore.MarketData,
 	tradeStore *sqlstore.Trades,
+	assertStore *sqlstore.Assets,
+	accountStore *sqlstore.Accounts,
 	candleStore *sqlstore.Candles,
 ) *GRPCServer {
 	// setup logger
@@ -178,6 +182,8 @@ func NewGRPCServer(
 		networkLimitsStore:      networkLimitsStore,
 		marketDataStore:         marketDataStore,
 		tradeStore:              tradeStore,
+		assetStore:              assertStore,
+		accountStore:            accountStore,
 		candleStore:             candleStore,
 		eventObserver: &eventObserver{
 			log:          log,
@@ -322,8 +328,15 @@ func (g *GRPCServer) Start(ctx context.Context, lis net.Listener) error {
 		checkpointService:       g.checkpointSvc,
 	}
 	if g.useSQLStores {
-		g.tradingDataService = &tradingDataDelegator{tradingDataSvc, g.orderStore, g.tradeStore,
-			g.candleStore}
+		g.tradingDataService = &tradingDataDelegator{
+			tradingDataService: tradingDataSvc,
+			orderStore:         g.orderStore,
+			tradeStore:         g.tradeStore,
+			assetStore:         g.assetStore,
+			accountStore:       g.accountStore,
+			marketDataStore:    g.marketDataStore,
+			candleStore:        g.candleStore,
+		}
 	} else {
 		g.tradingDataService = tradingDataSvc
 	}
