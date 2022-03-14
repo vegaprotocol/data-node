@@ -13,7 +13,6 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func TestMarkets_Add(t *testing.T) {
@@ -101,11 +100,7 @@ func shouldUpdateAValidMarketRecord(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "TEST_INSTRUMENT", market.InstrumentID)
 
-		var ti vega.TradableInstrument
-		err = protojson.Unmarshal(got.TradableInstrument, &ti)
-		assert.NoError(t, err)
-
-		assert.Equal(t, marketProto.TradableInstrument, &ti)
+		assert.Equal(t, marketProto.TradableInstrument, got.TradableInstrument.ToProto())
 	})
 
 	marketProto.TradableInstrument.Instrument.Name = "Updated Test Instrument"
@@ -124,11 +119,7 @@ func shouldUpdateAValidMarketRecord(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "TEST_INSTRUMENT", market.InstrumentID)
 
-		var ti vega.TradableInstrument
-		err = protojson.Unmarshal(got.TradableInstrument, &ti)
-		assert.NoError(t, err)
-
-		assert.Equal(t, marketProto.TradableInstrument, &ti)
+		assert.Equal(t, marketProto.TradableInstrument, got.TradableInstrument.ToProto())
 	})
 
 	t.Run("should add the updated market record to the database if the block number has changed", func(t *testing.T) {
@@ -153,21 +144,13 @@ func shouldUpdateAValidMarketRecord(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "TEST_INSTRUMENT", market.InstrumentID)
 
-		var ti vega.TradableInstrument
-		err = protojson.Unmarshal(gotFirstBlock.TradableInstrument, &ti)
-		assert.NoError(t, err)
-
-		assert.Equal(t, marketProto.TradableInstrument, &ti)
+		assert.Equal(t, marketProto.TradableInstrument, gotFirstBlock.TradableInstrument.ToProto())
 
 		err = pgxscan.Get(ctx, conn, &gotSecondBlock, `select * from markets where id = $1 and vega_time = $2`, market.ID, newBlock.VegaTime)
 		assert.NoError(t, err)
 		assert.Equal(t, "TEST_INSTRUMENT", market.InstrumentID)
 
-		var ti2 vega.TradableInstrument
-		err = protojson.Unmarshal(gotSecondBlock.TradableInstrument, &ti2)
-		assert.NoError(t, err)
-
-		assert.Equal(t, newMarketProto.TradableInstrument, &ti2)
+		assert.Equal(t, newMarketProto.TradableInstrument, gotSecondBlock.TradableInstrument.ToProto())
 	})
 }
 

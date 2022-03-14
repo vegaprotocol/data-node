@@ -8,22 +8,22 @@ import (
 	"time"
 
 	"code.vegaprotocol.io/protos/vega"
-	"google.golang.org/protobuf/encoding/protojson"
+	"github.com/shopspring/decimal"
 )
 
 type Market struct {
 	ID                            []byte
 	VegaTime                      time.Time
 	InstrumentID                  string
-	TradableInstrument            []byte
+	TradableInstrument            TradableInstrument
 	DecimalPlaces                 int
-	Fees                          []byte
-	OpeningAuction                []byte
-	PriceMonitoringSettings       []byte
-	LiquidityMonitoringParameters []byte
+	Fees                          Fees
+	OpeningAuction                AuctionDuration
+	PriceMonitoringSettings       PriceMonitoringSettings
+	LiquidityMonitoringParameters LiquidityMonitoringParameters
 	TradingMode                   MarketTradingMode
 	State                         MarketState
-	MarketTimestamps              []byte
+	MarketTimestamps              MarketTimestamps
 	PositionDecimalPlaces         int
 }
 
@@ -46,50 +46,35 @@ func NewMarketFromProto(market *vega.Market, vegaTime time.Time) (*Market, error
 		return nil, err
 	}
 
-	var tradableInstrument, fees, openingAuction, priceMonitoringSettings, liquidityMonitoringParameters, marketTimestamps []byte
+	var tradableInstrument TradableInstrument
+	var liquidityMonitoringParameters LiquidityMonitoringParameters
+	var marketTimestamps MarketTimestamps
+	var priceMonitoringSettings PriceMonitoringSettings
+	var openingAuction AuctionDuration
+	var fees Fees
 
-	if market.TradableInstrument == nil {
-		return nil, errors.New("tradable instrument cannot be nil")
-	}
-
-	if tradableInstrument, err = protojson.Marshal(market.TradableInstrument); err != nil {
+	if tradableInstrument, err = tradableInstrumentFromProto(market.TradableInstrument); err != nil {
 		return nil, err
 	}
 
-	if market.Fees == nil {
-		return nil, errors.New("fees cannot be nil")
-	}
-
-	if fees, err = protojson.Marshal(market.Fees); err != nil {
+	if fees, err = feesFromProto(market.Fees); err != nil {
 		return nil, err
 	}
 
 	if market.OpeningAuction != nil {
-		if openingAuction, err = protojson.Marshal(market.OpeningAuction); err != nil {
-			return nil, err
-		}
+		openingAuction.Duration = market.OpeningAuction.Duration
+		openingAuction.Volume = market.OpeningAuction.Volume
 	}
 
-	if market.PriceMonitoringSettings == nil {
-		return nil, errors.New("price monitoring settings cannot be nil")
-	}
-
-	if priceMonitoringSettings, err = protojson.Marshal(market.PriceMonitoringSettings); err != nil {
+	if priceMonitoringSettings, err = priceMonitoringSettingsFromProto(market.PriceMonitoringSettings); err != nil {
 		return nil, err
 	}
 
-	if market.LiquidityMonitoringParameters == nil {
-		return nil, errors.New("liquidity monitoring parameters cannot be nil")
-	}
-
-	if liquidityMonitoringParameters, err = protojson.Marshal(market.LiquidityMonitoringParameters); err != nil {
+	if liquidityMonitoringParameters, err = liquidityMonitoringParametersFromProto(market.LiquidityMonitoringParameters); err != nil {
 		return nil, err
 	}
 
-	if market.MarketTimestamps == nil {
-		return nil, errors.New("market timestamps cannot be nil")
-	}
-	if marketTimestamps, err = protojson.Marshal(market.MarketTimestamps); err != nil {
+	if marketTimestamps, err = marketTimestampsFromProto(market.MarketTimestamps); err != nil {
 		return nil, err
 	}
 
@@ -122,48 +107,194 @@ func NewMarketFromProto(market *vega.Market, vegaTime time.Time) (*Market, error
 }
 
 func (m Market) ToProto() (*vega.Market, error) {
-	var tradableInstrument vega.TradableInstrument
-	var fees vega.Fees
-	var openingAuction vega.AuctionDuration
-	var priceMonitoringSettings vega.PriceMonitoringSettings
-	var liquidityMonitoringParameters vega.LiquidityMonitoringParameters
-	var marketTimestamps vega.MarketTimestamps
-
-	if err := protojson.Unmarshal(m.TradableInstrument, &tradableInstrument); err != nil {
-		return nil, err
-	}
-
-	if err := protojson.Unmarshal(m.Fees, &fees); err != nil {
-		return nil, err
-	}
-
-	if err := protojson.Unmarshal(m.OpeningAuction, &openingAuction); err != nil {
-		return nil, err
-	}
-
-	if err := protojson.Unmarshal(m.PriceMonitoringSettings, &priceMonitoringSettings); err != nil {
-		return nil, err
-	}
-
-	if err := protojson.Unmarshal(m.LiquidityMonitoringParameters, &liquidityMonitoringParameters); err != nil {
-		return nil, err
-	}
-
-	if err := protojson.Unmarshal(m.MarketTimestamps, &marketTimestamps); err != nil {
-		return nil, err
-	}
-
 	return &vega.Market{
-		Id:                            m.HexID(),
-		TradableInstrument:            &tradableInstrument,
-		DecimalPlaces:                 uint64(m.DecimalPlaces),
-		Fees:                          &fees,
-		OpeningAuction:                &openingAuction,
-		PriceMonitoringSettings:       &priceMonitoringSettings,
-		LiquidityMonitoringParameters: &liquidityMonitoringParameters,
+		Id:                 m.HexID(),
+		TradableInstrument: m.TradableInstrument.ToProto(),
+		DecimalPlaces:      uint64(m.DecimalPlaces),
+		Fees:               m.Fees.ToProto(),
+		OpeningAuction: &vega.AuctionDuration{
+			Duration: m.OpeningAuction.Duration,
+			Volume:   m.OpeningAuction.Volume,
+		},
+		PriceMonitoringSettings:       m.PriceMonitoringSettings.ToProto(),
+		LiquidityMonitoringParameters: m.LiquidityMonitoringParameters.ToProto(),
 		TradingMode:                   vega.Market_TradingMode(m.TradingMode),
 		State:                         vega.Market_State(m.State),
-		MarketTimestamps:              &marketTimestamps,
+		MarketTimestamps:              m.MarketTimestamps.ToProto(),
 		PositionDecimalPlaces:         uint64(m.PositionDecimalPlaces),
+	}, nil
+}
+
+type MarketTimestamps struct {
+	Proposed int64 `json:"proposed,omitempty"`
+	Pending  int64 `json:"pending,omitempty"`
+	Open     int64 `json:"open,omitempty"`
+	Close    int64 `json:"close,omitempty"`
+}
+
+func (mt MarketTimestamps) ToProto() *vega.MarketTimestamps {
+	return &vega.MarketTimestamps{
+		Proposed: mt.Proposed,
+		Pending:  mt.Pending,
+		Open:     mt.Open,
+		Close:    mt.Close,
+	}
+}
+
+func marketTimestampsFromProto(ts *vega.MarketTimestamps) (MarketTimestamps, error) {
+	if ts == nil {
+		return MarketTimestamps{}, errors.New("market timestamps cannot be nil")
+	}
+
+	return MarketTimestamps{
+		Proposed: ts.Proposed,
+		Pending:  ts.Pending,
+		Open:     ts.Open,
+		Close:    ts.Close,
+	}, nil
+}
+
+type TargetStakeParameters struct {
+	TimeWindow     int64   `json:"timeWindow,omitempty"`
+	ScalingFactors float64 `json:"scalingFactor,omitempty"`
+}
+
+func (tsp TargetStakeParameters) ToProto() *vega.TargetStakeParameters {
+	return &vega.TargetStakeParameters{
+		TimeWindow:    tsp.TimeWindow,
+		ScalingFactor: tsp.ScalingFactors,
+	}
+}
+
+type LiquidityMonitoringParameters struct {
+	TargetStakeParameters *TargetStakeParameters `json:"targetStakeParameters,omitempty"`
+	TriggeringRatio       float64                `json:"triggeringRatio,omitempty"`
+	AuctionExtension      int64                  `json:"auctionExtension,omitempty"`
+}
+
+func (lmp LiquidityMonitoringParameters) ToProto() *vega.LiquidityMonitoringParameters {
+	return &vega.LiquidityMonitoringParameters{
+		TargetStakeParameters: lmp.TargetStakeParameters.ToProto(),
+		TriggeringRatio:       lmp.TriggeringRatio,
+		AuctionExtension:      lmp.AuctionExtension,
+	}
+}
+
+func liquidityMonitoringParametersFromProto(lmp *vega.LiquidityMonitoringParameters) (LiquidityMonitoringParameters, error) {
+	if lmp == nil {
+		return LiquidityMonitoringParameters{}, errors.New("liquidity monitoring parameters cannot be Nil")
+	}
+
+	var tsp *TargetStakeParameters
+
+	if lmp.TargetStakeParameters != nil {
+		tsp = &TargetStakeParameters{
+			TimeWindow:     lmp.TargetStakeParameters.TimeWindow,
+			ScalingFactors: lmp.TargetStakeParameters.ScalingFactor,
+		}
+	}
+
+	return LiquidityMonitoringParameters{
+		TargetStakeParameters: tsp,
+		TriggeringRatio:       lmp.TriggeringRatio,
+		AuctionExtension:      lmp.AuctionExtension,
+	}, nil
+}
+
+type PriceMonitoringParameters struct {
+	Triggers []*PriceMonitoringTrigger `json:"triggers,omitempty"`
+}
+
+func priceMonitoringParametersFromProto(pmp *vega.PriceMonitoringParameters) PriceMonitoringParameters {
+	if len(pmp.Triggers) == 0 {
+		return PriceMonitoringParameters{}
+	}
+
+	triggers := make([]*PriceMonitoringTrigger, 0, len(pmp.Triggers))
+
+	for _, trigger := range pmp.Triggers {
+		probability, _ := decimal.NewFromString(trigger.Probability)
+		triggers = append(triggers, &PriceMonitoringTrigger{
+			Horizon:          uint64(trigger.Horizon),
+			Probability:      probability,
+			AuctionExtension: uint64(trigger.AuctionExtension),
+		})
+	}
+
+	return PriceMonitoringParameters{
+		Triggers: triggers,
+	}
+}
+
+type PriceMonitoringSettings struct {
+	Parameters      *PriceMonitoringParameters `json:"priceMonitoringParameters,omitempty"`
+	UpdateFrequency int64                      `json:"updateFrequency,omitempty"`
+}
+
+func (s PriceMonitoringSettings) ToProto() *vega.PriceMonitoringSettings {
+	triggers := make([]*vega.PriceMonitoringTrigger, 0, len(s.Parameters.Triggers))
+
+	if len(s.Parameters.Triggers) > 0 {
+		for _, trigger := range s.Parameters.Triggers {
+			triggers = append(triggers, trigger.ToProto())
+		}
+	}
+
+	return &vega.PriceMonitoringSettings{
+		Parameters: &vega.PriceMonitoringParameters{
+			Triggers: triggers,
+		},
+		UpdateFrequency: 0,
+	}
+}
+
+func priceMonitoringSettingsFromProto(pms *vega.PriceMonitoringSettings) (PriceMonitoringSettings, error) {
+	if pms == nil {
+		return PriceMonitoringSettings{}, errors.New("price monitoring settings cannot be nil")
+	}
+
+	parameters := priceMonitoringParametersFromProto(pms.Parameters)
+	return PriceMonitoringSettings{
+		Parameters:      &parameters,
+		UpdateFrequency: pms.UpdateFrequency,
+	}, nil
+}
+
+type AuctionDuration struct {
+	Duration int64  `json:"duration,omitempty"`
+	Volume   uint64 `json:"volume,omitempty"`
+}
+
+type FeeFactors struct {
+	MakerFee          string `json:"makerFee,omitempty"`
+	InfrastructureFee string `json:"infrastructureFee,omitempty"`
+	LiquidityFee      string `json:"liquidityFee,omitempty"`
+}
+
+type Fees struct {
+	Factors *FeeFactors `json:"factors,omitempty"`
+}
+
+func (f Fees) ToProto() *vega.Fees {
+	return &vega.Fees{
+		Factors: &vega.FeeFactors{
+			MakerFee:          f.Factors.MakerFee,
+			InfrastructureFee: f.Factors.InfrastructureFee,
+			LiquidityFee:      f.Factors.LiquidityFee,
+		},
+	}
+}
+
+func feesFromProto(fees *vega.Fees) (Fees, error) {
+	if fees == nil {
+		return Fees{}, errors.New("fees cannot be Nil")
+	}
+
+	return Fees{
+		Factors: &FeeFactors{
+			MakerFee:          fees.Factors.MakerFee,
+			InfrastructureFee: fees.Factors.InfrastructureFee,
+			LiquidityFee:      fees.Factors.LiquidityFee,
+		},
 	}, nil
 }
