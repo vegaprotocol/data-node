@@ -217,6 +217,7 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 	sqlNetworkLimitsStore := sqlstore.NewNetworkLimits(&sqlStore)
 	sqlAssetStore := sqlstore.NewAssets(&sqlStore)
 	sqlAccountStore := sqlstore.NewAccounts(&sqlStore)
+	sqlRewardsStore := sqlstore.NewRewards(&sqlStore)
 	sqlMarketsStore := sqlstore.NewMarkets(&sqlStore)
 
 	eventSource, err := broker.NewEventSource(conf.Broker, logger)
@@ -285,6 +286,7 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 		sqlTradeStore,
 		sqlAssetStore,
 		sqlAccountStore,
+		sqlRewardsStore,
 		sqlMarketsStore,
 	)
 	if srv == nil {

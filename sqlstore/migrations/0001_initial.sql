@@ -221,6 +221,14 @@ on md.market = mx.market
 and md.vega_time = mx.vega_time
 ;
 
+CREATE TABLE rewards(
+  party_id         BYTEA NOT NULL REFERENCES parties(id),
+  asset_id         BYTEA NOT NULL REFERENCES assets(id),
+  epoch_id         BIGINT NOT NULL,
+  amount           NUMERIC(32, 0),
+  percent_of_total FLOAT,
+  vega_time        TIMESTAMP WITH TIME ZONE NOT NULL
+);
 
 create table if not exists markets (
     id bytea not null,
@@ -244,6 +252,8 @@ DROP AGGREGATE IF EXISTS public.first(anyelement);
 DROP AGGREGATE IF EXISTS public.last(anyelement);
 DROP FUNCTION IF EXISTS public.first_agg(anyelement, anyelement);
 DROP FUNCTION IF EXISTS public.last_agg(anyelement, anyelement);
+
+DROP TABLE IF EXISTS rewards;
 
 DROP TABLE IF EXISTS network_limits;
 DROP VIEW IF EXISTS orders_current;
