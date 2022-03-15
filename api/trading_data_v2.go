@@ -3,7 +3,6 @@ package api
 import (
 	"code.vegaprotocol.io/data-node/vegatime"
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
@@ -202,16 +201,6 @@ func (t *tradingDataServiceV2) GetNetworkLimits(ctx context.Context, req *v2.Get
 // Candles for a given market, time range and interval.  Interval must be a valid postgres interval value
 func (t *tradingDataServiceV2) Candles(ctx context.Context, request *v2.CandlesRequest) (*v2.CandlesResponse, error) {
 
-	marketId, err := hex.DecodeString(request.MarketId)
-	if err != nil {
-		return nil, apiError(codes.InvalidArgument, ErrCandleServiceGetCandles, fmt.Errorf("market id is invalid:%w", err))
-	}
-
-	err = t.candleStore.ValidateInterval(ctx, request.Interval)
-	if err != nil {
-		return nil, apiError(codes.InvalidArgument, ErrCandleServiceGetCandles, fmt.Errorf("interval is invalid:%w", err))
-	}
-
 	from := vegatime.UnixNano(request.FromTimestamp)
 	to := vegatime.UnixNano(request.ToTimestamp)
 
@@ -220,7 +209,8 @@ func (t *tradingDataServiceV2) Candles(ctx context.Context, request *v2.CandlesR
 		pagination = entities.PaginationFromProto(request.Pagination)
 	}
 
-	candles, err := t.candleStore.GetCandlesForInterval(ctx, request.Interval, &from, &to, marketId, pagination)
+	candleId := "" // @Todo change v2 Api
+	candles, err := t.candleStore.GetCandleDataForTimeSpan(ctx, candleId, &from, &to, pagination)
 	if err != nil {
 		return nil, fmt.Errorf("getting candles for interval:%w", err)
 	}
@@ -239,17 +229,8 @@ func (t *tradingDataServiceV2) CandlesSubscribe(req *v2.CandlesSubscribeRequest,
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
 
-	marketId, err := hex.DecodeString(req.MarketId)
-	if err != nil {
-		return apiError(codes.InvalidArgument, ErrCandleServiceGetCandles, fmt.Errorf("market id is invalid:%w", err))
-	}
-
-	err = t.candleStore.ValidateInterval(ctx, req.Interval)
-	if err != nil {
-		return apiError(codes.InvalidArgument, ErrCandleServiceSubscribeToCandles, fmt.Errorf("interval is invalid:%w", err))
-	}
-
-	subscriptionId, candlesChan, err := t.tradeStore.SubscribeToCandle(ctx, marketId, req.Interval)
+	candleId := "" //@Todo change v2 API
+	subscriptionId, candlesChan, err := t.tradeStore.SubscribeToTradesCandle(ctx, candleId)
 	if err != nil {
 		return fmt.Errorf("subscribing to candles:%w", err)
 	}
@@ -269,7 +250,7 @@ func (t *tradingDataServiceV2) CandlesSubscribe(req *v2.CandlesSubscribeRequest,
 				return fmt.Errorf("sending candles:%w", err)
 			}
 		case <-ctx.Done():
-			t.tradeStore.UnsubscribeFromCandle(subscriptionId)
+			t.tradeStore.UnsubscribeFromTradesCandle(subscriptionId)
 			err = ctx.Err()
 			if err != nil {
 				return fmt.Errorf("context done:%w", err)

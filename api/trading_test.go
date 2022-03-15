@@ -275,7 +275,12 @@ func getTestGRPCServer(
 	sqlOrderStore := sqlstore.NewOrders(&sqlStore)
 	sqlNetworkLimitsStore := sqlstore.NewNetworkLimits(&sqlStore)
 	sqlMarketDataStore := sqlstore.NewMarketData(&sqlStore)
-	sqlCandleDataStore := sqlstore.NewCandles(&sqlStore, conf.Candles)
+	conf.Candles.DefaultCandleIntervals = ""
+	sqlCandleDataStore, err := sqlstore.NewCandles(ctx, &sqlStore, "trades", conf.Candles)
+	if err != nil {
+		t.Fatalf("failed to candle store: %v", err)
+	}
+
 	sqlTradeStore := sqlstore.NewTrades(&sqlStore, sqlCandleDataStore)
 	sqlAssetStore := sqlstore.NewAssets(&sqlStore)
 	sqlAccountStore := sqlstore.NewAccounts(&sqlStore)

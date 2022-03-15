@@ -42,14 +42,21 @@ func (t *tradingDataDelegator) Candles(ctx context.Context,
 		return nil, apiError(codes.InvalidArgument, ErrMalformedRequest)
 	}
 
-	marketId, err := hex.DecodeString(request.MarketId)
-	if err != nil {
-		return nil, apiError(codes.InvalidArgument, ErrCandleServiceGetCandles, fmt.Errorf("market id is invalid:%w", err))
-	}
-
 	from := vegatime.UnixNano(request.SinceTimestamp)
 	interval := toV2IntervalString(request.Interval)
-	candles, err := t.candleStore.GetCandlesForInterval(ctx, interval, &from, nil, marketId, entities.Pagination{})
+
+	exists, candleId, err := t.candleStore.GetCandleIdForIntervalAndGroup(ctx, interval, request.MarketId)
+	if err != nil {
+		return nil, apiError(codes.Internal, ErrCandleServiceGetCandles,
+			fmt.Errorf("failed to get candles:%w", err))
+	}
+
+	if !exists {
+		return nil, apiError(codes.InvalidArgument, ErrCandleServiceGetCandles,
+			fmt.Errorf("candle does not exist for interval %s and market %s", interval, request.MarketId))
+	}
+
+	candles, err := t.candleStore.GetCandleDataForTimeSpan(ctx, candleId, &from, nil, entities.Pagination{})
 	if err != nil {
 		return nil, apiError(codes.Internal, ErrCandleServiceGetCandles,
 			fmt.Errorf("failed to get candles for interval:%w", err))
@@ -84,13 +91,19 @@ func (t *tradingDataDelegator) CandlesSubscribe(req *protoapi.CandlesSubscribeRe
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
 
-	marketId, err := hex.DecodeString(req.MarketId)
+	interval := toV2IntervalString(req.Interval)
+	exists, candleId, err := t.candleStore.GetCandleIdForIntervalAndGroup(ctx, interval, req.MarketId)
 	if err != nil {
-		return apiError(codes.InvalidArgument, ErrCandleServiceGetCandles, fmt.Errorf("market id is invalid:%w", err))
+		return apiError(codes.Internal, ErrStreamInternal,
+			fmt.Errorf("failed to get candles:%w", err))
 	}
 
-	interval := toV2IntervalString(req.Interval)
-	ref, candlesChan, err := t.tradeStore.SubscribeToCandle(ctx, marketId, interval)
+	if !exists {
+		return apiError(codes.InvalidArgument, ErrStreamInternal,
+			fmt.Errorf("candle does not exist for interval %s and market %s", interval, req.MarketId))
+	}
+
+	ref, candlesChan, err := t.tradeStore.SubscribeToTradesCandle(ctx, candleId)
 	if err != nil {
 		return apiError(codes.Internal, ErrStreamInternal,
 			fmt.Errorf("subscribing to candles:%w", err))

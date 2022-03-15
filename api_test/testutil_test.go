@@ -213,7 +213,12 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 	sqlMarketDataStore := sqlstore.NewMarketData(&sqlStore)
 
 	sqlOrderStore := sqlstore.NewOrders(&sqlStore)
-	sqlCandleStore := sqlstore.NewCandles(&sqlStore, conf.Candles)
+	conf.Candles.DefaultCandleIntervals = ""
+	sqlCandleStore, err := sqlstore.NewCandles(ctx, &sqlStore, "trades", conf.Candles)
+	if err != nil {
+		t.Fatalf("failed to create candle store: %v", err)
+	}
+
 	sqlTradeStore := sqlstore.NewTrades(&sqlStore, sqlCandleStore)
 	sqlNetworkLimitsStore := sqlstore.NewNetworkLimits(&sqlStore)
 	sqlAssetStore := sqlstore.NewAssets(&sqlStore)

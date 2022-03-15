@@ -28,14 +28,14 @@ func NewTrades(sqlStore *SQLStore, candlesStore *Candles) *Trades {
 	return t
 }
 
-func (ts *Trades) SubscribeToCandle(ctx context.Context, marketID []byte, interval string) (uint64, <-chan entities.Candle, error) {
+func (ts *Trades) SubscribeToTradesCandle(ctx context.Context, candleId string) (uint64, <-chan entities.Candle, error) {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 
-	return ts.candlesStore.subscribe(ctx, marketID, interval)
+	return ts.candlesStore.subscribe(ctx, candleId)
 }
 
-func (ts *Trades) UnsubscribeFromCandle(subscriberID uint64) error {
+func (ts *Trades) UnsubscribeFromTradesCandle(subscriberID uint64) error {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 
@@ -92,11 +92,6 @@ func (ts *Trades) OnTimeUpdateEvent(ctx context.Context) error {
 		if copyCount != int64(len(rows)) {
 			return fmt.Errorf("copied %d rows into the database, expected to copy %d", copyCount, len(rows))
 		}
-	}
-
-	err := ts.candlesStore.sendCandles(ctx, ts.trades)
-	if err != nil {
-		fmt.Errorf("failed to send candles:%w", err)
 	}
 
 	ts.trades = nil

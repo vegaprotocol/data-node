@@ -2,7 +2,6 @@ package sqlstore_test
 
 import (
 	"context"
-	"encoding/hex"
 	"testing"
 	"time"
 
@@ -12,10 +11,13 @@ import (
 	"code.vegaprotocol.io/data-node/sqlstore"
 )
 
-func Test_CandleEventStreamOrder(t *testing.T) {
+func Test_CandleUpdatesOrder(t *testing.T) {
 	defer testStore.DeleteEverything()
 
-	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(5))
+	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(5))
+	if err != nil {
+		t.Fatalf("creating candle store:%s", err)
+	}
 	tradeStore := sqlstore.NewTrades(testStore, candleStore)
 	bs := sqlstore.NewBlocks(testStore)
 
@@ -24,8 +26,8 @@ func Test_CandleEventStreamOrder(t *testing.T) {
 
 	insertTestTrade(t, tradeStore, 1, 10, block, 0)
 
-	testMarketId, _ := hex.DecodeString(testMarket)
-	_, out, err := tradeStore.SubscribeToCandle(context.Background(), testMarketId, secondsToInterval(60))
+	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
+	_, out, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
@@ -47,10 +49,14 @@ func Test_CandleEventStreamOrder(t *testing.T) {
 	assert.Equal(t, expectedCandle, candle3)
 }
 
-func Test_CandleEventSlowConsumer(t *testing.T) {
+func Test_CandleUpdatesSlowConsumer(t *testing.T) {
 	defer testStore.DeleteEverything()
 
-	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(1))
+	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
+	if err != nil {
+		t.Fatalf("creating candle store:%s", err)
+	}
+
 	tradeStore := sqlstore.NewTrades(testStore, candleStore)
 	bs := sqlstore.NewBlocks(testStore)
 
@@ -59,8 +65,8 @@ func Test_CandleEventSlowConsumer(t *testing.T) {
 
 	insertTestTrade(t, tradeStore, 1, 10, block, 0)
 
-	testMarketId, _ := hex.DecodeString(testMarket)
-	_, out, err := tradeStore.SubscribeToCandle(context.Background(), testMarketId, secondsToInterval(60))
+	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
+	_, out, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
@@ -81,10 +87,13 @@ func Test_CandleEventSlowConsumer(t *testing.T) {
 	}
 }
 
-func Test_CandleEventStreamSubscribe(t *testing.T) {
+func Test_CandleUpdatesSubscribe(t *testing.T) {
 	defer testStore.DeleteEverything()
 
-	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(1))
+	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
+	if err != nil {
+		t.Fatalf("creating candle store:%s", err)
+	}
 	tradeStore := sqlstore.NewTrades(testStore, candleStore)
 	bs := sqlstore.NewBlocks(testStore)
 
@@ -93,12 +102,12 @@ func Test_CandleEventStreamSubscribe(t *testing.T) {
 
 	insertTestTrade(t, tradeStore, 1, 10, block, 0)
 
-	testMarketId, _ := hex.DecodeString(testMarket)
-	_, out1, err := tradeStore.SubscribeToCandle(context.Background(), testMarketId, secondsToInterval(60))
+	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
+	_, out1, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
-	_, out2, err := tradeStore.SubscribeToCandle(context.Background(), testMarketId, secondsToInterval(60))
+	_, out2, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
@@ -114,10 +123,13 @@ func Test_CandleEventStreamSubscribe(t *testing.T) {
 	assert.Equal(t, expectedCandle, candle2)
 }
 
-func Test_CandleEventStreamSubscribeWhenNoCandleExistsInStartPeriod(t *testing.T) {
+func Test_CandleUpdatesSubscribeWhenNoCandleExistsInStartPeriod(t *testing.T) {
 	defer testStore.DeleteEverything()
 
-	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(1))
+	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
+	if err != nil {
+		t.Fatalf("creating candle store:%s", err)
+	}
 	tradeStore := sqlstore.NewTrades(testStore, candleStore)
 	bs := sqlstore.NewBlocks(testStore)
 
@@ -126,8 +138,8 @@ func Test_CandleEventStreamSubscribeWhenNoCandleExistsInStartPeriod(t *testing.T
 
 	insertTestTrade(t, tradeStore, 1, 10, block, 0)
 
-	testMarketId, _ := hex.DecodeString(testMarket)
-	_, out, err := tradeStore.SubscribeToCandle(context.Background(), testMarketId, secondsToInterval(60))
+	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
+	_, out, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
@@ -141,10 +153,13 @@ func Test_CandleEventStreamSubscribeWhenNoCandleExistsInStartPeriod(t *testing.T
 	assert.Equal(t, expectedCandle, candle1)
 }
 
-func Test_CandleEventStreamTradesConflatedIntoCandle(t *testing.T) {
+func Test_CandleUpdatesTradesConflatedIntoCandle(t *testing.T) {
 	defer testStore.DeleteEverything()
 
-	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(1))
+	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
+	if err != nil {
+		t.Fatalf("creating candle store:%s", err)
+	}
 	tradeStore := sqlstore.NewTrades(testStore, candleStore)
 	bs := sqlstore.NewBlocks(testStore)
 
@@ -153,8 +168,8 @@ func Test_CandleEventStreamTradesConflatedIntoCandle(t *testing.T) {
 
 	insertTestTrade(t, tradeStore, 1, 10, block, 0)
 
-	testMarketId, _ := hex.DecodeString(testMarket)
-	_, out, err := tradeStore.SubscribeToCandle(context.Background(), testMarketId, secondsToInterval(60))
+	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
+	_, out, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
@@ -174,10 +189,13 @@ func nextBlock(t *testing.T, bs *sqlstore.Blocks, block entities.Block, duration
 	return addTestBlockForTime(t, bs, block.VegaTime.Add(duration))
 }
 
-func Test_CandleEventStreamUnsubscribe(t *testing.T) {
+func Test_CandleUpdatesUnsubscribe(t *testing.T) {
 	defer testStore.DeleteEverything()
 
-	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(1))
+	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
+	if err != nil {
+		t.Fatalf("creating candle store:%s", err)
+	}
 	tradeStore := sqlstore.NewTrades(testStore, candleStore)
 	bs := sqlstore.NewBlocks(testStore)
 
@@ -186,8 +204,8 @@ func Test_CandleEventStreamUnsubscribe(t *testing.T) {
 
 	insertTestTrade(t, tradeStore, 1, 10, block, 0)
 
-	testMarketId, _ := hex.DecodeString(testMarket)
-	subscriberId, out, err := tradeStore.SubscribeToCandle(context.Background(), testMarketId, secondsToInterval(60))
+	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
+	subscriptionId, out, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
@@ -198,7 +216,7 @@ func Test_CandleEventStreamUnsubscribe(t *testing.T) {
 	expectedCandle := createCandle(startTime, startTime.Add(1*time.Microsecond), 1, 2, 2, 1, 30)
 	assert.Equal(t, expectedCandle, candle1)
 
-	tradeStore.UnsubscribeFromCandle(subscriberId)
+	tradeStore.UnsubscribeFromTradesCandle(subscriptionId)
 
 	block = nextBlock(t, bs, block, 1*time.Second)
 	insertTestTrade(t, tradeStore, 4, 20, block, 0)
@@ -210,32 +228,59 @@ func Test_CandleEventStreamUnsubscribe(t *testing.T) {
 		}
 	default:
 	}
+
+	block = nextBlock(t, bs, block, 1*time.Second)
+	insertTestTrade(t, tradeStore, 5, 20, block, 0)
+
+	subscriptionId2, out, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
+	if err != nil {
+		t.Fatalf("failed to subscribe: %s", err)
+	}
+
+	assert.NotEqual(t, subscriptionId2, subscriptionId)
+
+	block = nextBlock(t, bs, block, 1*time.Second)
+	insertTestTrade(t, tradeStore, 6, 20, block, 0)
+
+	candle2 := <-out
+	expectedCandle = createCandle(startTime, block.VegaTime, 1, 6, 6, 1, 90)
+	assert.Equal(t, expectedCandle, candle2)
+
 }
 
-func Test_CandleEventStreamOverPeriodBoundary(t *testing.T) {
+func Test_CandleUpdatesOverPeriodBoundary(t *testing.T) {
 	defer testStore.DeleteEverything()
 
-	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(1))
+	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
+	if err != nil {
+		t.Fatalf("creating candle store:%s", err)
+	}
 	tradeStore := sqlstore.NewTrades(testStore, candleStore)
 	bs := sqlstore.NewBlocks(testStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
 	block := addTestBlockForTime(t, bs, startTime)
 
-	interval := secondsToInterval(60)
-	testMarketId, _ := hex.DecodeString(testMarket)
-	_, out, _ := tradeStore.SubscribeToCandle(context.Background(), testMarketId, interval)
 	insertTestTrade(t, tradeStore, 1, 10, block, 0)
 
+	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
+	_, out, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
+	if err != nil {
+		t.Fatalf("failed to subscribe to candle:%s", err)
+	}
+
+	time.Sleep(1 * time.Second)
+	insertTestTrade(t, tradeStore, 1, 10, block, 1)
+
 	candle1 := <-out
-	expectedCandle := createCandle(startTime, startTime, 1, 1, 1, 1, 10)
+	expectedCandle := createCandle(startTime, startTime.Add(1*time.Microsecond), 1, 1, 1, 1, 20)
 	assert.Equal(t, expectedCandle, candle1)
 
 	block = nextBlock(t, bs, block, 1*time.Second)
-	insertTestTrade(t, tradeStore, 2, 20, block, 1)
+	insertTestTrade(t, tradeStore, 2, 20, block, 2)
 
 	candle2 := <-out
-	expectedCandle = createCandle(startTime, startTime.Add(1*time.Second).Add(1*time.Microsecond), 1, 2, 2, 1, 30)
+	expectedCandle = createCandle(startTime, startTime.Add(1*time.Second).Add(2*time.Microsecond), 1, 2, 2, 1, 40)
 
 	assert.Equal(t, expectedCandle, candle2)
 

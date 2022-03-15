@@ -1,9 +1,11 @@
 package sqlstore_test
 
 import (
+	"code.vegaprotocol.io/data-node/config/encoding"
 	"context"
 	"encoding/hex"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,7 +20,7 @@ import (
 )
 
 const (
-	Midnight3rdMarch2022InUnixTime = 1257724800
+	Midnight3rdMarch2022InUnixTime = 1646265600
 	totalBlocks                    = 1000
 	tradesPerBlock                 = 5
 	startPrice                     = 1
@@ -28,43 +30,55 @@ const (
 	blockIntervalDur               = time.Duration(blockIntervalSeconds) * time.Second
 )
 
-func Test_ValidateInterval(t *testing.T) {
+func Test_CreatingCandleWithIntervalEquivalentToExistingCandleIntervalFails(t *testing.T) {
 	defer testStore.DeleteEverything()
+	config := newTestCandleConfig(1)
 
-	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(1))
-	err := candleStore.ValidateInterval(context.Background(), "1  day    ")
+	candleStore, _ := sqlstore.NewCandles(context.Background(), testStore, "trades", config)
+
+	_, err := candleStore.CreateCandleForIntervalAndGroup(context.Background(), "7 days", testMarket)
+	if err == nil {
+		t.Fatalf("expected to fail as interval for 1 week exists")
+	}
+
+}
+
+func Test_GetExistingCandles(t *testing.T) {
+	defer testStore.DeleteEverything()
+	config := newTestCandleConfig(1)
+
+	candleStore, _ := sqlstore.NewCandles(context.Background(), testStore, "trades", config)
+	candles, err := candleStore.GetExistingCandlesForGroup(context.Background(), testMarket)
 	if err != nil {
-		t.Fatalf("valid interval failed validation:%s", err)
+		t.Fatalf("failed to get candles for market:%s", err)
 	}
 
-	err = candleStore.ValidateInterval(context.Background(), "oh my days")
-	if err == nil {
-		t.Fatalf("interval should have failed validation")
+	intervals := strings.Split(config.DefaultCandleIntervals, ",")
+	assert.Equal(t, len(intervals), len(candles))
+
+	for _, interval := range intervals {
+		_, ok := candles[interval]
+		assert.True(t, ok)
 	}
 
-	err = candleStore.ValidateInterval(context.Background(), "2 years")
-	if err == nil {
-		t.Fatalf("interval should have failed validation")
-	}
-
-	err = candleStore.ValidateInterval(context.Background(), "5 months")
-	if err == nil {
-		t.Fatalf("interval should have failed validation")
-	}
 }
 
 func Test_CandlesPagination(t *testing.T) {
 	defer testStore.DeleteEverything()
 
-	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(1))
+	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
+	if err != nil {
+		t.Fatalf("failed to create candles store:%s", err)
+	}
+
 	tradeStore := sqlstore.NewTrades(testStore, candleStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
 	insertCandlesTestData(t, tradeStore, startTime, totalBlocks, tradesPerBlock, startPrice, priceIncrement, size, blockIntervalDur)
 
-	testMarketId, _ := hex.DecodeString(testMarket)
-	candles, err := candleStore.GetCandlesForInterval(context.Background(), secondsToInterval(60), nil,
-		nil, testMarketId, entities.Pagination{
+	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
+	candles, err := candleStore.GetCandleDataForTimeSpan(context.Background(), candleId, nil,
+		nil, entities.Pagination{
 			Skip:       0,
 			Limit:      10,
 			Descending: true,
@@ -76,8 +90,8 @@ func Test_CandlesPagination(t *testing.T) {
 	assert.Equal(t, 10, len(candles))
 	lastCandle := candles[9]
 
-	candles, err = candleStore.GetCandlesForInterval(context.Background(), secondsToInterval(60), nil,
-		nil, testMarketId, entities.Pagination{
+	candles, err = candleStore.GetCandleDataForTimeSpan(context.Background(), candleId, nil,
+		nil, entities.Pagination{
 			Skip:       9,
 			Limit:      5,
 			Descending: true,
@@ -94,7 +108,10 @@ func Test_CandlesPagination(t *testing.T) {
 func Test_CandlesGetForEmptyInterval(t *testing.T) {
 	defer testStore.DeleteEverything()
 
-	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(1))
+	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
+	if err != nil {
+		t.Fatalf("failed to created candle store:%s", err)
+	}
 	tradeStore := sqlstore.NewTrades(testStore, candleStore)
 	bs := sqlstore.NewBlocks(testStore)
 
@@ -109,9 +126,13 @@ func Test_CandlesGetForEmptyInterval(t *testing.T) {
 	insertTestTrade(t, tradeStore, 3, 20, block, 0)
 	insertTestTrade(t, tradeStore, 4, 20, block, 5)
 
-	marketIdBytes, _ := hex.DecodeString(testMarket)
-	candles, err := candleStore.GetCandlesForInterval(context.Background(), secondsToInterval(60), &startTime,
-		nil, marketIdBytes, entities.Pagination{})
+	_, candleId, err := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
+	if err != nil {
+		t.Fatalf("getting existing candle id:%s", err)
+	}
+
+	candles, err := candleStore.GetCandleDataForTimeSpan(context.Background(), candleId, &startTime,
+		nil, entities.Pagination{})
 	if err != nil {
 		t.Fatalf("failed to get candles:%s", err)
 	}
@@ -130,16 +151,16 @@ func Test_CandlesGetForEmptyInterval(t *testing.T) {
 func Test_CandlesGetLatest(t *testing.T) {
 	defer testStore.DeleteEverything()
 
-	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(1))
+	candleStore, _ := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
 	tradeStore := sqlstore.NewTrades(testStore, candleStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
 	insertCandlesTestData(t, tradeStore, startTime, 90, 3, startPrice, priceIncrement, size,
 		1*time.Second)
 
-	marketIdBytes, _ := hex.DecodeString(testMarket)
-	candles, err := candleStore.GetCandlesForInterval(context.Background(), secondsToInterval(60), nil,
-		nil, marketIdBytes, entities.Pagination{
+	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
+	candles, err := candleStore.GetCandleDataForTimeSpan(context.Background(), candleId, &startTime,
+		nil, entities.Pagination{
 			Skip:       0,
 			Limit:      1,
 			Descending: true,
@@ -156,50 +177,48 @@ func Test_CandlesGetLatest(t *testing.T) {
 	assert.Equal(t, lastCandle, candles[0])
 }
 
-func secondsToInterval(seconds int) string {
-	return strconv.Itoa(seconds) + " seconds"
-}
-
 func Test_CandlesGetForDifferentIntervalAndTimeBounds(t *testing.T) {
 	defer testStore.DeleteEverything()
 
-	candleStore := sqlstore.NewCandles(testStore, newTestCandleConfig(1))
+	candleStore, _ := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
 	tradeStore := sqlstore.NewTrades(testStore, candleStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
 	insertCandlesTestData(t, tradeStore, startTime, totalBlocks, tradesPerBlock, startPrice, priceIncrement, size, blockIntervalDur)
 
-	testInterval(t, startTime, nil, nil, candleStore, 60)
-	testInterval(t, startTime, nil, nil, candleStore, 300)
-	testInterval(t, startTime, nil, nil, candleStore, 900)
-	testInterval(t, startTime, nil, nil, candleStore, 3600)
+	testInterval(t, startTime, nil, nil, candleStore, "1 Minute", 60)
+	testInterval(t, startTime, nil, nil, candleStore, "5 Minutes", 300)
+	testInterval(t, startTime, nil, nil, candleStore, "15 Minutes", 900)
+	testInterval(t, startTime, nil, nil, candleStore, "1 hour", 3600)
 
 	from := startTime.Add(5 * time.Minute)
 	to := startTime.Add(35 * time.Minute)
 
-	testInterval(t, startTime, &from, &to, candleStore, 60)
-	testInterval(t, startTime, &from, &to, candleStore, 300)
+	testInterval(t, startTime, &from, &to, candleStore, "1 Minute", 60)
+	testInterval(t, startTime, &from, &to, candleStore, "5 Minutes", 300)
 
-	testInterval(t, startTime, nil, &to, candleStore, 60)
-	testInterval(t, startTime, nil, &to, candleStore, 300)
+	testInterval(t, startTime, nil, &to, candleStore, "1 Minute", 60)
+	testInterval(t, startTime, nil, &to, candleStore, "5 Minutes", 300)
 
-	testInterval(t, startTime, &from, nil, candleStore, 60)
-	testInterval(t, startTime, &from, nil, candleStore, 300)
+	testInterval(t, startTime, &from, nil, candleStore, "1 Minute", 60)
+	testInterval(t, startTime, &from, nil, candleStore, "5 Minutes", 300)
 }
 
 func newTestCandleConfig(bufferSize int) candles.Config {
 	conf := candles.NewDefaultConfig()
-	conf.CandleEventStreamBufferSize = bufferSize
+	conf.CandleUpdatesStreamBufferSize = bufferSize
+	conf.CandleUpdatesStreamInterval = encoding.Duration{Duration: time.Duration(1 * time.Microsecond)}
+	conf.CandlesFetchTimeout = encoding.Duration{Duration: time.Duration(2 * time.Minute)}
 	return conf
 }
 
-func testInterval(t *testing.T, tradeDataStartTime time.Time, fromTime *time.Time, toTime *time.Time, candleStore *sqlstore.Candles, intervalSeconds int) {
+func testInterval(t *testing.T, tradeDataStartTime time.Time, fromTime *time.Time, toTime *time.Time, candleStore *sqlstore.Candles, interval string,
+	intervalSeconds int) {
 	intervalDur := time.Duration(intervalSeconds) * time.Second
 
-	ctx := context.Background()
-	marketIdBytes, _ := hex.DecodeString(testMarket)
-	candles, err := candleStore.GetCandlesForInterval(ctx, secondsToInterval(intervalSeconds), fromTime, toTime, marketIdBytes,
-		entities.Pagination{})
+	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), interval, testMarket)
+	candles, err := candleStore.GetCandleDataForTimeSpan(context.Background(), candleId, fromTime,
+		toTime, entities.Pagination{})
 	if err != nil {
 		t.Fatalf("failed to get candles:%s", err)
 	}
