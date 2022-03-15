@@ -256,11 +256,12 @@ create table if not exists markets (
 );
 
 CREATE TABLE epochs(
-  id BIGINT NOT NULL,
-  start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-  expire_time TIMESTAMP WITH TIME ZONE NOT NULL,
-  end_time TIMESTAMP WITH TIME ZONE,
-  vega_time timestamp with time zone not null references blocks(vega_time)
+  id           BIGINT                   NOT NULL,
+  start_time   TIMESTAMP WITH TIME ZONE NOT NULL,
+  expire_time  TIMESTAMP WITH TIME ZONE NOT NULL,
+  end_time     TIMESTAMP WITH TIME ZONE,
+  vega_time    TIMESTAMP WITH TIME ZONE NOT NULL REFERENCES blocks(vega_time),
+  PRIMARY KEY(id, vega_time)
 );
 
 -- +goose Down

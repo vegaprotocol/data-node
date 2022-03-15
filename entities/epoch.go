@@ -11,7 +11,7 @@ type Epoch struct {
 	ID         int64
 	StartTime  time.Time
 	ExpireTime time.Time
-	EndTime    time.Time
+	EndTime    *time.Time
 	VegaTime   time.Time
 }
 
@@ -21,16 +21,19 @@ func (e *Epoch) ToProto() *vega.Epoch {
 		Timestamps: &vega.EpochTimestamps{
 			StartTime:  e.StartTime.UnixNano(),
 			ExpiryTime: e.ExpireTime.UnixNano(),
-			EndTime:    e.EndTime.UnixNano(),
 		},
+	}
+	if e.EndTime != nil {
+		protoEpoch.Timestamps.EndTime = e.EndTime.UnixNano()
 	}
 	return &protoEpoch
 }
 
 func EpochFromProto(ee eventspb.EpochEvent) Epoch {
-	var endTime time.Time
+	var endTime *time.Time
 	if ee.Action == vega.EpochAction_EPOCH_ACTION_END {
-		endTime = time.Unix(0, ee.EndTime)
+		t := time.Unix(0, ee.EndTime)
+		endTime = &t
 	}
 	epoch := Epoch{
 		ID:         int64(ee.Seq),
