@@ -9,6 +9,7 @@
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -
 
 ### 🛠  Improvements
+- [426](https://github.com/vegaprotocol/data-node/pull/426) - Add bindings for partyless liquidity provision requests
 - [404](https://github.com/vegaprotocol/data-node/pull/404) - Migrate market data API to retrieve data from `Postgres`
 - [407](https://github.com/vegaprotocol/data-node/pull/407) - Add `positionDecimalPlaces` to market `graphQL` 
 
