@@ -247,7 +247,7 @@ create table if not exists deposits (
     party_id bytea not null,
     asset bytea not null,
     amount numeric,
-    tx_hash bytea not null,
+    tx_hash text not null,
     credited_timestamp timestamp with time zone not null,
     created_timestamp timestamp with time zone not null,
     vega_time timestamp with time zone not null references blocks(vega_time),
