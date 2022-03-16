@@ -52,7 +52,8 @@ func (rs *Rewards) Get(ctx context.Context,
 	}
 
 	if p != nil {
-		query, args = paginateRewardQuery(query, args, *p)
+		order_cols := []string{"epoch_id", "party_id", "asset_id"}
+		query, args = orderAndPaginateQuery(query, order_cols, *p, args...)
 	}
 
 	rewards := []entities.Reward{}
@@ -105,21 +106,4 @@ func addRewardWhereClause(queryPtr *string, args *[]interface{}, partyIDHex, ass
 	}
 	*queryPtr = query
 	return nil
-}
-
-func paginateRewardQuery(query string, args []interface{}, p entities.Pagination) (string, []interface{}) {
-	dir := "ASC"
-	if p.Descending {
-		dir = "DESC"
-	}
-
-	var limit interface{} = nil
-	if p.Limit != 0 {
-		limit = p.Limit
-	}
-
-	query = fmt.Sprintf(" %s ORDER BY epoch_id %s, party_id %s, asset_id %s LIMIT %s OFFSET %s",
-		query, dir, dir, dir, nextBindVar(&args, limit), nextBindVar(&args, p.Skip))
-
-	return query, args
 }
