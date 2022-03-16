@@ -57,10 +57,10 @@ func (d *Deposits) GetByID(ctx context.Context, depositID string) (entities.Depo
 
 	var deposit entities.Deposit
 
-	query := fmt.Sprintf(`select distinct on (id, party_id) id, status, party_id, asset, amount, tx_hash, credited_timestamp, created_timestamp, vega_time
+	query := `select distinct on (id, party_id) id, status, party_id, asset, amount, tx_hash, credited_timestamp, created_timestamp, vega_time
 		from deposits
 		where id = $1
-		order by id, party_id, vega_time desc`)
+		order by id, party_id, vega_time desc`
 
 	err = pgxscan.Get(ctx, d.pool, &deposit, query, id)
 	return deposit, err

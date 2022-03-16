@@ -40,11 +40,6 @@ func (as *Assets) GetByID(ctx context.Context, id string) (entities.Asset, error
 
 	idBytes := entities.MakeAssetID(id)
 
-	//idBytes, err := hex.DecodeString(id)
-	//if err != nil {
-	//	return a, ErrBadID
-	//}
-
 	ctxTimeout, cancel := context.WithTimeout(ctx, as.conf.Timeout.Get())
 	defer cancel()
 

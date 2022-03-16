@@ -212,20 +212,7 @@ const (
 )
 
 func (m MarketTradingMode) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
-	var mode []byte
-	switch m {
-	case MarketTradingModeUnspecified:
-		mode = []byte("TRADING_MODE_UNSPECIFIED")
-	case MarketTradingModeContinuous:
-		mode = []byte("TRADING_MODE_CONTINUOUS")
-	case MarketTradingModeBatchAuction:
-		mode = []byte("TRADING_MODE_BATCH_AUCTION")
-	case MarketTradingModeOpeningAuction:
-		mode = []byte("TRADING_MODE_OPENING_AUCTION")
-	case MarketTradingModeMonitoringAuction:
-		mode = []byte("TRADING_MODE_MONITORING_AUCTION")
-	}
-
+	mode := []byte(vega.Market_TradingMode_name[int32(m)])
 	return append(buf, mode...), nil
 }
 
@@ -264,30 +251,7 @@ const (
 )
 
 func (s MarketState) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
-	var state []byte
-	switch s {
-	case MarketStateUnspecified:
-		state = []byte("STATE_UNSPECIFIED")
-	case MarketStateProposed:
-		state = []byte("STATE_PROPOSED")
-	case MarketStateRejected:
-		state = []byte("STATE_REJECTED")
-	case MarketStatePending:
-		state = []byte("STATE_PENDING")
-	case MarketStateCancelled:
-		state = []byte("STATE_CANCELLED")
-	case MarketStateActive:
-		state = []byte("STATE_ACTIVE")
-	case MarketStateSuspended:
-		state = []byte("STATE_SUSPENDED")
-	case MarketStateClosed:
-		state = []byte("STATE_CLOSED")
-	case MarketStateTradingTerminated:
-		state = []byte("STATE_TRADING_TERMINATED")
-	case MarketStateSettled:
-		state = []byte("STATE_SETTLED")
-	}
-
+	state := []byte(vega.Market_State_name[(int32(s))])
 	return append(buf, state...), nil
 }
 
@@ -330,18 +294,7 @@ const (
 )
 
 func (s DepositStatus) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
-	var status []byte
-	switch s {
-	case DepositStatusUnspecified:
-		status = []byte("STATUS_UNSPECIFIED")
-	case DepositStatusOpen:
-		status = []byte("STATUS_OPEN")
-	case DepositStatusCancelled:
-		status = []byte("STATUS_CANCELLED")
-	case DepositStatusFinalized:
-		status = []byte("STATUS_FINALIZED")
-	}
-
+	status := []byte(vega.Deposit_Status_name[int32(s)])
 	return append(buf, status...), nil
 }
 
@@ -360,5 +313,4 @@ func (s *DepositStatus) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
 	}
 
 	return nil
-
 }

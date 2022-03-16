@@ -25,9 +25,7 @@ type Deposit struct {
 func makeID(stringID string) ([]byte, error) {
 	// TODO: Check why we are receiving a hash with the 0x prefix, could be a bug in core
 	// 		 but for now just remove it so we can write the data in the database as a byte array
-	if strings.HasPrefix(stringID, "0x") {
-		stringID = stringID[2:]
-	}
+	stringID = strings.TrimPrefix(stringID, "0x")
 
 	id, err := hex.DecodeString(stringID)
 	if err != nil {
