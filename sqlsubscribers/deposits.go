@@ -46,10 +46,6 @@ func (d *Deposit) Push(evt events.Event) {
 }
 
 func (d *Deposit) consume(event DepositEvent) {
-	d.log.Debug("Received DepositEvent",
-		logging.Int64("block-id", event.BlockNr()),
-		logging.String("deposit-id", event.Deposit().Id))
-
 	deposit := event.Deposit()
 	record, err := entities.DepositFromProto(&deposit, d.vegaTime)
 	if err != nil {
