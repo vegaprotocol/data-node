@@ -53,7 +53,6 @@ func (ds *Delegation) Push(evt events.Event) {
 }
 
 func (ds *Delegation) consume(event DelegationBalanceEvent) {
-	ds.log.Debug("Delegation: ", logging.Int64("block", event.BlockNr()))
 	protoDBE := event.Proto()
 	delegation, err := entities.DelegationFromProto(&protoDBE)
 	if err != nil {

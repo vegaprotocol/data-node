@@ -53,7 +53,6 @@ func (rs *Reward) Push(evt events.Event) {
 }
 
 func (rs *Reward) consume(event RewardPayoutEvent) {
-	rs.log.Debug("Reward: ", logging.Int64("block", event.BlockNr()))
 	protoRewardPayoutEvent := event.RewardPayoutEvent()
 	reward, err := entities.RewardFromProto(protoRewardPayoutEvent)
 	if err != nil {
