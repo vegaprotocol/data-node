@@ -319,3 +319,46 @@ func (s *MarketState) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
 
 	return nil
 }
+
+type DepositStatus vega.Deposit_Status
+
+const (
+	DepositStatusUnspecified = DepositStatus(vega.Deposit_STATUS_UNSPECIFIED)
+	DepositStatusOpen        = DepositStatus(vega.Deposit_STATUS_OPEN)
+	DepositStatusCancelled   = DepositStatus(vega.Deposit_STATUS_CANCELLED)
+	DepositStatusFinalized   = DepositStatus(vega.Deposit_STATUS_FINALIZED)
+)
+
+func (s DepositStatus) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
+	var status []byte
+	switch s {
+	case DepositStatusUnspecified:
+		status = []byte("STATUS_UNSPECIFIED")
+	case DepositStatusOpen:
+		status = []byte("STATUS_OPEN")
+	case DepositStatusCancelled:
+		status = []byte("STATUS_CANCELLED")
+	case DepositStatusFinalized:
+		status = []byte("STATUS_FINALIZED")
+	}
+
+	return append(buf, status...), nil
+}
+
+func (s *DepositStatus) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
+	switch string(src) {
+	case "STATUS_UNSPECIFIED":
+		*s = DepositStatusUnspecified
+	case "STATUS_OPEN":
+		*s = DepositStatusOpen
+	case "STATUS_CANCELLED":
+		*s = DepositStatusCancelled
+	case "STATUS_FINALIZED":
+		*s = DepositStatusFinalized
+	default:
+		return fmt.Errorf("unknown status: %s", src)
+	}
+
+	return nil
+
+}
