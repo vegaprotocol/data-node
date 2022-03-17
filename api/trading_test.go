@@ -289,6 +289,8 @@ func getTestGRPCServer(
 	sqlDelegationStore := sqlstore.NewDelegations(&sqlStore)
 	sqlEpochStore := sqlstore.NewEpochs(&sqlStore)
 	sqlDepositStore := sqlstore.NewDeposits(&sqlStore)
+	sqlProposalStore := sqlstore.NewProposals(&sqlStore)
+	sqlVoteStore := sqlstore.NewVotes(&sqlStore)
 
 	g := api.NewGRPCServer(
 		logger,
@@ -333,6 +335,8 @@ func getTestGRPCServer(
 		sqlDelegationStore,
 		sqlEpochStore,
 		sqlDepositStore,
+		sqlProposalStore,
+		sqlVoteStore,
 		sqlCandleDataStore,
 	)
 	if g == nil {
