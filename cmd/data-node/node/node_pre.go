@@ -130,6 +130,12 @@ func (l *NodeCommand) setupSQLSubscribers() {
 	l.networkLimitsSubSQL = sqlsubscribers.NewNetworkLimitSub(l.ctx, l.networkLimitsStoreSQL, l.Log)
 	l.marketDataSubSQL = sqlsubscribers.NewMarketData(l.marketDataStoreSQL, l.Log, l.conf.SQLStore.Timeout.Duration)
 	l.tradesSubSQL = sqlsubscribers.NewTradesSubscriber(l.tradeStoreSQL, l.Log)
+	l.rewardsSubSQL = sqlsubscribers.NewReward(l.rewardStoreSQL, l.Log)
+	l.marketCreatedSubSQL = sqlsubscribers.NewMarketCreated(l.marketsStoreSQL, l.Log)
+	l.marketUpdatedSubSQL = sqlsubscribers.NewMarketUpdated(l.marketsStoreSQL, l.Log)
+	l.delegationsSubSQL = sqlsubscribers.NewDelegation(l.delegationStoreSQL, l.Log)
+	l.epochSubSQL = sqlsubscribers.NewEpoch(l.epochStoreSQL, l.Log)
+	l.depositSubSQL = sqlsubscribers.NewDeposit(l.depositStoreSQL, l.Log)
 }
 
 func (l *NodeCommand) setupStorages() error {
@@ -164,6 +170,12 @@ func (l *NodeCommand) setupStorages() error {
 		l.orderStoreSQL = sqlstore.NewOrders(sqlStore)
 		l.networkLimitsStoreSQL = sqlstore.NewNetworkLimits(sqlStore)
 		l.marketDataStoreSQL = sqlstore.NewMarketData(sqlStore)
+		l.rewardStoreSQL = sqlstore.NewRewards(sqlStore)
+		l.marketsStoreSQL = sqlstore.NewMarkets(sqlStore)
+		l.delegationStoreSQL = sqlstore.NewDelegations(sqlStore)
+		l.epochStoreSQL = sqlstore.NewEpochs(sqlStore)
+		l.depositStoreSQL = sqlstore.NewDeposits(sqlStore)
+
 		l.candleStoreSQL, err = sqlstore.NewCandles(l.ctx, sqlStore, "trades", l.conf.Candles)
 		if err != nil {
 			return fmt.Errorf("failed to create candles store: %w", err)
@@ -245,7 +257,14 @@ func (l *NodeCommand) preRun(_ []string) (err error) {
 			l.orderSubSQL,
 			l.networkLimitsSubSQL,
 			l.marketDataSubSQL,
-			l.tradesSubSQL)
+			l.tradesSubSQL,
+			l.rewardsSubSQL,
+			l.delegationsSubSQL,
+			l.marketCreatedSubSQL,
+			l.marketUpdatedSubSQL,
+			l.epochSubSQL,
+			l.marketUpdatedSubSQL,
+			l.depositSubSQL)
 	}
 
 	l.broker, err = broker.New(l.ctx, l.Log, l.conf.Broker, l.chainInfoStore, eventSource)

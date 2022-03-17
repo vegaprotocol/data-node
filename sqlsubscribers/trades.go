@@ -56,10 +56,6 @@ func (ts *TradeSubscriber) Push(evt events.Event) {
 }
 
 func (ts *TradeSubscriber) consume(ae TradeEvent) error {
-	ts.log.Debug("TradeEvent: ",
-		logging.Int64("block", ae.BlockNr()),
-		logging.String("tradeId", ae.Trade().Id))
-
 	trade := ae.Trade()
 	err := ts.addTrade(&trade, ts.vegaTime, ts.sequenceNum)
 

@@ -25,6 +25,11 @@ type tradingDataDelegator struct {
 	assetStore      *sqlstore.Assets
 	accountStore    *sqlstore.Accounts
 	marketDataStore *sqlstore.MarketData
+	rewardStore     *sqlstore.Rewards
+	marketsStore    *sqlstore.Markets
+	delegationStore *sqlstore.Delegations
+	epochStore      *sqlstore.Epochs
+	depositsStore   *sqlstore.Deposits
 	candleStore     *sqlstore.Candles
 }
 
@@ -33,6 +38,8 @@ var defaultEntityPagination = entities.Pagination{
 	Limit:      50,
 	Descending: true,
 }
+
+/****************************** Candles **************************************/
 
 func (t *tradingDataDelegator) Candles(ctx context.Context,
 	request *protoapi.CandlesRequest) (*protoapi.CandlesResponse, error) {
@@ -162,6 +169,161 @@ func (t *tradingDataDelegator) CandlesSubscribe(req *protoapi.CandlesSubscribeRe
 	return nil
 }
 
+/****************************** Epochs **************************************/
+
+func (t *tradingDataDelegator) GetEpoch(ctx context.Context, req *protoapi.GetEpochRequest) (*protoapi.GetEpochResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("GetEpoch SQL")()
+
+	var epoch entities.Epoch
+	var err error
+
+	if req.GetId() == 0 {
+		epoch, err = t.epochStore.GetCurrent(ctx)
+	} else {
+		epoch, err = t.epochStore.Get(ctx, int64(req.GetId()))
+	}
+
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+
+	protoEpoch := epoch.ToProto()
+
+	delegations, err := t.delegationStore.Get(ctx, nil, nil, &epoch.ID, nil)
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+
+	protoDelegations := make([]*vega.Delegation, len(delegations))
+	for i, delegation := range delegations {
+		protoDelegations[i] = delegation.ToProto()
+	}
+	protoEpoch.Delegations = protoDelegations
+
+	// TODO: Add in nodes once we've got them in the sql store too
+
+	return &protoapi.GetEpochResponse{
+		Epoch: protoEpoch,
+	}, nil
+}
+
+/****************************** Delegations **************************************/
+
+func (t *tradingDataDelegator) Delegations(ctx context.Context,
+	req *protoapi.DelegationsRequest) (*protoapi.DelegationsResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("Delegations SQL")()
+
+	var delegations []entities.Delegation
+	var err error
+
+	p := defaultPaginationV2
+	if req.Pagination != nil {
+		p = toEntityPagination(req.Pagination)
+	}
+
+	var epochID *int64
+	var partyID *string
+	var nodeID *string
+
+	if req.EpochSeq != "" {
+		epochNum, err := strconv.ParseInt(req.EpochSeq, 10, 64)
+		if err != nil {
+			return nil, apiError(codes.InvalidArgument, err)
+		}
+		epochID = &epochNum
+	}
+
+	if req.Party != "" {
+		partyID = &req.Party
+	}
+
+	if req.NodeId != "" {
+		nodeID = &req.NodeId
+	}
+
+	delegations, err = t.delegationStore.Get(ctx, partyID, nodeID, epochID, &p)
+
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+
+	protoDelegations := make([]*vega.Delegation, len(delegations))
+	for i, delegation := range delegations {
+		protoDelegations[i] = delegation.ToProto()
+	}
+
+	return &protoapi.DelegationsResponse{
+		Delegations: protoDelegations,
+	}, nil
+}
+
+/****************************** Rewards **************************************/
+
+func (t *tradingDataDelegator) GetRewards(ctx context.Context,
+	req *protoapi.GetRewardsRequest) (*protoapi.GetRewardsResponse, error) {
+
+	defer metrics.StartAPIRequestAndTimeGRPC("GetRewards-SQL")()
+	if len(req.PartyId) <= 0 {
+		return nil, apiError(codes.InvalidArgument, ErrGetRewards)
+	}
+
+	p := defaultPaginationV2
+	if req.Pagination != nil {
+		p = toEntityPagination(req.Pagination)
+	}
+
+	var rewards []entities.Reward
+	var err error
+
+	if len(req.AssetId) <= 0 {
+		rewards, err = t.rewardStore.Get(ctx, &req.PartyId, nil, &p)
+	} else {
+		rewards, err = t.rewardStore.Get(ctx, &req.PartyId, &req.AssetId, &p)
+	}
+
+	if err != nil {
+		return nil, apiError(codes.Internal, ErrGetRewards, err)
+	}
+
+	protoRewards := make([]*vega.Reward, len(rewards))
+	for i, reward := range rewards {
+		protoRewards[i] = reward.ToProto()
+	}
+
+	return &protoapi.GetRewardsResponse{Rewards: protoRewards}, nil
+}
+
+func (t *tradingDataDelegator) GetRewardSummaries(ctx context.Context,
+	req *protoapi.GetRewardSummariesRequest) (*protoapi.GetRewardSummariesResponse, error) {
+
+	defer metrics.StartAPIRequestAndTimeGRPC("GetRewardSummaries-SQL")()
+
+	if len(req.PartyId) <= 0 {
+		return nil, apiError(codes.InvalidArgument, ErrTradeServiceGetByParty)
+	}
+
+	var summaries []entities.RewardSummary
+	var err error
+
+	if len(req.AssetId) <= 0 {
+		summaries, err = t.rewardStore.GetSummaries(ctx, &req.PartyId, nil)
+	} else {
+		summaries, err = t.rewardStore.GetSummaries(ctx, &req.PartyId, &req.AssetId)
+	}
+
+	if err != nil {
+		return nil, apiError(codes.Internal, ErrGetRewards, err)
+	}
+
+	protoSummaries := make([]*vega.RewardSummary, len(summaries))
+	for i, summary := range summaries {
+		protoSummaries[i] = summary.ToProto()
+	}
+
+	return &protoapi.GetRewardSummariesResponse{Summaries: protoSummaries}, nil
+}
+
+/****************************** Trades **************************************/
 // TradesByParty provides a list of trades for the given party.
 // Pagination: Optional. If not provided, defaults are used.
 func (t *tradingDataDelegator) TradesByParty(ctx context.Context,
@@ -558,7 +720,7 @@ func (t *tradingDataDelegator) MarketDataByID(ctx context.Context, req *protoapi
 
 	// validate the market exist
 	if req.MarketId != "" {
-		_, err := t.MarketService.GetByID(ctx, req.MarketId)
+		_, err := t.marketsStore.GetByID(ctx, req.MarketId)
 		if err != nil {
 			return nil, apiError(codes.InvalidArgument, ErrInvalidMarketID, err)
 		}
@@ -585,5 +747,96 @@ func (t *tradingDataDelegator) MarketsData(ctx context.Context, _ *protoapi.Mark
 
 	return &protoapi.MarketsDataResponse{
 		MarketsData: mdptrs,
+	}, nil
+}
+
+// MarketByID provides the given market.
+func (t *tradingDataDelegator) MarketByID(ctx context.Context, req *protoapi.MarketByIDRequest) (*protoapi.MarketByIDResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("MarketByID_SQL")()
+
+	mkt, err := validateMarketSQL(ctx, req.MarketId, t.marketsStore)
+	if err != nil {
+		return nil, err // validateMarket already returns an API error, no need to additionally wrap
+	}
+
+	return &protoapi.MarketByIDResponse{
+		Market: mkt,
+	}, nil
+}
+
+func validateMarketSQL(ctx context.Context, marketID string, marketsStore *sqlstore.Markets) (*vega.Market, error) {
+	if len(marketID) == 0 {
+		return nil, apiError(codes.InvalidArgument, ErrEmptyMissingMarketID)
+	}
+
+	market, err := marketsStore.GetByID(ctx, marketID)
+
+	if err != nil {
+		// We return nil for error as we do not want
+		// to return an error when a market is not found
+		// but just a nil value.
+		return nil, nil
+	}
+
+	mkt, err := market.ToProto()
+
+	if err != nil {
+		return nil, nil
+	}
+
+	return mkt, nil
+}
+
+// Markets provides a list of all current markets that exist on the VEGA platform.
+func (t *tradingDataDelegator) Markets(ctx context.Context, _ *protoapi.MarketsRequest) (*protoapi.MarketsResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("Markets_SQL")()
+	markets, err := t.marketsStore.GetAll(ctx, entities.Pagination{})
+	if err != nil {
+		return nil, apiError(codes.Internal, ErrMarketServiceGetMarkets, err)
+	}
+
+	results := make([]*vega.Market, 0, len(markets))
+	for _, m := range markets {
+		mkt, err := m.ToProto()
+		if err != nil {
+			continue
+		}
+
+		results = append(results, mkt)
+	}
+
+	return &protoapi.MarketsResponse{
+		Markets: results,
+	}, nil
+}
+
+func (t *tradingDataDelegator) Deposit(ctx context.Context, req *protoapi.DepositRequest) (*protoapi.DepositResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("Deposit SQL")()
+	if len(req.Id) <= 0 {
+		return nil, ErrMissingDepositID
+	}
+	deposit, err := t.depositsStore.GetByID(ctx, req.Id)
+	if err != nil {
+		return nil, apiError(codes.NotFound, err)
+	}
+	return &protoapi.DepositResponse{
+		Deposit: deposit.ToProto(),
+	}, nil
+}
+
+func (t *tradingDataDelegator) Deposits(ctx context.Context, req *protoapi.DepositsRequest) (*protoapi.DepositsResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("Deposits SQL")()
+	if len(req.PartyId) <= 0 {
+		return nil, ErrMissingPartyID
+	}
+
+	// current API doesn't support pagination, but we will need to support it for v2
+	deposits := t.depositsStore.GetByParty(ctx, req.PartyId, false, entities.Pagination{})
+	out := make([]*vega.Deposit, 0, len(deposits))
+	for _, v := range deposits {
+		out = append(out, v.ToProto())
+	}
+	return &protoapi.DepositsResponse{
+		Deposits: out,
 	}, nil
 }
