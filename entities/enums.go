@@ -330,51 +330,19 @@ const (
 )
 
 func (s ProposalState) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
-	var state []byte
-	switch s {
-	case ProposalStateUnspecified:
-		state = []byte("STATE_UNSPECIFIED")
-	case ProposalStateFailed:
-		state = []byte("STATE_FAILED")
-	case ProposalStateOpen:
-		state = []byte("STATE_OPEN")
-	case ProposalStatePassed:
-		state = []byte("STATE_PASSED")
-	case ProposalStateRejected:
-		state = []byte("STATE_REJECTED")
-	case ProposalStateDeclined:
-		state = []byte("STATE_DECLINED")
-	case ProposalStateEnacted:
-		state = []byte("STATE_ENACTED")
-	case ProposalStateWaitingForNodeVote:
-		state = []byte("STATE_WAITING_FOR_NODE_VOTE")
+	str, ok := vega.Proposal_State_name[int32(s)]
+	if !ok {
+		return buf, fmt.Errorf("unknown state: %v", s)
 	}
-
-	return append(buf, state...), nil
+	return append(buf, []byte(str)...), nil
 }
 
 func (s *ProposalState) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
-	switch string(src) {
-	case "STATE_UNSPECIFIED":
-		*s = ProposalStateUnspecified
-	case "STATE_FAILED":
-		*s = ProposalStateFailed
-	case "STATE_OPEN":
-		*s = ProposalStateOpen
-	case "STATE_PASSED":
-		*s = ProposalStatePassed
-	case "STATE_REJECTED":
-		*s = ProposalStateRejected
-	case "STATE_DECLINED":
-		*s = ProposalStateDeclined
-	case "STATE_ENACTED":
-		*s = ProposalStateEnacted
-	case "STATE_WAITING_FOR_NODE_VOTE":
-		*s = ProposalStateWaitingForNodeVote
-	default:
+	val, ok := vega.Proposal_State_value[string(src)]
+	if !ok {
 		return fmt.Errorf("unknown state: %s", src)
 	}
-
+	*s = ProposalState(val)
 	return nil
 }
 
@@ -423,166 +391,19 @@ const (
 )
 
 func (s ProposalError) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
-	var state []byte
-	switch s {
-	case ProposalErrorUnspecified:
-		state = []byte("PROPOSAL_ERROR_UNSPECIFIED")
-	case ProposalErrorCloseTimeTooSoon:
-		state = []byte("PROPOSAL_ERROR_CLOSE_TIME_TOO_SOON")
-	case ProposalErrorCloseTimeTooLate:
-		state = []byte("PROPOSAL_ERROR_CLOSE_TIME_TOO_LATE")
-	case ProposalErrorEnactTimeTooSoon:
-		state = []byte("PROPOSAL_ERROR_ENACT_TIME_TOO_SOON")
-	case ProposalErrorEnactTimeTooLate:
-		state = []byte("PROPOSAL_ERROR_ENACT_TIME_TOO_LATE")
-	case ProposalErrorInsufficientTokens:
-		state = []byte("PROPOSAL_ERROR_INSUFFICIENT_TOKENS")
-	case ProposalErrorInvalidInstrumentSecurity:
-		state = []byte("PROPOSAL_ERROR_INVALID_INSTRUMENT_SECURITY")
-	case ProposalErrorNoProduct:
-		state = []byte("PROPOSAL_ERROR_NO_PRODUCT")
-	case ProposalErrorUnsupportedProduct:
-		state = []byte("PROPOSAL_ERROR_UNSUPPORTED_PRODUCT")
-	case ProposalErrorNoTradingMode:
-		state = []byte("PROPOSAL_ERROR_NO_TRADING_MODE")
-	case ProposalErrorUnsupportedTradingMode:
-		state = []byte("PROPOSAL_ERROR_UNSUPPORTED_TRADING_MODE")
-	case ProposalErrorNodeValidationFailed:
-		state = []byte("PROPOSAL_ERROR_NODE_VALIDATION_FAILED")
-	case ProposalErrorMissingBuiltinAssetField:
-		state = []byte("PROPOSAL_ERROR_MISSING_BUILTIN_ASSET_FIELD")
-	case ProposalErrorMissingErc20ContractAddress:
-		state = []byte("PROPOSAL_ERROR_MISSING_ERC20_CONTRACT_ADDRESS")
-	case ProposalErrorInvalidAsset:
-		state = []byte("PROPOSAL_ERROR_INVALID_ASSET")
-	case ProposalErrorIncompatibleTimestamps:
-		state = []byte("PROPOSAL_ERROR_INCOMPATIBLE_TIMESTAMPS")
-	case ProposalErrorNoRiskParameters:
-		state = []byte("PROPOSAL_ERROR_NO_RISK_PARAMETERS")
-	case ProposalErrorNetworkParameterInvalidKey:
-		state = []byte("PROPOSAL_ERROR_NETWORK_PARAMETER_INVALID_KEY")
-	case ProposalErrorNetworkParameterInvalidValue:
-		state = []byte("PROPOSAL_ERROR_NETWORK_PARAMETER_INVALID_VALUE")
-	case ProposalErrorNetworkParameterValidationFailed:
-		state = []byte("PROPOSAL_ERROR_NETWORK_PARAMETER_VALIDATION_FAILED")
-	case ProposalErrorOpeningAuctionDurationTooSmall:
-		state = []byte("PROPOSAL_ERROR_OPENING_AUCTION_DURATION_TOO_SMALL")
-	case ProposalErrorOpeningAuctionDurationTooLarge:
-		state = []byte("PROPOSAL_ERROR_OPENING_AUCTION_DURATION_TOO_LARGE")
-	case ProposalErrorMarketMissingLiquidityCommitment:
-		state = []byte("PROPOSAL_ERROR_MARKET_MISSING_LIQUIDITY_COMMITMENT")
-	case ProposalErrorCouldNotInstantiateMarket:
-		state = []byte("PROPOSAL_ERROR_COULD_NOT_INSTANTIATE_MARKET")
-	case ProposalErrorInvalidFutureProduct:
-		state = []byte("PROPOSAL_ERROR_INVALID_FUTURE_PRODUCT")
-	case ProposalErrorMissingCommitmentAmount:
-		state = []byte("PROPOSAL_ERROR_MISSING_COMMITMENT_AMOUNT")
-	case ProposalErrorInvalidFeeAmount:
-		state = []byte("PROPOSAL_ERROR_INVALID_FEE_AMOUNT")
-	case ProposalErrorInvalidShape:
-		state = []byte("PROPOSAL_ERROR_INVALID_SHAPE")
-	case ProposalErrorInvalidRiskParameter:
-		state = []byte("PROPOSAL_ERROR_INVALID_RISK_PARAMETER")
-	case ProposalErrorMajorityThresholdNotReached:
-		state = []byte("PROPOSAL_ERROR_MAJORITY_THRESHOLD_NOT_REACHED")
-	case ProposalErrorParticipationThresholdNotReached:
-		state = []byte("PROPOSAL_ERROR_PARTICIPATION_THRESHOLD_NOT_REACHED")
-	case ProposalErrorInvalidAssetDetails:
-		state = []byte("PROPOSAL_ERROR_INVALID_ASSET_DETAILS")
-	case ProposalErrorUnknownType:
-		state = []byte("PROPOSAL_ERROR_UNKNOWN_TYPE")
-	case ProposalErrorUnknownRiskParameterType:
-		state = []byte("PROPOSAL_ERROR_UNKNOWN_RISK_PARAMETER_TYPE")
-	case ProposalErrorInvalidFreeform:
-		state = []byte("PROPOSAL_ERROR_INVALID_FREEFORM")
-	case ProposalErrorInsufficientEquityLikeShare:
-		state = []byte("PROPOSAL_ERROR_INSUFFICIENT_EQUITY_LIKE_SHARE")
-	case ProposalErrorInvalidMarket:
-		state = []byte("PROPOSAL_ERROR_INVALID_MARKET")
+	str, ok := vega.ProposalError_name[int32(s)]
+	if !ok {
+		return buf, fmt.Errorf("unknown proposal error: %v", s)
 	}
-	return append(buf, state...), nil
+	return append(buf, []byte(str)...), nil
 }
 
 func (s *ProposalError) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
-	switch string(src) {
-	case "PROPOSAL_ERROR_UNSPECIFIED":
-		*s = ProposalErrorUnspecified
-	case "PROPOSAL_ERROR_CLOSE_TIME_TOO_SOON":
-		*s = ProposalErrorCloseTimeTooSoon
-	case "PROPOSAL_ERROR_CLOSE_TIME_TOO_LATE":
-		*s = ProposalErrorCloseTimeTooLate
-	case "PROPOSAL_ERROR_ENACT_TIME_TOO_SOON":
-		*s = ProposalErrorEnactTimeTooSoon
-	case "PROPOSAL_ERROR_ENACT_TIME_TOO_LATE":
-		*s = ProposalErrorEnactTimeTooLate
-	case "PROPOSAL_ERROR_INSUFFICIENT_TOKENS":
-		*s = ProposalErrorInsufficientTokens
-	case "PROPOSAL_ERROR_INVALID_INSTRUMENT_SECURITY":
-		*s = ProposalErrorInvalidInstrumentSecurity
-	case "PROPOSAL_ERROR_NO_PRODUCT":
-		*s = ProposalErrorNoProduct
-	case "PROPOSAL_ERROR_UNSUPPORTED_PRODUCT":
-		*s = ProposalErrorUnsupportedProduct
-	case "PROPOSAL_ERROR_NO_TRADING_MODE":
-		*s = ProposalErrorNoTradingMode
-	case "PROPOSAL_ERROR_UNSUPPORTED_TRADING_MODE":
-		*s = ProposalErrorUnsupportedTradingMode
-	case "PROPOSAL_ERROR_NODE_VALIDATION_FAILED":
-		*s = ProposalErrorNodeValidationFailed
-	case "PROPOSAL_ERROR_MISSING_BUILTIN_ASSET_FIELD":
-		*s = ProposalErrorMissingBuiltinAssetField
-	case "PROPOSAL_ERROR_MISSING_ERC20_CONTRACT_ADDRESS":
-		*s = ProposalErrorMissingErc20ContractAddress
-	case "PROPOSAL_ERROR_INVALID_ASSET":
-		*s = ProposalErrorInvalidAsset
-	case "PROPOSAL_ERROR_INCOMPATIBLE_TIMESTAMPS":
-		*s = ProposalErrorIncompatibleTimestamps
-	case "PROPOSAL_ERROR_NO_RISK_PARAMETERS":
-		*s = ProposalErrorNoRiskParameters
-	case "PROPOSAL_ERROR_NETWORK_PARAMETER_INVALID_KEY":
-		*s = ProposalErrorNetworkParameterInvalidKey
-	case "PROPOSAL_ERROR_NETWORK_PARAMETER_INVALID_VALUE":
-		*s = ProposalErrorNetworkParameterInvalidValue
-	case "PROPOSAL_ERROR_NETWORK_PARAMETER_VALIDATION_FAILED":
-		*s = ProposalErrorNetworkParameterValidationFailed
-	case "PROPOSAL_ERROR_OPENING_AUCTION_DURATION_TOO_SMALL":
-		*s = ProposalErrorOpeningAuctionDurationTooSmall
-	case "PROPOSAL_ERROR_OPENING_AUCTION_DURATION_TOO_LARGE":
-		*s = ProposalErrorOpeningAuctionDurationTooLarge
-	case "PROPOSAL_ERROR_MARKET_MISSING_LIQUIDITY_COMMITMENT":
-		*s = ProposalErrorMarketMissingLiquidityCommitment
-	case "PROPOSAL_ERROR_COULD_NOT_INSTANTIATE_MARKET":
-		*s = ProposalErrorCouldNotInstantiateMarket
-	case "PROPOSAL_ERROR_INVALID_FUTURE_PRODUCT":
-		*s = ProposalErrorInvalidFutureProduct
-	case "PROPOSAL_ERROR_MISSING_COMMITMENT_AMOUNT":
-		*s = ProposalErrorMissingCommitmentAmount
-	case "PROPOSAL_ERROR_INVALID_FEE_AMOUNT":
-		*s = ProposalErrorInvalidFeeAmount
-	case "PROPOSAL_ERROR_INVALID_SHAPE":
-		*s = ProposalErrorInvalidShape
-	case "PROPOSAL_ERROR_INVALID_RISK_PARAMETER":
-		*s = ProposalErrorInvalidRiskParameter
-	case "PROPOSAL_ERROR_MAJORITY_THRESHOLD_NOT_REACHED":
-		*s = ProposalErrorMajorityThresholdNotReached
-	case "PROPOSAL_ERROR_PARTICIPATION_THRESHOLD_NOT_REACHED":
-		*s = ProposalErrorParticipationThresholdNotReached
-	case "PROPOSAL_ERROR_INVALID_ASSET_DETAILS":
-		*s = ProposalErrorInvalidAssetDetails
-	case "PROPOSAL_ERROR_UNKNOWN_TYPE":
-		*s = ProposalErrorUnknownType
-	case "PROPOSAL_ERROR_UNKNOWN_RISK_PARAMETER_TYPE":
-		*s = ProposalErrorUnknownRiskParameterType
-	case "PROPOSAL_ERROR_INVALID_FREEFORM":
-		*s = ProposalErrorInvalidFreeform
-	case "PROPOSAL_ERROR_INSUFFICIENT_EQUITY_LIKE_SHARE":
-		*s = ProposalErrorInsufficientEquityLikeShare
-	case "PROPOSAL_ERROR_INVALID_MARKET":
-		*s = ProposalErrorInvalidMarket
-	default:
-		return fmt.Errorf("unknown state: %s", src)
+	val, ok := vega.ProposalError_value[string(src)]
+	if !ok {
+		return fmt.Errorf("unknown proposal error: %s", src)
 	}
-
+	*s = ProposalError(val)
 	return nil
 }
 
@@ -596,31 +417,19 @@ const (
 	VoteValueYes         = VoteValue(vega.Vote_VALUE_YES)
 )
 
-func (v VoteValue) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
-	var vote []byte
-	switch v {
-	case VoteValueUnspecified:
-		vote = []byte("VALUE_UNSPECIFIED")
-	case VoteValueNo:
-		vote = []byte("VALUE_NO")
-	case VoteValueYes:
-		vote = []byte("VALUE_YES")
-	default:
-		return []byte{}, fmt.Errorf("unknown vote value: %v", v)
+func (s VoteValue) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
+	str, ok := vega.Vote_Value_name[int32(s)]
+	if !ok {
+		return buf, fmt.Errorf("unknown vote value: %v", s)
 	}
-	return append(buf, vote...), nil
+	return append(buf, []byte(str)...), nil
 }
 
-func (v *VoteValue) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
-	switch string(src) {
-	case "VALUE_UNSPECIFIED":
-		*v = VoteValueUnspecified
-	case "VALUE_NO":
-		*v = VoteValueNo
-	case "VALUE_YES":
-		*v = VoteValueYes
-	default:
-		return fmt.Errorf("unknown vote value: %v", src)
+func (s *VoteValue) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
+	val, ok := vega.Vote_Value_value[string(src)]
+	if !ok {
+		return fmt.Errorf("unknown vote value: %s", src)
 	}
+	*s = VoteValue(val)
 	return nil
 }
