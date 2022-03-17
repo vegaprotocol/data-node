@@ -1,6 +1,7 @@
 package api
 
 import (
+	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/vegatime"
 	"context"
 	"errors"
@@ -22,6 +23,7 @@ var defaultPaginationV2 = entities.Pagination{
 
 type tradingDataServiceV2 struct {
 	v2.UnimplementedTradingDataServiceServer
+	log                *logging.Logger
 	balanceStore       *sqlstore.Balances
 	orderStore         *sqlstore.Orders
 	networkLimitsStore *sqlstore.NetworkLimits
@@ -212,7 +214,7 @@ func (t *tradingDataServiceV2) Candles(ctx context.Context, request *v2.CandlesR
 	candleId := "" // @Todo change v2 Api
 	candles, err := t.candleStore.GetCandleDataForTimeSpan(ctx, candleId, &from, &to, pagination)
 	if err != nil {
-		return nil, fmt.Errorf("getting candles for interval:%w", err)
+		return nil, apiError(codes.Internal, ErrCandleServiceGetCandles, err)
 	}
 
 	var protoCandles []*v2.Candle
@@ -230,35 +232,37 @@ func (t *tradingDataServiceV2) CandlesSubscribe(req *v2.CandlesSubscribeRequest,
 	defer cancel()
 
 	candleId := "" //@Todo change v2 API
-	subscriptionId, candlesChan, err := t.tradeStore.SubscribeToTradesCandle(ctx, candleId)
+	subscriptionId, candlesChan, err := t.candleStore.Subscribe(ctx, candleId)
 	if err != nil {
-		return fmt.Errorf("subscribing to candles:%w", err)
+		return apiError(codes.Internal, ErrCandleServiceSubscribeToCandles, err)
 	}
 
 	for {
 		select {
 		case candle, ok := <-candlesChan:
-
 			if !ok {
-				return fmt.Errorf("channel closed")
+				return apiError(codes.Internal, ErrCandleServiceSubscribeToCandles, fmt.Errorf("channel closed"))
 			}
 
 			resp := &v2.CandlesSubscribeResponse{
 				Candle: candle.ToV2CandleProto(),
 			}
 			if err = srv.Send(resp); err != nil {
-				return fmt.Errorf("sending candles:%w", err)
+				return apiError(codes.Internal, ErrCandleServiceSubscribeToCandles,
+					fmt.Errorf("sending candles:%w", err))
 			}
 		case <-ctx.Done():
-			t.tradeStore.UnsubscribeFromTradesCandle(subscriptionId)
+			err := t.candleStore.Unsubscribe(subscriptionId)
+			if err != nil {
+				t.log.Errorf("failed to unsubscribe from candle updates:%s", err)
+			}
+
 			err = ctx.Err()
 			if err != nil {
-				return fmt.Errorf("context done:%w", err)
+				return apiError(codes.Internal, ErrCandleServiceSubscribeToCandles, err)
 			}
 			return nil
 		}
 
 	}
-
-	return nil
 }

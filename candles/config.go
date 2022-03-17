@@ -1,9 +1,10 @@
 package candles
 
 import (
+	"time"
+
 	"code.vegaprotocol.io/data-node/config/encoding"
 	"code.vegaprotocol.io/data-node/logging"
-	"time"
 )
 
 // namedLogger is the identifier for package and should ideally match the package name

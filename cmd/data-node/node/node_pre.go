@@ -185,7 +185,7 @@ func (l *NodeCommand) setupStorages() error {
 			return fmt.Errorf("failed to create candles store: %w", err)
 		}
 
-		l.tradeStoreSQL = sqlstore.NewTrades(sqlStore, l.candleStoreSQL)
+		l.tradeStoreSQL = sqlstore.NewTrades(sqlStore)
 		l.sqlStore = sqlStore
 	}
 

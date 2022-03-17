@@ -5,10 +5,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/google/martian/log"
 	"strconv"
 
 	"code.vegaprotocol.io/data-node/entities"
-	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/metrics"
 	"code.vegaprotocol.io/data-node/sqlstore"
 	"code.vegaprotocol.io/data-node/vegatime"
@@ -112,14 +112,10 @@ func (t *tradingDataDelegator) CandlesSubscribe(req *protoapi.CandlesSubscribeRe
 			fmt.Errorf("candle does not exist for interval %s and market %s", interval, req.MarketId))
 	}
 
-	ref, candlesChan, err := t.tradeStore.SubscribeToTradesCandle(ctx, candleId)
+	ref, candlesChan, err := t.candleStore.Subscribe(ctx, candleId)
 	if err != nil {
 		return apiError(codes.Internal, ErrStreamInternal,
 			fmt.Errorf("subscribing to candles:%w", err))
-	}
-
-	if t.log.GetLevel() == logging.DebugLevel {
-		t.log.Debug("Candles subscriber - new rpc stream", logging.Uint64("ref", ref))
 	}
 
 	for {
@@ -128,10 +124,6 @@ func (t *tradingDataDelegator) CandlesSubscribe(req *protoapi.CandlesSubscribeRe
 
 			if !ok {
 				err = ErrChannelClosed
-				t.log.Error("Candles subscriber",
-					logging.Error(err),
-					logging.Uint64("ref", ref),
-				)
 				return apiError(codes.Internal, err)
 			}
 			proto, err := candle.ToV1CandleProto(req.Interval)
@@ -142,33 +134,19 @@ func (t *tradingDataDelegator) CandlesSubscribe(req *protoapi.CandlesSubscribeRe
 			resp := &protoapi.CandlesSubscribeResponse{
 				Candle: proto,
 			}
-			if err := srv.Send(resp); err != nil {
-				t.log.Error("Candles subscriber - rpc stream error",
-					logging.Error(err),
-					logging.Uint64("ref", ref),
-				)
+			if err = srv.Send(resp); err != nil {
 				return apiError(codes.Internal, ErrStreamInternal, err)
 			}
 		case <-ctx.Done():
-			err = ctx.Err()
-			if t.log.GetLevel() == logging.DebugLevel {
-				t.log.Debug("Candles subscriber - rpc stream ctx error",
-					logging.Error(err),
-					logging.Uint64("ref", ref),
-				)
+			err := t.candleStore.Unsubscribe(ref)
+			if err != nil {
+				log.Errorf("failed to unsubscribe from candle updates:%s", err)
 			}
-			return apiError(codes.Internal, ErrStreamInternal, err)
+			return apiError(codes.Internal, ErrStreamInternal, ctx.Err())
 		}
 
-		if candlesChan == nil {
-			if t.log.GetLevel() == logging.DebugLevel {
-				t.log.Debug("Candles subscriber - rpc stream closed", logging.Uint64("ref", ref))
-			}
-			return apiError(codes.Internal, ErrStreamClosed)
-		}
 	}
 
-	return nil
 }
 
 /****************************** Governance **************************************/

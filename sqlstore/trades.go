@@ -1,12 +1,10 @@
 package sqlstore
 
 import (
+	"code.vegaprotocol.io/data-node/entities"
 	"context"
 	"encoding/hex"
 	"fmt"
-	"sync"
-
-	"code.vegaprotocol.io/data-node/entities"
 
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgx/v4"
@@ -14,37 +12,17 @@ import (
 
 type Trades struct {
 	*SQLStore
-	candlesStore *Candles
-	trades       []*entities.Trade
-
-	mu sync.Mutex
+	trades []*entities.Trade
 }
 
-func NewTrades(sqlStore *SQLStore, candlesStore *Candles) *Trades {
+func NewTrades(sqlStore *SQLStore) *Trades {
 	t := &Trades{
-		SQLStore:     sqlStore,
-		candlesStore: candlesStore,
+		SQLStore: sqlStore,
 	}
 	return t
 }
 
-func (ts *Trades) SubscribeToTradesCandle(ctx context.Context, candleId string) (uint64, <-chan entities.Candle, error) {
-	ts.mu.Lock()
-	defer ts.mu.Unlock()
-
-	return ts.candlesStore.subscribe(ctx, candleId)
-}
-
-func (ts *Trades) UnsubscribeFromTradesCandle(subscriberID uint64) error {
-	ts.mu.Lock()
-	defer ts.mu.Unlock()
-
-	return ts.candlesStore.unsubscribe(subscriberID)
-}
-
 func (ts *Trades) OnTimeUpdateEvent(ctx context.Context) error {
-	ts.mu.Lock()
-	defer ts.mu.Unlock()
 
 	var rows [][]interface{}
 	for _, t := range ts.trades {

@@ -71,7 +71,7 @@ func TestCandlesPagination(t *testing.T) {
 		t.Fatalf("failed to create candles store:%s", err)
 	}
 
-	tradeStore := sqlstore.NewTrades(testStore, candleStore)
+	tradeStore := sqlstore.NewTrades(testStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
 	insertCandlesTestData(t, tradeStore, startTime, totalBlocks, tradesPerBlock, startPrice, priceIncrement, size, blockIntervalDur)
@@ -112,7 +112,7 @@ func TestCandlesGetForEmptyInterval(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to created candle store:%s", err)
 	}
-	tradeStore := sqlstore.NewTrades(testStore, candleStore)
+	tradeStore := sqlstore.NewTrades(testStore)
 	bs := sqlstore.NewBlocks(testStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
@@ -152,7 +152,7 @@ func TestCandlesGetLatest(t *testing.T) {
 	defer testStore.DeleteEverything()
 
 	candleStore, _ := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
-	tradeStore := sqlstore.NewTrades(testStore, candleStore)
+	tradeStore := sqlstore.NewTrades(testStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
 	insertCandlesTestData(t, tradeStore, startTime, 90, 3, startPrice, priceIncrement, size,
@@ -181,7 +181,7 @@ func TestCandlesGetForDifferentIntervalAndTimeBounds(t *testing.T) {
 	defer testStore.DeleteEverything()
 
 	candleStore, _ := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
-	tradeStore := sqlstore.NewTrades(testStore, candleStore)
+	tradeStore := sqlstore.NewTrades(testStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
 	insertCandlesTestData(t, tradeStore, startTime, totalBlocks, tradesPerBlock, startPrice, priceIncrement, size, blockIntervalDur)

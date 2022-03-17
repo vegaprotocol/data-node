@@ -281,7 +281,7 @@ func getTestGRPCServer(
 		t.Fatalf("failed to candle store: %v", err)
 	}
 
-	sqlTradeStore := sqlstore.NewTrades(&sqlStore, sqlCandleDataStore)
+	sqlTradeStore := sqlstore.NewTrades(&sqlStore)
 	sqlAssetStore := sqlstore.NewAssets(&sqlStore)
 	sqlAccountStore := sqlstore.NewAccounts(&sqlStore)
 	sqlRewardsStore := sqlstore.NewRewards(&sqlStore)

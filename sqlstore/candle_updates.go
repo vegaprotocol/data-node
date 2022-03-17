@@ -142,7 +142,8 @@ func (s *candleUpdatesStream) unsubscribe(subscriberId uint64) {
 }
 
 func (s *candleUpdatesStream) getCandleUpdatesSinceLastCandle(ctx context.Context, lastCandle *entities.Candle) ([]entities.Candle, error) {
-	ctx, _ = context.WithTimeout(ctx, s.config.CandlesFetchTimeout.Duration)
+	ctx, cancelFn := context.WithTimeout(ctx, s.config.CandlesFetchTimeout.Duration)
+	defer cancelFn()
 	if lastCandle != nil {
 		start := lastCandle.PeriodStart
 		candles, err := s.candleSource.GetCandleDataForTimeSpan(ctx, s.candleId, &start, nil, entities.Pagination{})
@@ -180,7 +181,8 @@ func (s *candleUpdatesStream) sendCandles(candles []entities.Candle, subscribers
 }
 
 func (s *candleUpdatesStream) getLastCandle(ctx context.Context) (*entities.Candle, error) {
-	ctx, _ = context.WithTimeout(ctx, s.config.CandlesFetchTimeout.Duration)
+	ctx, cancelFn := context.WithTimeout(ctx, s.config.CandlesFetchTimeout.Duration)
+	defer cancelFn()
 	pagination := entities.Pagination{
 		Skip:       0,
 		Limit:      1,

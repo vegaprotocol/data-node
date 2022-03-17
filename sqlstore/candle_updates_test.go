@@ -18,7 +18,7 @@ func TestCandleUpdatesOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("creating candle store:%s", err)
 	}
-	tradeStore := sqlstore.NewTrades(testStore, candleStore)
+	tradeStore := sqlstore.NewTrades(testStore)
 	bs := sqlstore.NewBlocks(testStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
@@ -27,7 +27,7 @@ func TestCandleUpdatesOrder(t *testing.T) {
 	insertTestTrade(t, tradeStore, 1, 10, block, 0)
 
 	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
-	_, out, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
+	_, out, err := candleStore.Subscribe(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
@@ -57,7 +57,7 @@ func TestCandleUpdatesSlowConsumer(t *testing.T) {
 		t.Fatalf("creating candle store:%s", err)
 	}
 
-	tradeStore := sqlstore.NewTrades(testStore, candleStore)
+	tradeStore := sqlstore.NewTrades(testStore)
 	bs := sqlstore.NewBlocks(testStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
@@ -66,7 +66,7 @@ func TestCandleUpdatesSlowConsumer(t *testing.T) {
 	insertTestTrade(t, tradeStore, 1, 10, block, 0)
 
 	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
-	_, out, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
+	_, out, err := candleStore.Subscribe(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
@@ -94,7 +94,7 @@ func TestCandleUpdatesSubscribe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("creating candle store:%s", err)
 	}
-	tradeStore := sqlstore.NewTrades(testStore, candleStore)
+	tradeStore := sqlstore.NewTrades(testStore)
 	bs := sqlstore.NewBlocks(testStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
@@ -103,11 +103,11 @@ func TestCandleUpdatesSubscribe(t *testing.T) {
 	insertTestTrade(t, tradeStore, 1, 10, block, 0)
 
 	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
-	_, out1, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
+	_, out1, err := candleStore.Subscribe(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
-	_, out2, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
+	_, out2, err := candleStore.Subscribe(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
@@ -130,7 +130,7 @@ func TestCandleUpdatesSubscribeWhenNoCandleExistsInStartPeriod(t *testing.T) {
 	if err != nil {
 		t.Fatalf("creating candle store:%s", err)
 	}
-	tradeStore := sqlstore.NewTrades(testStore, candleStore)
+	tradeStore := sqlstore.NewTrades(testStore)
 	bs := sqlstore.NewBlocks(testStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
@@ -139,7 +139,7 @@ func TestCandleUpdatesSubscribeWhenNoCandleExistsInStartPeriod(t *testing.T) {
 	insertTestTrade(t, tradeStore, 1, 10, block, 0)
 
 	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
-	_, out, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
+	_, out, err := candleStore.Subscribe(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
@@ -160,7 +160,7 @@ func TestCandleUpdatesTradesConflatedIntoCandle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("creating candle store:%s", err)
 	}
-	tradeStore := sqlstore.NewTrades(testStore, candleStore)
+	tradeStore := sqlstore.NewTrades(testStore)
 	bs := sqlstore.NewBlocks(testStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
@@ -169,7 +169,7 @@ func TestCandleUpdatesTradesConflatedIntoCandle(t *testing.T) {
 	insertTestTrade(t, tradeStore, 1, 10, block, 0)
 
 	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
-	_, out, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
+	_, out, err := candleStore.Subscribe(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
@@ -196,7 +196,7 @@ func TestCandleUpdatesUnsubscribe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("creating candle store:%s", err)
 	}
-	tradeStore := sqlstore.NewTrades(testStore, candleStore)
+	tradeStore := sqlstore.NewTrades(testStore)
 	bs := sqlstore.NewBlocks(testStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
@@ -205,7 +205,7 @@ func TestCandleUpdatesUnsubscribe(t *testing.T) {
 	insertTestTrade(t, tradeStore, 1, 10, block, 0)
 
 	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
-	subscriptionId, out, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
+	subscriptionId, out, err := candleStore.Subscribe(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
@@ -216,7 +216,7 @@ func TestCandleUpdatesUnsubscribe(t *testing.T) {
 	expectedCandle := createCandle(startTime, startTime.Add(1*time.Microsecond), 1, 2, 2, 1, 30)
 	assert.Equal(t, expectedCandle, candle1)
 
-	tradeStore.UnsubscribeFromTradesCandle(subscriptionId)
+	candleStore.Unsubscribe(subscriptionId)
 
 	block = nextBlock(t, bs, block, 1*time.Second)
 	insertTestTrade(t, tradeStore, 4, 20, block, 0)
@@ -232,7 +232,7 @@ func TestCandleUpdatesUnsubscribe(t *testing.T) {
 	block = nextBlock(t, bs, block, 1*time.Second)
 	insertTestTrade(t, tradeStore, 5, 20, block, 0)
 
-	subscriptionId2, out, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
+	subscriptionId2, out, err := candleStore.Subscribe(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe: %s", err)
 	}
@@ -255,7 +255,7 @@ func TestCandleUpdatesOverPeriodBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("creating candle store:%s", err)
 	}
-	tradeStore := sqlstore.NewTrades(testStore, candleStore)
+	tradeStore := sqlstore.NewTrades(testStore)
 	bs := sqlstore.NewBlocks(testStore)
 
 	startTime := time.Unix(Midnight3rdMarch2022InUnixTime, 0)
@@ -264,7 +264,7 @@ func TestCandleUpdatesOverPeriodBoundary(t *testing.T) {
 	insertTestTrade(t, tradeStore, 1, 10, block, 0)
 
 	_, candleId, _ := candleStore.GetCandleIdForIntervalAndGroup(context.Background(), "1 Minute", testMarket)
-	_, out, err := tradeStore.SubscribeToTradesCandle(context.Background(), candleId)
+	_, out, err := candleStore.Subscribe(context.Background(), candleId)
 	if err != nil {
 		t.Fatalf("failed to subscribe to candle:%s", err)
 	}

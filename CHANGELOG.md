@@ -11,6 +11,7 @@
 ### 🛠  Improvements
 - [430](https://github.com/vegaprotocol/data-node/pull/430) - Migrate deposit API to retrieve data from `Postgres`
 - [435](https://github.com/vegaprotocol/data-node/pull/435) - Migrate governance API to retrieve data from `Postgres`
+- [369](https://github.com/vegaprotocol/data-node/pull/369) - Migrate candles API to retrieve data from `Postgres`
 
 ### 🐛 Fixes
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -

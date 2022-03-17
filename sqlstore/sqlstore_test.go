@@ -88,7 +88,6 @@ func getNextPort() int {
 	rand.Seed(time.Now().UnixNano())
 	for {
 		port := rand.Intn(maxPort-minPort+1) + minPort
-		fmt.Printf("Starting test database on port:%d", port)
 		timeout := time.Millisecond * 100
 		conn, err := net.DialTimeout("tcp", net.JoinHostPort("localhost", fmt.Sprintf("%d", port)), timeout)
 		if err != nil {

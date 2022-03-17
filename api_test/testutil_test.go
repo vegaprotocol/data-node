@@ -219,7 +219,7 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 		t.Fatalf("failed to create candle store: %v", err)
 	}
 
-	sqlTradeStore := sqlstore.NewTrades(&sqlStore, sqlCandleStore)
+	sqlTradeStore := sqlstore.NewTrades(&sqlStore)
 	sqlNetworkLimitsStore := sqlstore.NewNetworkLimits(&sqlStore)
 	sqlAssetStore := sqlstore.NewAssets(&sqlStore)
 	sqlAccountStore := sqlstore.NewAccounts(&sqlStore)

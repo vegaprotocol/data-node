@@ -372,6 +372,7 @@ func (g *GRPCServer) Start(ctx context.Context, lis net.Listener) error {
 	protoapi.RegisterTradingDataServiceServer(g.srv, g.tradingDataService)
 
 	tradingDataSvcV2 := &tradingDataServiceV2{
+		log:                g.log,
 		balanceStore:       g.balanceStore,
 		orderStore:         g.orderStore,
 		networkLimitsStore: g.networkLimitsStore,

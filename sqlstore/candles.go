@@ -105,7 +105,7 @@ func (cs *Candles) GetCandleDataForTimeSpan(ctx context.Context, candleId string
 	return candles, nil
 }
 
-// GetExistingCandlesForGroup returns a map of existing intervals to candle ids for the given market
+// GetExistingCandlesForGroup returns a map of existing intervals to candle ids for the given group
 func (cs *Candles) GetExistingCandlesForGroup(ctx context.Context, group string) (map[string]string, error) {
 
 	result, err := cs.getIntervalToView(ctx)
@@ -169,6 +169,57 @@ func (cs *Candles) ValidateInterval(ctx context.Context, interval string) error 
 	}
 
 	return nil
+}
+
+// Subscribe to a channel of new or updated candles. The subscriber id will be returned as an uint64 value
+// and must be retained for future reference and to unsubscribe.
+func (cs *Candles) Subscribe(ctx context.Context, candleId string) (uint64, <-chan entities.Candle, error) {
+	cs.subscriptionMutex.Lock()
+	defer cs.subscriptionMutex.Unlock()
+
+	candle, err := cs.candleFromCandleId(candleId)
+	if err != nil {
+		return 0, nil, fmt.Errorf("getting candles for time span:%w", err)
+	}
+
+	exists, err := cs.candleExists(ctx, candle)
+	if err != nil {
+		return 0, nil, fmt.Errorf("getting candles for time span:%w", err)
+	}
+
+	if !exists {
+		return 0, nil, fmt.Errorf("no candle exists for candle id:%s", candleId)
+	}
+
+	if _, ok := cs.candleIdToEventStream[candleId]; !ok {
+		evtStream, err := newCandleUpdatesStream(cs.ctx, cs.log, candleId, cs, cs.config)
+		if err != nil {
+			return 0, nil, fmt.Errorf("subsribing to candle updates:%w", err)
+		}
+
+		cs.candleIdToEventStream[candleId] = evtStream
+	}
+
+	evtStream := cs.candleIdToEventStream[candleId]
+	cs.nextSubscriptionId++
+	subscriptionId := cs.nextSubscriptionId
+
+	out := evtStream.subscribe(subscriptionId)
+
+	return subscriptionId, out, nil
+}
+
+func (cs *Candles) Unsubscribe(subscriptionId uint64) error {
+	cs.subscriptionMutex.Lock()
+	defer cs.subscriptionMutex.Unlock()
+
+	if candleId, ok := cs.subscriptionIdToCandleId[subscriptionId]; ok {
+		evtStream := cs.candleIdToEventStream[candleId]
+		evtStream.unsubscribe(subscriptionId)
+		return nil
+	} else {
+		return fmt.Errorf("no subscription with id %d found", subscriptionId)
+	}
 }
 
 func (cs *Candles) getIntervalToView(ctx context.Context) (map[string]string, error) {
@@ -253,62 +304,15 @@ func (cs *Candles) viewExistsForInterval(ctx context.Context, interval string) (
 	}
 
 	seconds, err := cs.getIntervalSeconds(ctx, interval)
+	if err != nil {
+		return false, "", fmt.Errorf("checking if view exists for interval:%w", err)
+	}
+
 	if existingInterval, ok := existingIntervals[seconds]; ok {
 		return true, existingInterval, nil
 	}
 
 	return false, "", nil
-}
-
-// subscribe to a channel of new or updated candles. The subscriber id will be returned as an uint64 value
-// and must be retained for future reference and to unsubscribe.
-func (cs *Candles) subscribe(ctx context.Context, candleId string) (uint64, <-chan entities.Candle, error) {
-	cs.subscriptionMutex.Lock()
-	defer cs.subscriptionMutex.Unlock()
-
-	candle, err := cs.candleFromCandleId(candleId)
-	if err != nil {
-		return 0, nil, fmt.Errorf("getting candles for time span:%w", err)
-	}
-
-	exists, err := cs.candleExists(ctx, candle)
-	if err != nil {
-		return 0, nil, fmt.Errorf("getting candles for time span:%w", err)
-	}
-
-	if !exists {
-		return 0, nil, fmt.Errorf("no candle exists for candle id:%s", candleId)
-	}
-
-	if _, ok := cs.candleIdToEventStream[candleId]; !ok {
-		evtStream, err := newCandleUpdatesStream(cs.ctx, cs.log, candleId, cs, cs.config)
-		if err != nil {
-			return 0, nil, fmt.Errorf("subsribing to candle updates:%w", err)
-		}
-
-		cs.candleIdToEventStream[candleId] = evtStream
-	}
-
-	evtStream := cs.candleIdToEventStream[candleId]
-	cs.nextSubscriptionId++
-	subscriptionId := cs.nextSubscriptionId
-
-	out := evtStream.subscribe(subscriptionId)
-
-	return subscriptionId, out, nil
-}
-
-func (cs *Candles) unsubscribe(subscriptionId uint64) error {
-	cs.subscriptionMutex.Lock()
-	defer cs.subscriptionMutex.Unlock()
-
-	if candleId, ok := cs.subscriptionIdToCandleId[subscriptionId]; ok {
-		evtStream := cs.candleIdToEventStream[candleId]
-		evtStream.unsubscribe(subscriptionId)
-		return nil
-	} else {
-		return fmt.Errorf("no subscription with id %d found", subscriptionId)
-	}
 }
 
 func (cs *Candles) normaliseInterval(ctx context.Context, interval string) (string, error) {

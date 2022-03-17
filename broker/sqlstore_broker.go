@@ -1,9 +1,10 @@
 package broker
 
 import (
+	"context"
+
 	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/vega/events"
-	"context"
 )
 
 type SqlBrokerSubscriber interface {
