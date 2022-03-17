@@ -30,7 +30,7 @@ const (
 	blockIntervalDur               = time.Duration(blockIntervalSeconds) * time.Second
 )
 
-func Test_CreatingCandleWithIntervalEquivalentToExistingCandleIntervalFails(t *testing.T) {
+func TestCreatingCandleWithIntervalEquivalentToExistingCandleIntervalFails(t *testing.T) {
 	defer testStore.DeleteEverything()
 	config := newTestCandleConfig(1)
 
@@ -43,7 +43,7 @@ func Test_CreatingCandleWithIntervalEquivalentToExistingCandleIntervalFails(t *t
 
 }
 
-func Test_GetExistingCandles(t *testing.T) {
+func TestGetExistingCandles(t *testing.T) {
 	defer testStore.DeleteEverything()
 	config := newTestCandleConfig(1)
 
@@ -63,7 +63,7 @@ func Test_GetExistingCandles(t *testing.T) {
 
 }
 
-func Test_CandlesPagination(t *testing.T) {
+func TestCandlesPagination(t *testing.T) {
 	defer testStore.DeleteEverything()
 
 	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
@@ -105,7 +105,7 @@ func Test_CandlesPagination(t *testing.T) {
 	assert.Equal(t, lastCandle, candles[0])
 }
 
-func Test_CandlesGetForEmptyInterval(t *testing.T) {
+func TestCandlesGetForEmptyInterval(t *testing.T) {
 	defer testStore.DeleteEverything()
 
 	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
@@ -148,7 +148,7 @@ func Test_CandlesGetForEmptyInterval(t *testing.T) {
 	assert.Equal(t, secondCandle, candles[1])
 }
 
-func Test_CandlesGetLatest(t *testing.T) {
+func TestCandlesGetLatest(t *testing.T) {
 	defer testStore.DeleteEverything()
 
 	candleStore, _ := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
@@ -177,7 +177,7 @@ func Test_CandlesGetLatest(t *testing.T) {
 	assert.Equal(t, lastCandle, candles[0])
 }
 
-func Test_CandlesGetForDifferentIntervalAndTimeBounds(t *testing.T) {
+func TestCandlesGetForDifferentIntervalAndTimeBounds(t *testing.T) {
 	defer testStore.DeleteEverything()
 
 	candleStore, _ := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))

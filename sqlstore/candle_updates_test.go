@@ -11,7 +11,7 @@ import (
 	"code.vegaprotocol.io/data-node/sqlstore"
 )
 
-func Test_CandleUpdatesOrder(t *testing.T) {
+func TestCandleUpdatesOrder(t *testing.T) {
 	defer testStore.DeleteEverything()
 
 	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(5))
@@ -49,7 +49,7 @@ func Test_CandleUpdatesOrder(t *testing.T) {
 	assert.Equal(t, expectedCandle, candle3)
 }
 
-func Test_CandleUpdatesSlowConsumer(t *testing.T) {
+func TestCandleUpdatesSlowConsumer(t *testing.T) {
 	defer testStore.DeleteEverything()
 
 	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
@@ -87,7 +87,7 @@ func Test_CandleUpdatesSlowConsumer(t *testing.T) {
 	}
 }
 
-func Test_CandleUpdatesSubscribe(t *testing.T) {
+func TestCandleUpdatesSubscribe(t *testing.T) {
 	defer testStore.DeleteEverything()
 
 	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
@@ -123,7 +123,7 @@ func Test_CandleUpdatesSubscribe(t *testing.T) {
 	assert.Equal(t, expectedCandle, candle2)
 }
 
-func Test_CandleUpdatesSubscribeWhenNoCandleExistsInStartPeriod(t *testing.T) {
+func TestCandleUpdatesSubscribeWhenNoCandleExistsInStartPeriod(t *testing.T) {
 	defer testStore.DeleteEverything()
 
 	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
@@ -153,7 +153,7 @@ func Test_CandleUpdatesSubscribeWhenNoCandleExistsInStartPeriod(t *testing.T) {
 	assert.Equal(t, expectedCandle, candle1)
 }
 
-func Test_CandleUpdatesTradesConflatedIntoCandle(t *testing.T) {
+func TestCandleUpdatesTradesConflatedIntoCandle(t *testing.T) {
 	defer testStore.DeleteEverything()
 
 	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
@@ -189,7 +189,7 @@ func nextBlock(t *testing.T, bs *sqlstore.Blocks, block entities.Block, duration
 	return addTestBlockForTime(t, bs, block.VegaTime.Add(duration))
 }
 
-func Test_CandleUpdatesUnsubscribe(t *testing.T) {
+func TestCandleUpdatesUnsubscribe(t *testing.T) {
 	defer testStore.DeleteEverything()
 
 	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
@@ -248,7 +248,7 @@ func Test_CandleUpdatesUnsubscribe(t *testing.T) {
 
 }
 
-func Test_CandleUpdatesOverPeriodBoundary(t *testing.T) {
+func TestCandleUpdatesOverPeriodBoundary(t *testing.T) {
 	defer testStore.DeleteEverything()
 
 	candleStore, err := sqlstore.NewCandles(context.Background(), testStore, "trades", newTestCandleConfig(1))
