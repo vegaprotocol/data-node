@@ -130,8 +130,11 @@ func (l *NodeCommand) setupSQLSubscribers() {
 	l.networkLimitsSubSQL = sqlsubscribers.NewNetworkLimitSub(l.ctx, l.networkLimitsStoreSQL, l.Log)
 	l.marketDataSubSQL = sqlsubscribers.NewMarketData(l.marketDataStoreSQL, l.Log, l.conf.SQLStore.Timeout.Duration)
 	l.tradesSubSQL = sqlsubscribers.NewTradesSubscriber(l.tradeStoreSQL, l.Log)
+	l.rewardsSubSQL = sqlsubscribers.NewReward(l.rewardStoreSQL, l.Log)
 	l.marketCreatedSubSQL = sqlsubscribers.NewMarketCreated(l.marketsStoreSQL, l.Log)
 	l.marketUpdatedSubSQL = sqlsubscribers.NewMarketUpdated(l.marketsStoreSQL, l.Log)
+	l.delegationsSubSQL = sqlsubscribers.NewDelegation(l.delegationStoreSQL, l.Log)
+	l.epochSubSQL = sqlsubscribers.NewEpoch(l.epochStoreSQL, l.Log)
 	l.depositSubSQL = sqlsubscribers.NewDeposit(l.depositStoreSQL, l.Log)
 }
 
@@ -168,7 +171,10 @@ func (l *NodeCommand) setupStorages() error {
 		l.networkLimitsStoreSQL = sqlstore.NewNetworkLimits(sqlStore)
 		l.marketDataStoreSQL = sqlstore.NewMarketData(sqlStore)
 		l.tradeStoreSQL = sqlstore.NewTrades(sqlStore)
+		l.rewardStoreSQL = sqlstore.NewRewards(sqlStore)
 		l.marketsStoreSQL = sqlstore.NewMarkets(sqlStore)
+		l.delegationStoreSQL = sqlstore.NewDelegations(sqlStore)
+		l.epochStoreSQL = sqlstore.NewEpochs(sqlStore)
 		l.depositStoreSQL = sqlstore.NewDeposits(sqlStore)
 
 		l.sqlStore = sqlStore
@@ -247,7 +253,11 @@ func (l *NodeCommand) preRun(_ []string) (err error) {
 			l.networkLimitsSubSQL,
 			l.marketDataSubSQL,
 			l.tradesSubSQL,
+			l.rewardsSubSQL,
+			l.delegationsSubSQL,
 			l.marketCreatedSubSQL,
+			l.marketUpdatedSubSQL,
+			l.epochSubSQL,
 			l.marketUpdatedSubSQL,
 			l.depositSubSQL)
 	}
