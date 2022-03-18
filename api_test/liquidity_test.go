@@ -80,8 +80,6 @@ loop:
 			})
 			require.NotNil(t, respNoParty)
 			require.NoError(t, err)
-			require.NotEmpty(t, respNoParty.LiquidityProvisions)
-			require.NotEqual(t, "", respNoParty.String())
 
 			respWithParty, err := client.LiquidityProvisions(ctx, &apipb.LiquidityProvisionsRequest{
 				Market: lpMmarketID,
@@ -97,6 +95,10 @@ loop:
 	}
 
 	assert.NoError(t, err)
+
+	require.NotEmpty(t, respNoParty.LiquidityProvisions)
+	require.NotEqual(t, "", respNoParty.String())
+
 	assert.Equal(t, lpMmarketID, respWithParty.LiquidityProvisions[0].MarketId)
 	assert.Equal(t, lpPartyID, respWithParty.LiquidityProvisions[0].PartyId)
 }
