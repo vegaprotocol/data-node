@@ -81,7 +81,7 @@ loop:
 			require.NotNil(t, respNoParty)
 			require.NoError(t, err)
 
-			respWithParty, err := client.LiquidityProvisions(ctx, &apipb.LiquidityProvisionsRequest{
+			respWithParty, err = client.LiquidityProvisions(ctx, &apipb.LiquidityProvisionsRequest{
 				Market: lpMmarketID,
 				Party:  lpPartyID,
 			})
