@@ -1,6 +1,11 @@
 package entities
 
-import "code.vegaprotocol.io/protos/vega"
+import (
+	"fmt"
+
+	"code.vegaprotocol.io/protos/vega"
+	"github.com/jackc/pgtype"
+)
 
 type Side = vega.Side
 
@@ -195,3 +200,236 @@ const (
 	// An FOK, IOC, or GFN order was rejected because it resulted in trades outside the price bounds.
 	OrderErrorNonPersistentOrderOutOfPriceBounds OrderError = vega.OrderError_ORDER_ERROR_NON_PERSISTENT_ORDER_OUT_OF_PRICE_BOUNDS
 )
+
+type MarketTradingMode vega.Market_TradingMode
+
+const (
+	MarketTradingModeUnspecified       = MarketTradingMode(vega.Market_TRADING_MODE_UNSPECIFIED)
+	MarketTradingModeContinuous        = MarketTradingMode(vega.Market_TRADING_MODE_CONTINUOUS)
+	MarketTradingModeBatchAuction      = MarketTradingMode(vega.Market_TRADING_MODE_BATCH_AUCTION)
+	MarketTradingModeOpeningAuction    = MarketTradingMode(vega.Market_TRADING_MODE_OPENING_AUCTION)
+	MarketTradingModeMonitoringAuction = MarketTradingMode(vega.Market_TRADING_MODE_MONITORING_AUCTION)
+)
+
+func (m MarketTradingMode) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
+	mode := []byte(vega.Market_TradingMode_name[int32(m)])
+	return append(buf, mode...), nil
+}
+
+func (m *MarketTradingMode) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
+	switch string(src) {
+	case "TRADING_MODE_UNSPECIFIED":
+		*m = MarketTradingModeUnspecified
+	case "TRADING_MODE_CONTINUOUS":
+		*m = MarketTradingModeContinuous
+	case "TRADING_MODE_BATCH_AUCTION":
+		*m = MarketTradingModeBatchAuction
+	case "TRADING_MODE_OPENING_AUCTION":
+		*m = MarketTradingModeOpeningAuction
+	case "TRADING_MODE_MONITORING_AUCTION":
+		*m = MarketTradingModeMonitoringAuction
+	default:
+		return fmt.Errorf("unrecognized trading mode: %s", src)
+	}
+
+	return nil
+}
+
+type MarketState vega.Market_State
+
+const (
+	MarketStateUnspecified       = MarketState(vega.Market_STATE_UNSPECIFIED)
+	MarketStateProposed          = MarketState(vega.Market_STATE_PROPOSED)
+	MarketStateRejected          = MarketState(vega.Market_STATE_REJECTED)
+	MarketStatePending           = MarketState(vega.Market_STATE_PENDING)
+	MarketStateCancelled         = MarketState(vega.Market_STATE_CANCELLED)
+	MarketStateActive            = MarketState(vega.Market_STATE_ACTIVE)
+	MarketStateSuspended         = MarketState(vega.Market_STATE_SUSPENDED)
+	MarketStateClosed            = MarketState(vega.Market_STATE_CLOSED)
+	MarketStateTradingTerminated = MarketState(vega.Market_STATE_TRADING_TERMINATED)
+	MarketStateSettled           = MarketState(vega.Market_STATE_SETTLED)
+)
+
+func (s MarketState) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
+	state := []byte(vega.Market_State_name[(int32(s))])
+	return append(buf, state...), nil
+}
+
+func (s *MarketState) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
+	switch string(src) {
+	case "STATE_UNSPECIFIED":
+		*s = MarketStateUnspecified
+	case "STATE_PROPOSED":
+		*s = MarketStateProposed
+	case "STATE_REJECTED":
+		*s = MarketStateRejected
+	case "STATE_PENDING":
+		*s = MarketStatePending
+	case "STATE_CANCELLED":
+		*s = MarketStateCancelled
+	case "STATE_ACTIVE":
+		*s = MarketStateActive
+	case "STATE_SUSPENDED":
+		*s = MarketStateSuspended
+	case "STATE_CLOSED":
+		*s = MarketStateClosed
+	case "STATE_TRADING_TERMINATED":
+		*s = MarketStateTradingTerminated
+	case "STATE_SETTLED":
+		*s = MarketStateSettled
+	default:
+		return fmt.Errorf("unknown state: %s", src)
+	}
+
+	return nil
+}
+
+type DepositStatus vega.Deposit_Status
+
+const (
+	DepositStatusUnspecified = DepositStatus(vega.Deposit_STATUS_UNSPECIFIED)
+	DepositStatusOpen        = DepositStatus(vega.Deposit_STATUS_OPEN)
+	DepositStatusCancelled   = DepositStatus(vega.Deposit_STATUS_CANCELLED)
+	DepositStatusFinalized   = DepositStatus(vega.Deposit_STATUS_FINALIZED)
+)
+
+func (s DepositStatus) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
+	status := []byte(vega.Deposit_Status_name[int32(s)])
+	return append(buf, status...), nil
+}
+
+func (s *DepositStatus) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
+	switch string(src) {
+	case "STATUS_UNSPECIFIED":
+		*s = DepositStatusUnspecified
+	case "STATUS_OPEN":
+		*s = DepositStatusOpen
+	case "STATUS_CANCELLED":
+		*s = DepositStatusCancelled
+	case "STATUS_FINALIZED":
+		*s = DepositStatusFinalized
+	default:
+		return fmt.Errorf("unknown status: %s", src)
+	}
+	return nil
+}
+
+/************************* Proposal State *****************************/
+
+type ProposalState vega.Proposal_State
+
+const (
+	ProposalStateUnspecified        = ProposalState(vega.Proposal_STATE_UNSPECIFIED)
+	ProposalStateFailed             = ProposalState(vega.Proposal_STATE_FAILED)
+	ProposalStateOpen               = ProposalState(vega.Proposal_STATE_OPEN)
+	ProposalStatePassed             = ProposalState(vega.Proposal_STATE_PASSED)
+	ProposalStateRejected           = ProposalState(vega.Proposal_STATE_REJECTED)
+	ProposalStateDeclined           = ProposalState(vega.Proposal_STATE_DECLINED)
+	ProposalStateEnacted            = ProposalState(vega.Proposal_STATE_ENACTED)
+	ProposalStateWaitingForNodeVote = ProposalState(vega.Proposal_STATE_WAITING_FOR_NODE_VOTE)
+)
+
+func (s ProposalState) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
+	str, ok := vega.Proposal_State_name[int32(s)]
+	if !ok {
+		return buf, fmt.Errorf("unknown state: %v", s)
+	}
+	return append(buf, []byte(str)...), nil
+}
+
+func (s *ProposalState) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
+	val, ok := vega.Proposal_State_value[string(src)]
+	if !ok {
+		return fmt.Errorf("unknown state: %s", src)
+	}
+	*s = ProposalState(val)
+	return nil
+}
+
+/************************* Proposal Error *****************************/
+
+type ProposalError vega.ProposalError
+
+const (
+	ProposalErrorUnspecified                      = ProposalError(vega.ProposalError_PROPOSAL_ERROR_UNSPECIFIED)
+	ProposalErrorCloseTimeTooSoon                 = ProposalError(vega.ProposalError_PROPOSAL_ERROR_CLOSE_TIME_TOO_SOON)
+	ProposalErrorCloseTimeTooLate                 = ProposalError(vega.ProposalError_PROPOSAL_ERROR_CLOSE_TIME_TOO_LATE)
+	ProposalErrorEnactTimeTooSoon                 = ProposalError(vega.ProposalError_PROPOSAL_ERROR_ENACT_TIME_TOO_SOON)
+	ProposalErrorEnactTimeTooLate                 = ProposalError(vega.ProposalError_PROPOSAL_ERROR_ENACT_TIME_TOO_LATE)
+	ProposalErrorInsufficientTokens               = ProposalError(vega.ProposalError_PROPOSAL_ERROR_INSUFFICIENT_TOKENS)
+	ProposalErrorInvalidInstrumentSecurity        = ProposalError(vega.ProposalError_PROPOSAL_ERROR_INVALID_INSTRUMENT_SECURITY)
+	ProposalErrorNoProduct                        = ProposalError(vega.ProposalError_PROPOSAL_ERROR_NO_PRODUCT)
+	ProposalErrorUnsupportedProduct               = ProposalError(vega.ProposalError_PROPOSAL_ERROR_UNSUPPORTED_PRODUCT)
+	ProposalErrorNoTradingMode                    = ProposalError(vega.ProposalError_PROPOSAL_ERROR_NO_TRADING_MODE)
+	ProposalErrorUnsupportedTradingMode           = ProposalError(vega.ProposalError_PROPOSAL_ERROR_UNSUPPORTED_TRADING_MODE)
+	ProposalErrorNodeValidationFailed             = ProposalError(vega.ProposalError_PROPOSAL_ERROR_NODE_VALIDATION_FAILED)
+	ProposalErrorMissingBuiltinAssetField         = ProposalError(vega.ProposalError_PROPOSAL_ERROR_MISSING_BUILTIN_ASSET_FIELD)
+	ProposalErrorMissingErc20ContractAddress      = ProposalError(vega.ProposalError_PROPOSAL_ERROR_MISSING_ERC20_CONTRACT_ADDRESS)
+	ProposalErrorInvalidAsset                     = ProposalError(vega.ProposalError_PROPOSAL_ERROR_INVALID_ASSET)
+	ProposalErrorIncompatibleTimestamps           = ProposalError(vega.ProposalError_PROPOSAL_ERROR_INCOMPATIBLE_TIMESTAMPS)
+	ProposalErrorNoRiskParameters                 = ProposalError(vega.ProposalError_PROPOSAL_ERROR_NO_RISK_PARAMETERS)
+	ProposalErrorNetworkParameterInvalidKey       = ProposalError(vega.ProposalError_PROPOSAL_ERROR_NETWORK_PARAMETER_INVALID_KEY)
+	ProposalErrorNetworkParameterInvalidValue     = ProposalError(vega.ProposalError_PROPOSAL_ERROR_NETWORK_PARAMETER_INVALID_VALUE)
+	ProposalErrorNetworkParameterValidationFailed = ProposalError(vega.ProposalError_PROPOSAL_ERROR_NETWORK_PARAMETER_VALIDATION_FAILED)
+	ProposalErrorOpeningAuctionDurationTooSmall   = ProposalError(vega.ProposalError_PROPOSAL_ERROR_OPENING_AUCTION_DURATION_TOO_SMALL)
+	ProposalErrorOpeningAuctionDurationTooLarge   = ProposalError(vega.ProposalError_PROPOSAL_ERROR_OPENING_AUCTION_DURATION_TOO_LARGE)
+	ProposalErrorMarketMissingLiquidityCommitment = ProposalError(vega.ProposalError_PROPOSAL_ERROR_MARKET_MISSING_LIQUIDITY_COMMITMENT)
+	ProposalErrorCouldNotInstantiateMarket        = ProposalError(vega.ProposalError_PROPOSAL_ERROR_COULD_NOT_INSTANTIATE_MARKET)
+	ProposalErrorInvalidFutureProduct             = ProposalError(vega.ProposalError_PROPOSAL_ERROR_INVALID_FUTURE_PRODUCT)
+	ProposalErrorMissingCommitmentAmount          = ProposalError(vega.ProposalError_PROPOSAL_ERROR_MISSING_COMMITMENT_AMOUNT)
+	ProposalErrorInvalidFeeAmount                 = ProposalError(vega.ProposalError_PROPOSAL_ERROR_INVALID_FEE_AMOUNT)
+	ProposalErrorInvalidShape                     = ProposalError(vega.ProposalError_PROPOSAL_ERROR_INVALID_SHAPE)
+	ProposalErrorInvalidRiskParameter             = ProposalError(vega.ProposalError_PROPOSAL_ERROR_INVALID_RISK_PARAMETER)
+	ProposalErrorMajorityThresholdNotReached      = ProposalError(vega.ProposalError_PROPOSAL_ERROR_MAJORITY_THRESHOLD_NOT_REACHED)
+	ProposalErrorParticipationThresholdNotReached = ProposalError(vega.ProposalError_PROPOSAL_ERROR_PARTICIPATION_THRESHOLD_NOT_REACHED)
+	ProposalErrorInvalidAssetDetails              = ProposalError(vega.ProposalError_PROPOSAL_ERROR_INVALID_ASSET_DETAILS)
+	ProposalErrorUnknownType                      = ProposalError(vega.ProposalError_PROPOSAL_ERROR_UNKNOWN_TYPE)
+	ProposalErrorUnknownRiskParameterType         = ProposalError(vega.ProposalError_PROPOSAL_ERROR_UNKNOWN_RISK_PARAMETER_TYPE)
+	ProposalErrorInvalidFreeform                  = ProposalError(vega.ProposalError_PROPOSAL_ERROR_INVALID_FREEFORM)
+	ProposalErrorInsufficientEquityLikeShare      = ProposalError(vega.ProposalError_PROPOSAL_ERROR_INSUFFICIENT_EQUITY_LIKE_SHARE)
+	ProposalErrorInvalidMarket                    = ProposalError(vega.ProposalError_PROPOSAL_ERROR_INVALID_MARKET)
+)
+
+func (s ProposalError) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
+	str, ok := vega.ProposalError_name[int32(s)]
+	if !ok {
+		return buf, fmt.Errorf("unknown proposal error: %v", s)
+	}
+	return append(buf, []byte(str)...), nil
+}
+
+func (s *ProposalError) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
+	val, ok := vega.ProposalError_value[string(src)]
+	if !ok {
+		return fmt.Errorf("unknown proposal error: %s", src)
+	}
+	*s = ProposalError(val)
+	return nil
+}
+
+/************************* VoteValue *****************************/
+
+type VoteValue vega.Vote_Value
+
+const (
+	VoteValueUnspecified = VoteValue(vega.Vote_VALUE_UNSPECIFIED)
+	VoteValueNo          = VoteValue(vega.Vote_VALUE_NO)
+	VoteValueYes         = VoteValue(vega.Vote_VALUE_YES)
+)
+
+func (s VoteValue) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
+	str, ok := vega.Vote_Value_name[int32(s)]
+	if !ok {
+		return buf, fmt.Errorf("unknown vote value: %v", s)
+	}
+	return append(buf, []byte(str)...), nil
+}
+
+func (s *VoteValue) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
+	val, ok := vega.Vote_Value_value[string(src)]
+	if !ok {
+		return fmt.Errorf("unknown vote value: %s", src)
+	}
+	*s = VoteValue(val)
+	return nil
+}
