@@ -271,12 +271,33 @@ create table if not exists deposits (
     status deposit_status not null,
     party_id bytea not null,
     asset bytea not null,
-    amount numeric,
+    amount numeric(32, 0),
     tx_hash text not null,
     credited_timestamp timestamp with time zone not null,
     created_timestamp timestamp with time zone not null,
     vega_time timestamp with time zone not null references blocks(vega_time),
     primary key (id, party_id, vega_time)
+);
+
+create table if not exists margin_levels (
+    market_id bytea not null,
+    asset_id bytea not null,
+    party_id bytea not null,
+    timestamp timestamp with time zone not null,
+    maintenance_margin numeric(32, 0),
+    search_level numeric(32, 0),
+    initial_margin numeric(32, 0),
+    collateral_release_level numeric(32, 0),
+    vega_time timestamp with time zone not null references blocks(vega_time),
+    primary key (market_id, asset_id, party_id, vega_time)
+);
+
+create table if not exists risk_factors (
+    market_id bytea not null,
+    short numeric(32, 0) not null,
+    long numeric(32, 0) not null,
+    vega_time timestamp with time zone not null references blocks(vega_time),
+    primary key (market_id, vega_time)
 );
 
 -- +goose Down
@@ -292,6 +313,9 @@ DROP TABLE IF EXISTS rewards;
 DROP TABLE IF EXISTS network_limits;
 DROP VIEW IF EXISTS orders_current;
 DROP VIEW IF EXISTS orders_current_versions;
+
+drop table if exists risk_factors;
+drop table if exists margin_levels;
 
 DROP TABLE IF EXISTS deposits;
 DROP TYPE IF EXISTS deposit_status;

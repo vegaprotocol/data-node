@@ -32,7 +32,7 @@ const PlaybackTimeout = 30 * time.Second
 var (
 	newClient               *graphql.Client
 	oldClient               *graphql.Client
-	integrationTestsEnabled bool = false
+	integrationTestsEnabled bool = true
 	blockWhenDone           bool = false
 )
 
