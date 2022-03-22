@@ -294,8 +294,8 @@ create table if not exists margin_levels (
 
 create table if not exists risk_factors (
     market_id bytea not null,
-    short numeric(32, 0) not null,
-    long numeric(32, 0) not null,
+    short numeric(32, 16) not null,
+    long numeric(32, 16) not null,
     vega_time timestamp with time zone not null references blocks(vega_time),
     primary key (market_id, vega_time)
 );

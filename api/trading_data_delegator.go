@@ -861,3 +861,17 @@ func (t *tradingDataDelegator) MarginLevels(ctx context.Context, req *protoapi.M
 		MarginLevels: levels,
 	}, nil
 }
+
+func (t *tradingDataDelegator) GetRiskFactors(ctx context.Context, in *protoapi.GetRiskFactorsRequest) (*protoapi.GetRiskFactorsResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("GetRiskFactors")()
+
+	rfs, err := t.riskFactorStore.GetMarketRiskFactors(ctx, in.MarketId)
+
+	if err != nil {
+		return nil, nil
+	}
+
+	return &protoapi.GetRiskFactorsResponse{
+		RiskFactor: rfs.ToProto(),
+	}, nil
+}
