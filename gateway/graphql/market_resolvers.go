@@ -233,7 +233,6 @@ func (r *myMarketResolver) RiskFactors(ctx context.Context, obj *types.Market) (
 	rf, err := r.tradingDataClient.GetRiskFactors(ctx, &protoapi.GetRiskFactorsRequest{
 		MarketId: obj.Id,
 	})
-
 	if err != nil {
 		return nil, err
 	}

@@ -2345,9 +2345,8 @@ func (t *tradingDataService) GetRiskFactors(ctx context.Context, in *protoapi.Ge
 	defer metrics.StartAPIRequestAndTimeGRPC("GetRiskFactors")()
 
 	rfs, err := t.RiskService.GetMarketRiskFactors(in.MarketId)
-
 	if err != nil {
-		return nil, nil
+		return nil, apiError(codes.Internal, err)
 	}
 
 	return &protoapi.GetRiskFactorsResponse{

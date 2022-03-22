@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"code.vegaprotocol.io/protos/vega"
+
 	"github.com/shopspring/decimal"
 )
 
@@ -18,7 +19,6 @@ type RiskFactor struct {
 
 func RiskFactorFromProto(factor *vega.RiskFactor, vegaTime time.Time) (*RiskFactor, error) {
 	id, err := makeID(factor.Market)
-
 	if err != nil {
 		return nil, fmt.Errorf("invalid market id: %w", err)
 	}

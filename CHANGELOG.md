@@ -15,7 +15,7 @@
 - [442](https://github.com/vegaprotocol/data-node/pull/442) - Migrate estimator API to retrieve data from `Postgres`
 
 ### 🐛 Fixes
-- [256](https://github.com/vegaprotocol/data-node/pull/256) - Market RiskFactors missing from Market `GraphQL` API
+- [256](https://github.com/vegaprotocol/data-node/pull/256) - Market Risk Factors missing from Market `GraphQL` API
 
 ## 0.49.2
 

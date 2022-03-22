@@ -22,9 +22,11 @@ type MarginLevels struct {
 }
 
 func MarginLevelsFromProto(margin *vega.MarginLevels, vegaTime time.Time) (*MarginLevels, error) {
-	var marketID, assetID, partyID []byte
-	var maintenanceMargin, searchLevel, initialMargin, collateralReleaseLevel decimal.Decimal
-	var err error
+	var (
+		marketID, assetID, partyID                                            []byte
+		maintenanceMargin, searchLevel, initialMargin, collateralReleaseLevel decimal.Decimal
+		err                                                                   error
+	)
 
 	if marketID, err = makeID(margin.MarketId); err != nil {
 		return nil, fmt.Errorf("invalid market ID: %w", err)
