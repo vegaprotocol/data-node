@@ -115,6 +115,8 @@ type NodeCommand struct {
 	marketsStoreSQL       *sqlstore.Markets
 	epochStoreSQL         *sqlstore.Epochs
 	depositStoreSQL       *sqlstore.Deposits
+	proposalStoreSQL      *sqlstore.Proposals
+	voteStoreSQL          *sqlstore.Votes
 	marginLevelsStoreSQL  *sqlstore.MarginLevels
 	riskFactorStoreSQL    *sqlstore.RiskFactors
 
@@ -159,6 +161,8 @@ type NodeCommand struct {
 	marketUpdatedSubSQL    *sqlsubscribers.MarketUpdated
 	epochSubSQL            *sqlsubscribers.Epoch
 	depositSubSQL          *sqlsubscribers.Deposit
+	proposalsSubSQL        *sqlsubscribers.Proposal
+	votesSubSQL            *sqlsubscribers.Vote
 	marginLevelsSubSQL     *sqlsubscribers.MarginLevels
 	riskFactorSubSQL       *sqlsubscribers.RiskFactor
 
@@ -355,6 +359,8 @@ func (l *NodeCommand) createGRPCServer(config api.Config, useSQLStores bool) *ap
 		l.delegationStoreSQL,
 		l.epochStoreSQL,
 		l.depositStoreSQL,
+		l.proposalStoreSQL,
+		l.voteStoreSQL,
 		l.riskFactorStoreSQL,
 		l.marginLevelsStoreSQL,
 	)

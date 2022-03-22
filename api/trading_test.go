@@ -283,6 +283,8 @@ func getTestGRPCServer(
 	sqlDelegationStore := sqlstore.NewDelegations(&sqlStore)
 	sqlEpochStore := sqlstore.NewEpochs(&sqlStore)
 	sqlDepositStore := sqlstore.NewDeposits(&sqlStore)
+	sqlProposalStore := sqlstore.NewProposals(&sqlStore)
+	sqlVoteStore := sqlstore.NewVotes(&sqlStore)
 	sqlRiskFactorsStore := sqlstore.NewRiskFactors(&sqlStore)
 	sqlMarginLevelsStore := sqlstore.NewMarginLevels(&sqlStore)
 
@@ -329,6 +331,8 @@ func getTestGRPCServer(
 		sqlDelegationStore,
 		sqlEpochStore,
 		sqlDepositStore,
+		sqlProposalStore,
+		sqlVoteStore,
 		sqlRiskFactorsStore,
 		sqlMarginLevelsStore,
 	)

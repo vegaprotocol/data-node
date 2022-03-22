@@ -9,7 +9,9 @@
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -
 
 ### 🛠  Improvements
+- [426](https://github.com/vegaprotocol/data-node/pull/426) - Add bindings for party less liquidity provision requests
 - [430](https://github.com/vegaprotocol/data-node/pull/430) - Migrate deposit API to retrieve data from `Postgres`
+- [435](https://github.com/vegaprotocol/data-node/pull/435) - Migrate governance API to retrieve data from `Postgres`
 
 ### 🐛 Fixes
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -

@@ -96,6 +96,8 @@ type GRPCServer struct {
 	delegationsStore   *sqlstore.Delegations
 	epochStore         *sqlstore.Epochs
 	depositsStore      *sqlstore.Deposits
+	proposalStore      *sqlstore.Proposals
+	voteStore          *sqlstore.Votes
 	riskFactorsStore   *sqlstore.RiskFactors
 	marginLevelsStore  *sqlstore.MarginLevels
 
@@ -150,6 +152,8 @@ func NewGRPCServer(
 	delegationStore *sqlstore.Delegations,
 	epochStore *sqlstore.Epochs,
 	depositsStore *sqlstore.Deposits,
+	proposalStore *sqlstore.Proposals,
+	voteStore *sqlstore.Votes,
 	riskFactorsStore *sqlstore.RiskFactors,
 	marginLevelsStore *sqlstore.MarginLevels,
 ) *GRPCServer {
@@ -201,6 +205,8 @@ func NewGRPCServer(
 		delegationsStore:        delegationStore,
 		epochStore:              epochStore,
 		depositsStore:           depositsStore,
+		proposalStore:           proposalStore,
+		voteStore:               voteStore,
 		riskFactorsStore:        riskFactorsStore,
 		marginLevelsStore:       marginLevelsStore,
 		eventObserver: &eventObserver{
@@ -358,6 +364,8 @@ func (g *GRPCServer) Start(ctx context.Context, lis net.Listener) error {
 			delegationStore:    g.delegationsStore,
 			epochStore:         g.epochStore,
 			depositsStore:      g.depositsStore,
+			proposalsStore:     g.proposalStore,
+			voteStore:          g.voteStore,
 			riskFactorStore:    g.riskFactorsStore,
 			marginLevelsStore:  g.marginLevelsStore,
 		}

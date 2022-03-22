@@ -136,6 +136,8 @@ func (l *NodeCommand) setupSQLSubscribers() {
 	l.delegationsSubSQL = sqlsubscribers.NewDelegation(l.delegationStoreSQL, l.Log)
 	l.epochSubSQL = sqlsubscribers.NewEpoch(l.epochStoreSQL, l.Log)
 	l.depositSubSQL = sqlsubscribers.NewDeposit(l.depositStoreSQL, l.Log)
+	l.proposalsSubSQL = sqlsubscribers.NewProposal(l.proposalStoreSQL, l.Log)
+	l.votesSubSQL = sqlsubscribers.NewVote(l.voteStoreSQL, l.Log)
 	l.marginLevelsSubSQL = sqlsubscribers.NewMarginLevels(l.marginLevelsStoreSQL, l.Log)
 	l.riskFactorSubSQL = sqlsubscribers.NewRiskFactor(l.riskFactorStoreSQL, l.Log)
 }
@@ -178,6 +180,8 @@ func (l *NodeCommand) setupStorages() error {
 		l.delegationStoreSQL = sqlstore.NewDelegations(sqlStore)
 		l.epochStoreSQL = sqlstore.NewEpochs(sqlStore)
 		l.depositStoreSQL = sqlstore.NewDeposits(sqlStore)
+		l.proposalStoreSQL = sqlstore.NewProposals(sqlStore)
+		l.voteStoreSQL = sqlstore.NewVotes(sqlStore)
 		l.marginLevelsStoreSQL = sqlstore.NewMarginLevels(sqlStore)
 		l.riskFactorStoreSQL = sqlstore.NewRiskFactors(sqlStore)
 
@@ -263,6 +267,9 @@ func (l *NodeCommand) preRun(_ []string) (err error) {
 			l.marketUpdatedSubSQL,
 			l.epochSubSQL,
 			l.marketUpdatedSubSQL,
+			l.depositSubSQL,
+			l.proposalsSubSQL,
+			l.votesSubSQL,
 			l.depositSubSQL,
 			l.marginLevelsSubSQL,
 			l.riskFactorSubSQL)
