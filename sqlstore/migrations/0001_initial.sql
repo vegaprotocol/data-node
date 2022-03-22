@@ -294,7 +294,7 @@ create table if not exists withdrawals (
     withdrawn_timestamp timestamp with time zone not null,
     ext jsonb not null,
     vega_time timestamp with time zone not null references blocks(vega_time),
-    primary key (id, party_id, vega_time)
+    primary key (id, vega_time)
 );
 
 CREATE TYPE proposal_state AS enum('STATE_UNSPECIFIED', 'STATE_FAILED', 'STATE_OPEN', 'STATE_PASSED', 'STATE_REJECTED', 'STATE_DECLINED', 'STATE_ENACTED', 'STATE_WAITING_FOR_NODE_VOTE');

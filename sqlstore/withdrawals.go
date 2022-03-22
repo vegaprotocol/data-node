@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"strings"
 
 	"code.vegaprotocol.io/data-node/entities"
 	"github.com/georgysavva/scany/pgxscan"
@@ -24,10 +23,38 @@ func (w *Withdrawals) Upsert(withdrawal *entities.Withdrawal) error {
 	ctx, cancel := context.WithTimeout(context.Background(), w.conf.Timeout.Duration)
 	defer cancel()
 
-	query := `select 1`
+	query := `insert into withdrawals(
+		id, party_id, amount, asset, status, ref, expiry, tx_hash,
+		created_timestamp, withdrawn_timestamp, ext, vega_time
+	)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		on conflict (id, vega_time) do update
+		set
+			party_id=EXCLUDED.party_id,
+			amount=EXCLUDED.amount,
+			asset=EXCLUDED.asset,
+			status=EXCLUDED.status,
+			ref=EXCLUDED.ref,
+			expiry=EXCLUDED.expiry,
+			tx_hash=EXCLUDED.tx_hash,
+			created_timestamp=EXCLUDED.created_timestamp,
+			withdrawn_timestamp=EXCLUDED.withdrawn_timestamp,
+			ext=EXCLUDED.ext`
 
-	if _, err := w.pool.Exec(ctx, query); err != nil {
-		err = fmt.Errorf("could not insert withdrawal into database: %w", err)
+	if _, err := w.pool.Exec(ctx, query,
+		withdrawal.ID,
+		withdrawal.PartyID,
+		withdrawal.Amount,
+		withdrawal.Asset,
+		withdrawal.Status,
+		withdrawal.Ref,
+		withdrawal.Expiry,
+		withdrawal.TxHash,
+		withdrawal.CreatedTimestamp,
+		withdrawal.WithdrawnTimestamp,
+		withdrawal.Ext,
+		withdrawal.VegaTime); err != nil {
+		err = fmt.Errorf("could not insert deposit into database: %w", err)
 		return err
 	}
 
@@ -42,10 +69,10 @@ func (w *Withdrawals) GetByID(ctx context.Context, withdrawalID string) (entitie
 
 	var withdrawal entities.Withdrawal
 
-	query := `select *
+	query := `select id, party_id, amount, asset, status, ref, expiry, tx_hash, created_timestamp, withdrawn_timestamp, ext, vega_time
 		from withdrawals
 		where id = $1
-		order by id, party_id, vega_time desc`
+		order by id, vega_time desc`
 
 	err = pgxscan.Get(ctx, w.pool, &withdrawal, query, id)
 	return withdrawal, err
@@ -58,17 +85,16 @@ func (w *Withdrawals) GetByParty(ctx context.Context, partyID string, pagination
 	}
 
 	var withdrawals []entities.Withdrawal
-	var args []interface{}
-
-	queryBuilder := strings.Builder{}
-	queryBuilder.WriteString(fmt.Sprintf(`select *
-		from withdrawals
-		where party_id = %s `, nextBindVar(&args, id)))
-
-	queryBuilder.WriteString(" order by id, party_id, vega_time desc")
+	prequery := `SELECT
+		id, party_id, amount, asset, status, ref, expiry, tx_hash,
+		created_timestamp, withdrawn_timestamp, ext, vega_time
+		FROM withdrawals
+		WHERE party_id = $1`
 
 	var query string
-	query, args = orderAndPaginateQuery(queryBuilder.String(), nil, pagination, args...)
+	var args []interface{}
+
+	query, args = orderAndPaginateQuery(prequery, []string{"id", "vega_time"}, pagination, id)
 
 	if err = pgxscan.Select(ctx, w.pool, &withdrawals, query, args...); err != nil {
 		return nil
