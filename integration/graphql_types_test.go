@@ -131,8 +131,8 @@ type Party struct {
 	// TODO:
 	// Positions []Position
 	// Margins []MarginLevels
-	// Withdrawals []WithDrawal
-	Deposits []Deposit
+	Withdrawals []Withdrawal
+	Deposits    []Deposit
 	// Delegations []Delegation
 	// Stake PartyStake
 	// Rewards []Reward
@@ -271,3 +271,25 @@ type NetworkParameter struct {
 	Key   string
 	Value string
 }
+
+type Withdrawal struct {
+	ID                 string
+	Party              Party
+	Amount             string
+	Asset              Asset
+	Status             string
+	Ref                string
+	Expiry             string
+	TxHash             string
+	CreatedTimestamp   string
+	WithdrawnTimeStamp string
+	// Ext WithdrawExt
+}
+
+// type WithdrawExt struct {
+// 	Ext // ???
+// }
+
+// type ERC20WithdrawExt {
+// 	ReceiverAddress string
+// }

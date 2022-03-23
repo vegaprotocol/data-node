@@ -62,14 +62,14 @@ func (w *Withdrawals) Upsert(withdrawal *entities.Withdrawal) error {
 }
 
 func (w *Withdrawals) GetByID(ctx context.Context, withdrawalID string) (entities.Withdrawal, error) {
-	id, err := hex.DecodeString(withdrawalID)
+	id, err := entities.MakeWithdrawalID(withdrawalID)
 	if err != nil {
 		return entities.Withdrawal{}, err
 	}
 
 	var withdrawal entities.Withdrawal
 
-	query := `select id, party_id, amount, asset, status, ref, expiry, tx_hash, created_timestamp, withdrawn_timestamp, ext, vega_time
+	query := `select distinct on (id) id, party_id, amount, asset, status, ref, expiry, tx_hash, created_timestamp, withdrawn_timestamp, ext, vega_time
 		from withdrawals
 		where id = $1
 		order by id, vega_time desc`
@@ -79,22 +79,23 @@ func (w *Withdrawals) GetByID(ctx context.Context, withdrawalID string) (entitie
 }
 
 func (w *Withdrawals) GetByParty(ctx context.Context, partyID string, pagination entities.Pagination) []entities.Withdrawal {
-	id, err := hex.DecodeString(partyID)
+	id, err := entities.MakePartyID(partyID)
 	if err != nil {
 		return nil
 	}
 
 	var withdrawals []entities.Withdrawal
 	prequery := `SELECT
-		id, party_id, amount, asset, status, ref, expiry, tx_hash,
+		distinct on (id) id, party_id, amount, asset, status, ref, expiry, tx_hash,
 		created_timestamp, withdrawn_timestamp, ext, vega_time
 		FROM withdrawals
-		WHERE party_id = $1`
+		WHERE party_id = $1
+		ORDER BY id, vega_time DESC`
 
 	var query string
 	var args []interface{}
 
-	query, args = orderAndPaginateQuery(prequery, []string{"id", "vega_time"}, pagination, id)
+	query, args = orderAndPaginateQuery(prequery, nil, pagination, id)
 
 	if err = pgxscan.Select(ctx, w.pool, &withdrawals, query, args...); err != nil {
 		return nil

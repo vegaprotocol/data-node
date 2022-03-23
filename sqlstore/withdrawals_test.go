@@ -29,14 +29,14 @@ func setupWithdrawalStoreTests(t *testing.T, ctx context.Context) (*sqlstore.Blo
 	require.NoError(t, err)
 
 	bs := sqlstore.NewBlocks(testStore)
-	ds := sqlstore.NewWithdrawals(testStore)
+	ws := sqlstore.NewWithdrawals(testStore)
 
 	config := NewTestConfig(testDBPort)
 
 	conn, err := pgx.Connect(ctx, connectionString(config))
 	require.NoError(t, err)
 
-	return bs, ds, conn
+	return bs, ws, conn
 }
 
 func testAddWithdrawalForNewBlock(t *testing.T) {
@@ -44,7 +44,7 @@ func testAddWithdrawalForNewBlock(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 
-	bs, ds, conn := setupWithdrawalStoreTests(t, ctx)
+	bs, ws, conn := setupWithdrawalStoreTests(t, ctx)
 
 	var rowCount int
 
@@ -56,9 +56,9 @@ func testAddWithdrawalForNewBlock(t *testing.T) {
 	withdrawalProto := getTestWithdrawal()
 
 	withdrawal, err := entities.WithdrawalFromProto(withdrawalProto, block.VegaTime)
-	require.NoError(t, err, "Converting market proto to database entity")
+	require.NoError(t, err, "Converting withdrawal proto to database entity")
 
-	err = ds.Upsert(withdrawal)
+	err = ws.Upsert(withdrawal)
 	require.NoError(t, err)
 	err = conn.QueryRow(ctx, `select count(*) from withdrawals`).Scan(&rowCount)
 	assert.NoError(t, err)
@@ -70,7 +70,7 @@ func testWithdrawalErrorIfBlockDoesNotExist(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 
-	bs, ds, conn := setupWithdrawalStoreTests(t, ctx)
+	bs, ws, conn := setupWithdrawalStoreTests(t, ctx)
 
 	var rowCount int
 
@@ -82,9 +82,9 @@ func testWithdrawalErrorIfBlockDoesNotExist(t *testing.T) {
 	withdrawalProto := getTestWithdrawal()
 
 	withdrawal, err := entities.WithdrawalFromProto(withdrawalProto, block.VegaTime.Add(time.Second))
-	require.NoError(t, err, "Converting market proto to database entity")
+	require.NoError(t, err, "Converting withdrawal proto to database entity")
 
-	err = ds.Upsert(withdrawal)
+	err = ws.Upsert(withdrawal)
 	require.Error(t, err, "Should error if the block does not exist")
 }
 
@@ -93,7 +93,7 @@ func testUpdateWithdrawalForBlockIfExists(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 
-	bs, ds, conn := setupWithdrawalStoreTests(t, ctx)
+	bs, ws, conn := setupWithdrawalStoreTests(t, ctx)
 
 	var rowCount int
 
@@ -105,9 +105,9 @@ func testUpdateWithdrawalForBlockIfExists(t *testing.T) {
 	withdrawalProto := getTestWithdrawal()
 
 	withdrawal, err := entities.WithdrawalFromProto(withdrawalProto, block.VegaTime)
-	require.NoError(t, err, "Converting market proto to database entity")
+	require.NoError(t, err, "Converting withdrawal proto to database entity")
 
-	err = ds.Upsert(withdrawal)
+	err = ws.Upsert(withdrawal)
 	require.NoError(t, err)
 	err = conn.QueryRow(ctx, `select count(*) from withdrawals`).Scan(&rowCount)
 	assert.NoError(t, err)
@@ -115,7 +115,7 @@ func testUpdateWithdrawalForBlockIfExists(t *testing.T) {
 
 	withdrawal.Status = entities.WithdrawalStatus(vega.Withdrawal_STATUS_FINALIZED)
 
-	err = ds.Upsert(withdrawal)
+	err = ws.Upsert(withdrawal)
 	require.NoError(t, err)
 	err = conn.QueryRow(ctx, `select count(*) from withdrawals`).Scan(&rowCount)
 	assert.NoError(t, err)
@@ -132,7 +132,7 @@ func testInsertWithdrawalUpdatesIfNewBlock(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 
-	bs, ds, conn := setupWithdrawalStoreTests(t, ctx)
+	bs, ws, conn := setupWithdrawalStoreTests(t, ctx)
 
 	var rowCount int
 
@@ -144,9 +144,9 @@ func testInsertWithdrawalUpdatesIfNewBlock(t *testing.T) {
 	withdrawalProto := getTestWithdrawal()
 
 	withdrawal, err := entities.WithdrawalFromProto(withdrawalProto, block.VegaTime)
-	require.NoError(t, err, "Converting market proto to database entity")
+	require.NoError(t, err, "Converting withdrawal proto to database entity")
 
-	err = ds.Upsert(withdrawal)
+	err = ws.Upsert(withdrawal)
 	require.NoError(t, err)
 	err = conn.QueryRow(ctx, `select count(*) from withdrawals`).Scan(&rowCount)
 	assert.NoError(t, err)
@@ -157,9 +157,9 @@ func testInsertWithdrawalUpdatesIfNewBlock(t *testing.T) {
 	block = addTestBlock(t, bs)
 	withdrawalProto.Status = vega.Withdrawal_STATUS_FINALIZED
 	withdrawal, err = entities.WithdrawalFromProto(withdrawalProto, block.VegaTime)
-	require.NoError(t, err, "Converting market proto to database entity")
+	require.NoError(t, err, "Converting withdrawal proto to database entity")
 
-	err = ds.Upsert(withdrawal)
+	err = ws.Upsert(withdrawal)
 	require.NoError(t, err)
 	err = conn.QueryRow(ctx, `select count(*) from withdrawals`).Scan(&rowCount)
 	assert.NoError(t, err)
@@ -176,7 +176,7 @@ func testWithdrawalsGetByID(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 
-	bs, ds, conn := setupWithdrawalStoreTests(t, ctx)
+	bs, ws, conn := setupWithdrawalStoreTests(t, ctx)
 
 	var rowCount int
 
@@ -188,9 +188,9 @@ func testWithdrawalsGetByID(t *testing.T) {
 	withdrawalProto := getTestWithdrawal()
 
 	withdrawal, err := entities.WithdrawalFromProto(withdrawalProto, block.VegaTime)
-	require.NoError(t, err, "Converting market proto to database entity")
+	require.NoError(t, err, "Converting withdrawal proto to database entity")
 
-	err = ds.Upsert(withdrawal)
+	err = ws.Upsert(withdrawal)
 	require.NoError(t, err)
 	err = conn.QueryRow(ctx, `select count(*) from withdrawals`).Scan(&rowCount)
 	assert.NoError(t, err)
@@ -201,15 +201,16 @@ func testWithdrawalsGetByID(t *testing.T) {
 	block = addTestBlock(t, bs)
 	withdrawalProto.Status = vega.Withdrawal_STATUS_FINALIZED
 	withdrawal, err = entities.WithdrawalFromProto(withdrawalProto, block.VegaTime)
-	require.NoError(t, err, "Converting market proto to database entity")
+	require.NoError(t, err, "Converting withdrawal proto to database entity")
 
-	err = ds.Upsert(withdrawal)
+	err = ws.Upsert(withdrawal)
 	require.NoError(t, err)
 
-	got, err := ds.GetByID(ctx, withdrawalProto.Id)
+	got, err := ws.GetByID(ctx, withdrawalProto.Id)
 	assert.NoError(t, err)
 
 	// We need to truncate the timestamp because the postgres database will truncate to microseconds
+	withdrawal.Expiry = withdrawal.Expiry.Truncate(time.Microsecond)
 	withdrawal.CreatedTimestamp = withdrawal.CreatedTimestamp.Truncate(time.Microsecond)
 	withdrawal.WithdrawnTimestamp = withdrawal.WithdrawnTimestamp.Truncate(time.Microsecond)
 
@@ -221,7 +222,7 @@ func testWithdrawalsGetByParty(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 
-	bs, ds, conn := setupWithdrawalStoreTests(t, ctx)
+	bs, ws, conn := setupWithdrawalStoreTests(t, ctx)
 
 	var rowCount int
 
@@ -239,9 +240,9 @@ func testWithdrawalsGetByParty(t *testing.T) {
 	want := make([]entities.Withdrawal, 0)
 
 	withdrawal, err := entities.WithdrawalFromProto(withdrawalProto1, block.VegaTime)
-	require.NoError(t, err, "Converting market proto to database entity")
+	require.NoError(t, err, "Converting withdrawal proto to database entity")
 
-	err = ds.Upsert(withdrawal)
+	err = ws.Upsert(withdrawal)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 500)
@@ -249,11 +250,12 @@ func testWithdrawalsGetByParty(t *testing.T) {
 	block = addTestBlock(t, bs)
 	withdrawalProto1.Status = vega.Withdrawal_STATUS_FINALIZED
 	withdrawal, err = entities.WithdrawalFromProto(withdrawalProto1, block.VegaTime)
-	require.NoError(t, err, "Converting market proto to database entity")
+	require.NoError(t, err, "Converting withdrawal proto to database entity")
 
-	err = ds.Upsert(withdrawal)
+	err = ws.Upsert(withdrawal)
 	require.NoError(t, err)
 
+	withdrawal.Expiry = withdrawal.Expiry.Truncate(time.Microsecond)
 	withdrawal.CreatedTimestamp = withdrawal.CreatedTimestamp.Truncate(time.Microsecond)
 	withdrawal.WithdrawnTimestamp = withdrawal.WithdrawnTimestamp.Truncate(time.Microsecond)
 
@@ -263,9 +265,9 @@ func testWithdrawalsGetByParty(t *testing.T) {
 
 	block = addTestBlock(t, bs)
 	withdrawal, err = entities.WithdrawalFromProto(withdrawalProto2, block.VegaTime)
-	require.NoError(t, err, "Converting market proto to database entity")
+	require.NoError(t, err, "Converting withdrawal proto to database entity")
 
-	err = ds.Upsert(withdrawal)
+	err = ws.Upsert(withdrawal)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 500)
@@ -273,17 +275,18 @@ func testWithdrawalsGetByParty(t *testing.T) {
 	block = addTestBlock(t, bs)
 	withdrawal, err = entities.WithdrawalFromProto(withdrawalProto2, block.VegaTime)
 	withdrawalProto2.Status = vega.Withdrawal_STATUS_FINALIZED
-	require.NoError(t, err, "Converting market proto to database entity")
+	require.NoError(t, err, "Converting withdrawal proto to database entity")
 
-	err = ds.Upsert(withdrawal)
+	err = ws.Upsert(withdrawal)
 	require.NoError(t, err)
 
+	withdrawal.Expiry = withdrawal.Expiry.Truncate(time.Microsecond)
 	withdrawal.CreatedTimestamp = withdrawal.CreatedTimestamp.Truncate(time.Microsecond)
 	withdrawal.WithdrawnTimestamp = withdrawal.WithdrawnTimestamp.Truncate(time.Microsecond)
 
 	want = append(want, *withdrawal)
 
-	got := ds.GetByParty(ctx, withdrawalProto1.PartyId, entities.Pagination{})
+	got := ws.GetByParty(ctx, withdrawalProto1.PartyId, entities.Pagination{})
 
 	assert.Equal(t, want, got)
 }

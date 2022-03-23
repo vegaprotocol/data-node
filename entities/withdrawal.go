@@ -27,7 +27,7 @@ type Withdrawal struct {
 }
 
 // XXX: Remove when IDs have their own type
-func decodeID(stringID string) ([]byte, error) {
+func MakeWithdrawalID(stringID string) ([]byte, error) {
 	id, err := hex.DecodeString(stringID)
 	if err != nil {
 		return nil, fmt.Errorf("id is not a valid hex string: %s", stringID)
