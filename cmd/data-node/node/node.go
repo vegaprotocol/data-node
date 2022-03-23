@@ -366,6 +366,7 @@ func (l *NodeCommand) createGRPCServer(config api.Config, useSQLStores bool) *ap
 		l.riskFactorStoreSQL,
 		l.marginLevelsStoreSQL,
 		l.netParamStoreSQL,
+		l.blockStoreSQL,
 	)
 	return grpcServer
 }

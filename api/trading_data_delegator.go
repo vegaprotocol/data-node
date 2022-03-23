@@ -33,12 +33,26 @@ type tradingDataDelegator struct {
 	riskFactorStore   *sqlstore.RiskFactors
 	marginLevelsStore *sqlstore.MarginLevels
 	netParamStore     *sqlstore.NetworkParameters
+	blockStore        *sqlstore.Blocks
 }
 
 var defaultEntityPagination = entities.Pagination{
 	Skip:       0,
 	Limit:      50,
 	Descending: true,
+}
+
+/****************************** General **************************************/
+func (t *tradingDataDelegator) GetVegaTime(ctx context.Context, _ *protoapi.GetVegaTimeRequest) (*protoapi.GetVegaTimeResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("GetVegaTime SQL")()
+	b, err := t.blockStore.GetLastBlock()
+	if err != nil {
+		return nil, apiError(codes.Internal, ErrTimeServiceGetTimeNow, err)
+	}
+
+	return &protoapi.GetVegaTimeResponse{
+		Timestamp: b.VegaTime.UnixNano(),
+	}, nil
 }
 
 /****************************** Network Parameters **************************************/
