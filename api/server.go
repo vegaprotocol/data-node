@@ -102,6 +102,7 @@ type GRPCServer struct {
 	marginLevelsStore  *sqlstore.MarginLevels
 	netParamStore      *sqlstore.NetworkParameters
 	blockStore         *sqlstore.Blocks
+	checkpointStore    *sqlstore.Checkpoints
 
 	eventObserver *eventObserver
 
@@ -160,6 +161,7 @@ func NewGRPCServer(
 	marginLevelsStore *sqlstore.MarginLevels,
 	netParamStore *sqlstore.NetworkParameters,
 	blockStore *sqlstore.Blocks,
+	checkpointStore *sqlstore.Checkpoints,
 ) *GRPCServer {
 	// setup logger
 	log = log.Named(namedLogger)
@@ -215,6 +217,7 @@ func NewGRPCServer(
 		marginLevelsStore:       marginLevelsStore,
 		netParamStore:           netParamStore,
 		blockStore:              blockStore,
+		checkpointStore:         checkpointStore,
 
 		eventObserver: &eventObserver{
 			log:          log,
@@ -377,6 +380,7 @@ func (g *GRPCServer) Start(ctx context.Context, lis net.Listener) error {
 			marginLevelsStore:  g.marginLevelsStore,
 			netParamStore:      g.netParamStore,
 			blockStore:         g.blockStore,
+			checkpointStore:    g.checkpointStore,
 		}
 	} else {
 		g.tradingDataService = tradingDataSvc

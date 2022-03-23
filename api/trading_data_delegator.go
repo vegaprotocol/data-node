@@ -34,6 +34,7 @@ type tradingDataDelegator struct {
 	marginLevelsStore *sqlstore.MarginLevels
 	netParamStore     *sqlstore.NetworkParameters
 	blockStore        *sqlstore.Blocks
+	checkpointStore   *sqlstore.Checkpoints
 }
 
 var defaultEntityPagination = entities.Pagination{
@@ -43,6 +44,7 @@ var defaultEntityPagination = entities.Pagination{
 }
 
 /****************************** General **************************************/
+
 func (t *tradingDataDelegator) GetVegaTime(ctx context.Context, _ *protoapi.GetVegaTimeRequest) (*protoapi.GetVegaTimeResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("GetVegaTime SQL")()
 	b, err := t.blockStore.GetLastBlock()
@@ -52,6 +54,24 @@ func (t *tradingDataDelegator) GetVegaTime(ctx context.Context, _ *protoapi.GetV
 
 	return &protoapi.GetVegaTimeResponse{
 		Timestamp: b.VegaTime.UnixNano(),
+	}, nil
+}
+
+/****************************** Checkpoints **************************************/
+
+func (t *tradingDataDelegator) Checkpoints(ctx context.Context, _ *protoapi.CheckpointsRequest) (*protoapi.CheckpointsResponse, error) {
+	checkpoints, err := t.checkpointStore.GetAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]*protoapi.Checkpoint, len(checkpoints))
+	for i, cp := range checkpoints {
+		out[i] = cp.ToProto()
+	}
+
+	return &protoapi.CheckpointsResponse{
+		Checkpoints: out,
 	}, nil
 }
 
