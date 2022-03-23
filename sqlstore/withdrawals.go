@@ -2,7 +2,6 @@ package sqlstore
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 
 	"code.vegaprotocol.io/data-node/entities"
@@ -62,11 +61,6 @@ func (w *Withdrawals) Upsert(withdrawal *entities.Withdrawal) error {
 }
 
 func (w *Withdrawals) GetByID(ctx context.Context, withdrawalID string) (entities.Withdrawal, error) {
-	id, err := entities.MakeWithdrawalID(withdrawalID)
-	if err != nil {
-		return entities.Withdrawal{}, err
-	}
-
 	var withdrawal entities.Withdrawal
 
 	query := `select distinct on (id) id, party_id, amount, asset, status, ref, expiry, tx_hash, created_timestamp, withdrawn_timestamp, ext, vega_time
@@ -74,16 +68,11 @@ func (w *Withdrawals) GetByID(ctx context.Context, withdrawalID string) (entitie
 		where id = $1
 		order by id, vega_time desc`
 
-	err = pgxscan.Get(ctx, w.pool, &withdrawal, query, id)
+	err := pgxscan.Get(ctx, w.pool, &withdrawal, query, entities.NewWithdrawalID(withdrawalID))
 	return withdrawal, err
 }
 
 func (w *Withdrawals) GetByParty(ctx context.Context, partyID string, pagination entities.Pagination) []entities.Withdrawal {
-	id, err := entities.MakePartyID(partyID)
-	if err != nil {
-		return nil
-	}
-
 	var withdrawals []entities.Withdrawal
 	prequery := `SELECT
 		distinct on (id) id, party_id, amount, asset, status, ref, expiry, tx_hash,
@@ -95,9 +84,9 @@ func (w *Withdrawals) GetByParty(ctx context.Context, partyID string, pagination
 	var query string
 	var args []interface{}
 
-	query, args = orderAndPaginateQuery(prequery, nil, pagination, id)
+	query, args = orderAndPaginateQuery(prequery, nil, pagination, entities.NewPartyID(partyID))
 
-	if err = pgxscan.Select(ctx, w.pool, &withdrawals, query, args...); err != nil {
+	if err := pgxscan.Select(ctx, w.pool, &withdrawals, query, args...); err != nil {
 		return nil
 	}
 

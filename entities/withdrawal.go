@@ -1,9 +1,7 @@
 package entities
 
 import (
-	"encoding/hex"
 	"fmt"
-	"strings"
 	"time"
 
 	"code.vegaprotocol.io/protos/vega"
@@ -11,11 +9,17 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+type WithdrawalID struct{ ID }
+
+func NewWithdrawalID(id string) WithdrawalID {
+	return WithdrawalID{ID: ID(id)}
+}
+
 type Withdrawal struct {
-	ID                 []byte
-	PartyID            []byte
+	ID                 WithdrawalID
+	PartyID            PartyID
 	Amount             decimal.Decimal
-	Asset              []byte
+	Asset              AssetID
 	Status             WithdrawalStatus
 	Ref                string
 	Expiry             time.Time
@@ -26,36 +30,19 @@ type Withdrawal struct {
 	VegaTime           time.Time
 }
 
-// XXX: Remove when IDs have their own type
-func MakeWithdrawalID(stringID string) ([]byte, error) {
-	id, err := hex.DecodeString(stringID)
-	if err != nil {
-		return nil, fmt.Errorf("id is not a valid hex string: %s", stringID)
-	}
-	return id, nil
-}
-
 func WithdrawalFromProto(withdrawal *vega.Withdrawal, vegaTime time.Time) (*Withdrawal, error) {
-	var id, partyID []byte
 	var err error
 	var amount decimal.Decimal
-
-	if id, err = decodeID(withdrawal.Id); err != nil {
-		return nil, fmt.Errorf("invalid withdrawal id: %v", err)
-	}
-	if partyID, err = decodeID(withdrawal.PartyId); err != nil {
-		return nil, fmt.Errorf("invalid party id: %w", err)
-	}
 
 	if amount, err = decimal.NewFromString(withdrawal.Amount); err != nil {
 		return nil, fmt.Errorf("invalid amount: %w", err)
 	}
 
 	return &Withdrawal{
-		ID:                 id,
-		PartyID:            partyID,
+		ID:                 NewWithdrawalID(withdrawal.Id),
+		PartyID:            NewPartyID(withdrawal.PartyId),
 		Amount:             amount,
-		Asset:              MakeAssetID(withdrawal.Asset),
+		Asset:              NewAssetID(withdrawal.Asset),
 		Status:             WithdrawalStatus(withdrawal.Status),
 		Ref:                withdrawal.Ref,
 		Expiry:             time.Unix(0, withdrawal.Expiry),
@@ -67,22 +54,12 @@ func WithdrawalFromProto(withdrawal *vega.Withdrawal, vegaTime time.Time) (*With
 	}, nil
 }
 
-func (w Withdrawal) HexID() string {
-	return hex.EncodeToString(w.ID)
-}
-
 func (w Withdrawal) ToProto() *vega.Withdrawal {
-	assetID := hex.EncodeToString(w.Asset)
-
-	if strings.HasPrefix(string(w.Asset), badAssetPrefix) {
-		assetID = strings.TrimPrefix(string(w.Asset), badAssetPrefix)
-	}
-
 	return &vega.Withdrawal{
-		Id:                 hex.EncodeToString(w.ID),
-		PartyId:            hex.EncodeToString(w.PartyID),
+		Id:                 w.ID.String(),
+		PartyId:            w.PartyID.String(),
 		Amount:             w.Amount.String(),
-		Asset:              assetID,
+		Asset:              w.Asset.String(),
 		Status:             vega.Withdrawal_Status(w.Status),
 		Ref:                w.Ref,
 		Expiry:             w.Expiry.UnixNano(),

@@ -232,10 +232,10 @@ func testWithdrawalsGetByParty(t *testing.T) {
 
 	block := addTestBlock(t, bs)
 	withdrawalProto1 := getTestWithdrawal()
-	withdrawalProto1.Id = "DEADBEEF01"
+	withdrawalProto1.Id = "deadbeef01"
 
 	withdrawalProto2 := getTestWithdrawal()
-	withdrawalProto2.Id = "DEADBEEF02"
+	withdrawalProto2.Id = "deadbeef02"
 
 	want := make([]entities.Withdrawal, 0)
 
@@ -294,14 +294,14 @@ func testWithdrawalsGetByParty(t *testing.T) {
 func getTestWithdrawal() *vega.Withdrawal {
 	now := time.Now().UnixNano()
 	return &vega.Withdrawal{
-		Id:                 "DEADBEEF",
-		PartyId:            "DEADBEEF",
+		Id:                 "deadbeef",
+		PartyId:            "deadbeef",
 		Amount:             "1000",
-		Asset:              "DEADBEEF",
+		Asset:              "deadbeef",
 		Status:             vega.Withdrawal_STATUS_OPEN,
-		Ref:                "DEADBEEF",
+		Ref:                "deadbeef",
 		Expiry:             now + 1e9,
-		TxHash:             "DEADBEEF",
+		TxHash:             "deadbeef",
 		CreatedTimestamp:   now,
 		WithdrawnTimestamp: now,
 		Ext: &vega.WithdrawExt{
