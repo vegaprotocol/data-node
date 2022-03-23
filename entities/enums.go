@@ -301,8 +301,11 @@ const (
 )
 
 func (s WithdrawalStatus) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
-	status := []byte(vega.Withdrawal_Status_name[int32(s)])
-	return append(buf, status...), nil
+	status, ok := vega.Withdrawal_Status_name[int32(s)]
+	if !ok {
+	    return buf, fmt.Errorf("unknown withdrawal status: %s", status)
+	}
+	return append(buf, []byte(status)...), nil
 }
 
 func (s *WithdrawalStatus) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
