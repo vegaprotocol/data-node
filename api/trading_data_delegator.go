@@ -11,6 +11,7 @@ import (
 	"code.vegaprotocol.io/data-node/sqlstore"
 	protoapi "code.vegaprotocol.io/protos/data-node/api/v1"
 	"code.vegaprotocol.io/protos/vega"
+	pbtypes "code.vegaprotocol.io/protos/vega"
 	"code.vegaprotocol.io/vega/types/num"
 	"google.golang.org/grpc/codes"
 )
@@ -31,12 +32,32 @@ type tradingDataDelegator struct {
 	voteStore         *sqlstore.Votes
 	riskFactorStore   *sqlstore.RiskFactors
 	marginLevelsStore *sqlstore.MarginLevels
+	netParamStore     *sqlstore.NetworkParameters
 }
 
 var defaultEntityPagination = entities.Pagination{
 	Skip:       0,
 	Limit:      50,
 	Descending: true,
+}
+
+/****************************** Network Parameters **************************************/
+
+func (t *tradingDataDelegator) NetworkParameters(ctx context.Context, req *protoapi.NetworkParametersRequest) (*protoapi.NetworkParametersResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("NetworkParameters SQL")()
+	nps, err := t.netParamStore.GetAll(ctx)
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+
+	out := make([]*pbtypes.NetworkParameter, len(nps))
+	for i, np := range nps {
+		out[i] = np.ToProto()
+	}
+
+	return &protoapi.NetworkParametersResponse{
+		NetworkParameters: out,
+	}, nil
 }
 
 /****************************** Governance **************************************/

@@ -331,10 +331,17 @@ create table if not exists margin_levels (
 
 create table if not exists risk_factors (
     market_id bytea not null,
-    short numeric(32, 16) not null,
+    short numeric(32, 16) not null, 
     long numeric(32, 16) not null,
     vega_time timestamp with time zone not null references blocks(vega_time),
     primary key (market_id, vega_time)
+);
+
+CREATE TABLE network_parameters (
+  key          TEXT                     NOT NULL,
+  value        TEXT                     NOT NULL,
+  vega_time    TIMESTAMP WITH TIME ZONE NOT NULL REFERENCES blocks(vega_time),
+  PRIMARY KEY (key, vega_time)
 );
 
 -- +goose Down
@@ -342,6 +349,8 @@ DROP AGGREGATE IF EXISTS public.first(anyelement);
 DROP AGGREGATE IF EXISTS public.last(anyelement);
 DROP FUNCTION IF EXISTS public.first_agg(anyelement, anyelement);
 DROP FUNCTION IF EXISTS public.last_agg(anyelement, anyelement);
+
+DROP TABLE IF EXISTS network_parameters;
 
 DROP VIEW IF EXISTS votes_current;
 DROP TABLE IF EXISTS votes;
