@@ -56,7 +56,7 @@ func (n *Checkpoint) consume(event CheckpointEvent) {
 	pnp := event.Proto()
 	np, err := entities.CheckpointFromProto(&pnp)
 	if err != nil {
-		n.log.Error("unable to parse network parameter", logging.Error(err))
+		n.log.Error("unable to parse checkpoint", logging.Error(err))
 		return
 	}
 	np.VegaTime = n.vegaTime

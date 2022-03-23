@@ -47,7 +47,7 @@ func (n *NetworkParameter) Push(evt events.Event) {
 	case NetworkParameterEvent:
 		n.consume(event)
 	default:
-		n.log.Panic("unknown event type in rewards subscriber",
+		n.log.Panic("unknown event type in network parameter subscriber",
 			logging.String("Type", event.Type().String()))
 	}
 }
