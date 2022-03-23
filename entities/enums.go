@@ -309,19 +309,12 @@ func (s WithdrawalStatus) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, er
 }
 
 func (s *WithdrawalStatus) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
-	switch string(src) {
-	case "STATUS_UNSPECIFIED":
-		*s = WithdrawalStatusUnspecified
-	case "STATUS_OPEN":
-		*s = WithdrawalStatusOpen
-	case "STATUS_REJECTED":
-		*s = WithdrawalStatusRejected
-	case "STATUS_FINALIZED":
-		*s = WithdrawalStatusFinalized
-	default:
-		return fmt.Errorf("unknown status: %s", src)
-	}
-	return nil
+    val, ok := vega.Withdrawal_Status_value[string(src)]
+    if !ok {
+        return fmt.Errorf("unknown withdrawal status: %s", src)
+    }
+    *s = WithdrawalStatus(val)
+    return nil
 }
 
 /************************* Proposal State *****************************/
