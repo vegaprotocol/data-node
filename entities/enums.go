@@ -303,18 +303,18 @@ const (
 func (s WithdrawalStatus) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
 	status, ok := vega.Withdrawal_Status_name[int32(s)]
 	if !ok {
-	    return buf, fmt.Errorf("unknown withdrawal status: %s", status)
+		return buf, fmt.Errorf("unknown withdrawal status: %s", status)
 	}
 	return append(buf, []byte(status)...), nil
 }
 
 func (s *WithdrawalStatus) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
-    val, ok := vega.Withdrawal_Status_value[string(src)]
-    if !ok {
-        return fmt.Errorf("unknown withdrawal status: %s", src)
-    }
-    *s = WithdrawalStatus(val)
-    return nil
+	val, ok := vega.Withdrawal_Status_value[string(src)]
+	if !ok {
+		return fmt.Errorf("unknown withdrawal status: %s", src)
+	}
+	*s = WithdrawalStatus(val)
+	return nil
 }
 
 /************************* Proposal State *****************************/
