@@ -151,6 +151,7 @@ type NodeCommand struct {
 	transferSub          *subscribers.TransferSub
 
 	assetSubSQL            *sqlsubscribers.Asset
+	partySubSQL            *sqlsubscribers.Party
 	timeSubSQL             *sqlsubscribers.Time
 	transferResponseSubSQL *sqlsubscribers.TransferResponse
 	orderSubSQL            *sqlsubscribers.Order
@@ -370,6 +371,7 @@ func (l *NodeCommand) createGRPCServer(config api.Config, useSQLStores bool) *ap
 		l.netParamStoreSQL,
 		l.blockStoreSQL,
 		l.checkpointStoreSQL,
+		l.partyStoreSQL,
 	)
 	return grpcServer
 }
