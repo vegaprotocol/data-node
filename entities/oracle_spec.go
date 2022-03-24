@@ -19,13 +19,13 @@ func NewSpecID(id string) SpecID {
 }
 
 type PublicKey = []byte
-type PublicKeyList = []PublicKey
+type PublicKeys = []PublicKey
 
 type OracleSpec struct {
 	ID         SpecID
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
-	PublicKeys PublicKeyList
+	PublicKeys PublicKeys
 	Filters    []Filter
 	Status     OracleSpecStatus
 	VegaTime   time.Time
@@ -71,8 +71,8 @@ func (os *OracleSpec) ToProto() *oraclespb.OracleSpec {
 	}
 }
 
-func decodePublicKeys(publicKeys []string) (PublicKeyList, error) {
-	pkList := make(PublicKeyList, 0, len(publicKeys))
+func decodePublicKeys(publicKeys []string) (PublicKeys, error) {
+	pkList := make(PublicKeys, 0, len(publicKeys))
 
 	for _, publicKey := range publicKeys {
 		pk, err := hex.DecodeString(publicKey)

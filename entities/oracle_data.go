@@ -14,7 +14,7 @@ type Property struct {
 }
 
 type OracleData struct {
-	PublicKeys     PublicKeyList
+	PublicKeys     PublicKeys
 	Data           []Property
 	MatchedSpecIds [][]byte // pgx automatically handles [][]byte to Postgres ByteaArray mappings
 	BroadcastAt    time.Time
