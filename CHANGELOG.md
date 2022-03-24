@@ -9,7 +9,7 @@
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -
 
 ### 🛠  Improvements
-- [](https://github.com/vegaprotocol/data-node/pull/xxx) -
+- [378](https://github.com/vegaprotocol/data-node/issues/378) - Migrate existing Oracles API to new `Postgres` database.
 
 ### 🐛 Fixes
 - [451](https://github.com/vegaprotocol/data-node/issues/451) - Correct conversion of pending validator status

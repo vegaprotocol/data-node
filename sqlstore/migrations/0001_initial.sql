@@ -337,11 +337,39 @@ create table if not exists risk_factors (
     primary key (market_id, vega_time)
 );
 
+create type oracle_spec_status as enum('STATUS_UNSPECIFIED', 'STATUS_ACTIVE', 'STATUS_DEACTIVATED');
+
+create table if not exists oracle_specs (
+    id bytea not null,
+    created_at timestamp with time zone not null,
+    updated_at timestamp with time zone not null,
+    public_keys bytea[],
+    filters jsonb,
+    status oracle_spec_status not null,
+    vega_time timestamp with time zone not null references blocks(vega_time),
+    primary key (id, vega_time)
+);
+
+create table if not exists oracle_data (
+    public_keys bytea[],
+    data jsonb not null,
+    matched_spec_ids bytea[],
+    broadcast_at timestamp with time zone not null,
+    vega_time timestamp with time zone not null references blocks(vega_time)
+);
+
+create index if not exists idx_oracle_data_matched_spec_ids on oracle_data(matched_spec_ids);
+
 -- +goose Down
 DROP AGGREGATE IF EXISTS public.first(anyelement);
 DROP AGGREGATE IF EXISTS public.last(anyelement);
 DROP FUNCTION IF EXISTS public.first_agg(anyelement, anyelement);
 DROP FUNCTION IF EXISTS public.last_agg(anyelement, anyelement);
+
+DROP INDEX IF EXISTS idx_oracle_data_matched_spec_ids;
+DROP TABLE IF EXISTS oracle_data;
+DROP TABLE IF EXISTS oracle_specs;
+DROP TYPE IF EXISTS oracle_spec_status;
 
 DROP VIEW IF EXISTS votes_current;
 DROP TABLE IF EXISTS votes;

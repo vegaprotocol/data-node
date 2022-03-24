@@ -83,16 +83,18 @@ func waitForSIGTERM() {
 	}
 }
 
-func assertGraphQLQueriesReturnSame(t *testing.T, query string, oldResp, newResp interface{}) {
+func assertGraphQLQueriesReturnSameIgnoreErrors(t *testing.T, query string, oldResp, newResp interface{}) {
 	t.Helper()
 	req := graphql.NewRequest(query)
 
-	err := oldClient.Run(context.Background(), req, &oldResp)
-	require.NoError(t, err)
+	_ = oldClient.Run(context.Background(), req, &oldResp)
+	_ = newClient.Run(context.Background(), req, &newResp)
 
-	err = newClient.Run(context.Background(), req, &newResp)
-	require.NoError(t, err)
+	compareResponses(t, oldResp, newResp)
+}
 
+func compareResponses(t *testing.T, oldResp, newResp interface{}) {
+	t.Helper()
 	sortAccounts := cmpopts.SortSlices(func(a Account, b Account) bool {
 		if a.Type != b.Type {
 			return a.Type < b.Type
@@ -109,8 +111,23 @@ func assertGraphQLQueriesReturnSame(t *testing.T, query string, oldResp, newResp
 	sortMarkets := cmpopts.SortSlices(func(a Market, b Market) bool { return a.Id < b.Id })
 	sortVotes := cmpopts.SortSlices(func(a Vote, b Vote) bool { return a.Party.Id < b.Party.Id })
 	sortProposals := cmpopts.SortSlices(func(a Proposal, b Proposal) bool { return a.Id < b.Id })
-	diff := cmp.Diff(oldResp, newResp, sortTrades, sortVotes, sortAccounts, sortMarkets, sortProposals)
+	sortSpecs := cmpopts.SortSlices(func(a, b OracleSpec) bool { return a.ID < b.ID })
+
+	diff := cmp.Diff(oldResp, newResp, sortTrades, sortVotes, sortAccounts, sortMarkets, sortProposals, sortSpecs)
+
 	assert.Empty(t, diff)
+}
+
+func assertGraphQLQueriesReturnSame(t *testing.T, query string, oldResp, newResp interface{}) {
+	t.Helper()
+	req := graphql.NewRequest(query)
+
+	err := oldClient.Run(context.Background(), req, &oldResp)
+	require.NoError(t, err)
+
+	err = newClient.Run(context.Background(), req, &newResp)
+	require.NoError(t, err)
+	compareResponses(t, oldResp, newResp)
 }
 
 func newTestConfig() (*config.Config, error) {

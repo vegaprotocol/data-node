@@ -11,6 +11,7 @@ import (
 	"code.vegaprotocol.io/data-node/sqlstore"
 	protoapi "code.vegaprotocol.io/protos/data-node/api/v1"
 	"code.vegaprotocol.io/protos/vega"
+	oraclespb "code.vegaprotocol.io/protos/vega/oracles/v1"
 	"code.vegaprotocol.io/vega/types/num"
 	"google.golang.org/grpc/codes"
 )
@@ -31,6 +32,8 @@ type tradingDataDelegator struct {
 	voteStore         *sqlstore.Votes
 	riskFactorStore   *sqlstore.RiskFactors
 	marginLevelsStore *sqlstore.MarginLevels
+	oracleSpecStore   *sqlstore.OracleSpec
+	oracleDataStore   *sqlstore.OracleData
 }
 
 var defaultEntityPagination = entities.Pagination{
@@ -1082,7 +1085,7 @@ func (t *tradingDataDelegator) MarginLevels(ctx context.Context, req *protoapi.M
 }
 
 func (t *tradingDataDelegator) GetRiskFactors(ctx context.Context, in *protoapi.GetRiskFactorsRequest) (*protoapi.GetRiskFactorsResponse, error) {
-	defer metrics.StartAPIRequestAndTimeGRPC("GetRiskFactors")()
+	defer metrics.StartAPIRequestAndTimeGRPC("GetRiskFactors SQL")()
 
 	rfs, err := t.riskFactorStore.GetMarketRiskFactors(ctx, in.MarketId)
 
@@ -1092,5 +1095,54 @@ func (t *tradingDataDelegator) GetRiskFactors(ctx context.Context, in *protoapi.
 
 	return &protoapi.GetRiskFactorsResponse{
 		RiskFactor: rfs.ToProto(),
+	}, nil
+}
+
+func (t *tradingDataDelegator) OracleSpec(ctx context.Context, req *protoapi.OracleSpecRequest) (*protoapi.OracleSpecResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("OracleSpec SQL")()
+	if len(req.Id) <= 0 {
+		return nil, ErrMissingOracleSpecID
+	}
+	spec, err := t.oracleSpecStore.GetSpecByID(ctx, req.Id)
+	if err != nil {
+		return nil, apiError(codes.NotFound, err)
+	}
+	return &protoapi.OracleSpecResponse{
+		OracleSpec: spec.ToProto(),
+	}, nil
+}
+
+func (t *tradingDataDelegator) OracleSpecs(ctx context.Context, _ *protoapi.OracleSpecsRequest) (*protoapi.OracleSpecsResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("OracleSpecs SQL")()
+	specs, err := t.oracleSpecStore.GetSpecs(ctx, entities.Pagination{})
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+
+	out := make([]*oraclespb.OracleSpec, 0, len(specs))
+	for _, v := range specs {
+		out = append(out, v.ToProto())
+	}
+
+	return &protoapi.OracleSpecsResponse{
+		OracleSpecs: out,
+	}, nil
+}
+
+func (t *tradingDataDelegator) OracleDataBySpec(ctx context.Context, req *protoapi.OracleDataBySpecRequest) (*protoapi.OracleDataBySpecResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("OracleDataBySpec SQL")()
+	if len(req.Id) <= 0 {
+		return nil, ErrMissingOracleSpecID
+	}
+	data, err := t.oracleDataStore.GetOracleDataBySpecID(ctx, req.Id, entities.Pagination{})
+	if err != nil {
+		return nil, apiError(codes.NotFound, err)
+	}
+	out := make([]*oraclespb.OracleData, 0, len(data))
+	for _, v := range data {
+		out = append(out, v.ToProto())
+	}
+	return &protoapi.OracleDataBySpecResponse{
+		OracleData: out,
 	}, nil
 }
