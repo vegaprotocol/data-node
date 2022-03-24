@@ -1172,7 +1172,7 @@ func (t *tradingDataDelegator) Withdrawals(ctx context.Context, req *protoapi.Wi
 	}
 
 	// current API doesn't support pagination, but we will need to support it for v2
-	withdrawals := t.withdrawalsStore.GetByParty(ctx, req.PartyId, entities.Pagination{})
+	withdrawals := t.withdrawalsStore.GetByParty(ctx, req.PartyId, false, entities.Pagination{})
 	out := make([]*vega.Withdrawal, 0, len(withdrawals))
 	for _, w := range withdrawals {
 		out = append(out, w.ToProto())

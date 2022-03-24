@@ -164,6 +164,7 @@ type NodeCommand struct {
 	marketUpdatedSubSQL    *sqlsubscribers.MarketUpdated
 	epochSubSQL            *sqlsubscribers.Epoch
 	depositSubSQL          *sqlsubscribers.Deposit
+	withdrawalSubSQL       *sqlsubscribers.Withdrawal
 	proposalsSubSQL        *sqlsubscribers.Proposal
 	votesSubSQL            *sqlsubscribers.Vote
 	marginLevelsSubSQL     *sqlsubscribers.MarginLevels

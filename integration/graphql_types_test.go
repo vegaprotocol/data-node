@@ -283,13 +283,4 @@ type Withdrawal struct {
 	TxHash             string
 	CreatedTimestamp   string
 	WithdrawnTimeStamp string
-	// Ext WithdrawExt
 }
-
-// type WithdrawExt struct {
-// 	Ext // ???
-// }
-
-// type ERC20WithdrawExt {
-// 	ReceiverAddress string
-// }
