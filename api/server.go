@@ -100,6 +100,9 @@ type GRPCServer struct {
 	voteStore          *sqlstore.Votes
 	riskFactorsStore   *sqlstore.RiskFactors
 	marginLevelsStore  *sqlstore.MarginLevels
+	netParamStore      *sqlstore.NetworkParameters
+	blockStore         *sqlstore.Blocks
+	checkpointStore    *sqlstore.Checkpoints
 	oracleSpecStore    *sqlstore.OracleSpec
 	oracleDataStore    *sqlstore.OracleData
 
@@ -158,6 +161,9 @@ func NewGRPCServer(
 	voteStore *sqlstore.Votes,
 	riskFactorsStore *sqlstore.RiskFactors,
 	marginLevelsStore *sqlstore.MarginLevels,
+	netParamStore *sqlstore.NetworkParameters,
+	blockStore *sqlstore.Blocks,
+	checkpointStore *sqlstore.Checkpoints,
 	oracleSpecStore *sqlstore.OracleSpec,
 	oracleDataStore *sqlstore.OracleData,
 ) *GRPCServer {
@@ -213,6 +219,9 @@ func NewGRPCServer(
 		voteStore:               voteStore,
 		riskFactorsStore:        riskFactorsStore,
 		marginLevelsStore:       marginLevelsStore,
+		netParamStore:           netParamStore,
+		blockStore:              blockStore,
+		checkpointStore:         checkpointStore,
 		oracleSpecStore:         oracleSpecStore,
 		oracleDataStore:         oracleDataStore,
 		eventObserver: &eventObserver{
@@ -374,6 +383,9 @@ func (g *GRPCServer) Start(ctx context.Context, lis net.Listener) error {
 			voteStore:          g.voteStore,
 			riskFactorStore:    g.riskFactorsStore,
 			marginLevelsStore:  g.marginLevelsStore,
+			netParamStore:      g.netParamStore,
+			blockStore:         g.blockStore,
+			checkpointStore:    g.checkpointStore,
 			oracleSpecStore:    g.oracleSpecStore,
 			oracleDataStore:    g.oracleDataStore,
 		}

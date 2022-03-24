@@ -337,6 +337,21 @@ create table if not exists risk_factors (
     primary key (market_id, vega_time)
 );
 
+CREATE TABLE network_parameters (
+    key          TEXT                     NOT NULL,
+    value        TEXT                     NOT NULL,
+    vega_time    TIMESTAMP WITH TIME ZONE NOT NULL REFERENCES blocks(vega_time),
+    PRIMARY KEY (key, vega_time)
+);
+
+CREATE TABLE checkpoints(
+    hash         TEXT                     NOT NULL,
+    block_hash   TEXT                     NOT NULL,
+    block_height BIGINT                   NOT NULL,
+    vega_time    TIMESTAMP WITH TIME ZONE NOT NULL REFERENCES blocks(vega_time),
+    PRIMARY KEY (block_height)
+);
+
 create type oracle_spec_status as enum('STATUS_UNSPECIFIED', 'STATUS_ACTIVE', 'STATUS_DEACTIVATED');
 
 create table if not exists oracle_specs (
@@ -365,6 +380,10 @@ DROP AGGREGATE IF EXISTS public.first(anyelement);
 DROP AGGREGATE IF EXISTS public.last(anyelement);
 DROP FUNCTION IF EXISTS public.first_agg(anyelement, anyelement);
 DROP FUNCTION IF EXISTS public.last_agg(anyelement, anyelement);
+
+DROP TABLE IF EXISTS checkpoints;
+
+DROP TABLE IF EXISTS network_parameters;
 
 DROP INDEX IF EXISTS idx_oracle_data_matched_spec_ids;
 DROP TABLE IF EXISTS oracle_data;

@@ -267,6 +267,11 @@ type Deposit struct {
 	TxHash            string
 }
 
+type NetworkParameter struct {
+	Key   string
+	Value string
+}
+
 type Property struct {
 	Name  string
 	Value string

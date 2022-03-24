@@ -140,6 +140,8 @@ func (l *NodeCommand) setupSQLSubscribers() {
 	l.votesSubSQL = sqlsubscribers.NewVote(l.voteStoreSQL, l.Log)
 	l.marginLevelsSubSQL = sqlsubscribers.NewMarginLevels(l.marginLevelsStoreSQL, l.Log)
 	l.riskFactorSubSQL = sqlsubscribers.NewRiskFactor(l.riskFactorStoreSQL, l.Log)
+	l.netParamSubSQL = sqlsubscribers.NewNetworkParameter(l.netParamStoreSQL, l.Log)
+	l.checkpointSubSQL = sqlsubscribers.NewCheckpoint(l.checkpointStoreSQL, l.Log)
 	l.oracleSpecSubSQL = sqlsubscribers.NewOracleSpec(l.oracleSpecStoreSQL, l.Log)
 	l.oracleDataSubSQL = sqlsubscribers.NewOracleData(l.oracleDataStoreSQL, l.Log)
 }
@@ -186,6 +188,8 @@ func (l *NodeCommand) setupStorages() error {
 		l.voteStoreSQL = sqlstore.NewVotes(sqlStore)
 		l.marginLevelsStoreSQL = sqlstore.NewMarginLevels(sqlStore)
 		l.riskFactorStoreSQL = sqlstore.NewRiskFactors(sqlStore)
+		l.netParamStoreSQL = sqlstore.NewNetworkParameters(sqlStore)
+		l.checkpointStoreSQL = sqlstore.NewCheckpoints(sqlStore)
 		l.oracleSpecStoreSQL = sqlstore.NewOracleSpec(sqlStore)
 		l.oracleDataStoreSQL = sqlstore.NewOracleData(sqlStore)
 
@@ -277,8 +281,11 @@ func (l *NodeCommand) preRun(_ []string) (err error) {
 			l.depositSubSQL,
 			l.marginLevelsSubSQL,
 			l.riskFactorSubSQL,
+			l.netParamSubSQL,
+			l.checkpointSubSQL,
 			l.oracleSpecSubSQL,
-			l.oracleDataSubSQL)
+			l.oracleDataSubSQL,
+		)
 	}
 
 	l.broker, err = broker.New(l.ctx, l.Log, l.conf.Broker, l.chainInfoStore, eventSource)

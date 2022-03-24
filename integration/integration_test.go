@@ -32,7 +32,7 @@ const PlaybackTimeout = 30 * time.Second
 var (
 	newClient               *graphql.Client
 	oldClient               *graphql.Client
-	integrationTestsEnabled bool = false
+	integrationTestsEnabled bool = true
 	blockWhenDone           bool = false
 )
 
@@ -83,16 +83,6 @@ func waitForSIGTERM() {
 	}
 }
 
-func assertGraphQLQueriesReturnSameIgnoreErrors(t *testing.T, query string, oldResp, newResp interface{}) {
-	t.Helper()
-	req := graphql.NewRequest(query)
-
-	_ = oldClient.Run(context.Background(), req, &oldResp)
-	_ = newClient.Run(context.Background(), req, &newResp)
-
-	compareResponses(t, oldResp, newResp)
-}
-
 func compareResponses(t *testing.T, oldResp, newResp interface{}) {
 	t.Helper()
 	sortAccounts := cmpopts.SortSlices(func(a Account, b Account) bool {
@@ -111,9 +101,10 @@ func compareResponses(t *testing.T, oldResp, newResp interface{}) {
 	sortMarkets := cmpopts.SortSlices(func(a Market, b Market) bool { return a.Id < b.Id })
 	sortVotes := cmpopts.SortSlices(func(a Vote, b Vote) bool { return a.Party.Id < b.Party.Id })
 	sortProposals := cmpopts.SortSlices(func(a Proposal, b Proposal) bool { return a.Id < b.Id })
+	sortNetParams := cmpopts.SortSlices(func(a NetworkParameter, b NetworkParameter) bool { return a.Key < b.Key })
 	sortSpecs := cmpopts.SortSlices(func(a, b OracleSpec) bool { return a.ID < b.ID })
 
-	diff := cmp.Diff(oldResp, newResp, sortTrades, sortVotes, sortAccounts, sortMarkets, sortProposals, sortSpecs)
+	diff := cmp.Diff(oldResp, newResp, sortTrades, sortVotes, sortAccounts, sortMarkets, sortProposals, sortNetParams, sortSpecs)
 
 	assert.Empty(t, diff)
 }
@@ -127,6 +118,16 @@ func assertGraphQLQueriesReturnSame(t *testing.T, query string, oldResp, newResp
 
 	err = newClient.Run(context.Background(), req, &newResp)
 	require.NoError(t, err)
+	compareResponses(t, oldResp, newResp)
+}
+
+func assertGraphQLQueriesReturnSameIgnoreErrors(t *testing.T, query string, oldResp, newResp interface{}) {
+	t.Helper()
+	req := graphql.NewRequest(query)
+
+	_ = oldClient.Run(context.Background(), req, &oldResp)
+	_ = newClient.Run(context.Background(), req, &newResp)
+
 	compareResponses(t, oldResp, newResp)
 }
 

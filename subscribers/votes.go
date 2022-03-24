@@ -101,6 +101,9 @@ func (v *VoteSub) Push(evts ...events.Event) {
 // Filter allows us to fetch votes using callbacks (e.g. filter out all votes by party)
 func (v VoteSub) Filter(filters ...VoteFilter) []*types.Vote {
 	ret := []*types.Vote{}
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	for _, vote := range v.all {
 		add := true
 		for _, f := range filters {

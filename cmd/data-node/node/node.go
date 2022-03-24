@@ -119,6 +119,8 @@ type NodeCommand struct {
 	voteStoreSQL          *sqlstore.Votes
 	marginLevelsStoreSQL  *sqlstore.MarginLevels
 	riskFactorStoreSQL    *sqlstore.RiskFactors
+	netParamStoreSQL      *sqlstore.NetworkParameters
+	checkpointStoreSQL    *sqlstore.Checkpoints
 	oracleSpecStoreSQL    *sqlstore.OracleSpec
 	oracleDataStoreSQL    *sqlstore.OracleData
 
@@ -167,6 +169,8 @@ type NodeCommand struct {
 	votesSubSQL            *sqlsubscribers.Vote
 	marginLevelsSubSQL     *sqlsubscribers.MarginLevels
 	riskFactorSubSQL       *sqlsubscribers.RiskFactor
+	netParamSubSQL         *sqlsubscribers.NetworkParameter
+	checkpointSubSQL       *sqlsubscribers.Checkpoint
 	oracleSpecSubSQL       *sqlsubscribers.OracleSpec
 	oracleDataSubSQL       *sqlsubscribers.OracleData
 
@@ -367,6 +371,9 @@ func (l *NodeCommand) createGRPCServer(config api.Config, useSQLStores bool) *ap
 		l.voteStoreSQL,
 		l.riskFactorStoreSQL,
 		l.marginLevelsStoreSQL,
+		l.netParamStoreSQL,
+		l.blockStoreSQL,
+		l.checkpointStoreSQL,
 		l.oracleSpecStoreSQL,
 		l.oracleDataStoreSQL,
 	)

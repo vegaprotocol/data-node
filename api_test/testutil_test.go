@@ -226,6 +226,9 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 	sqlVoteStore := sqlstore.NewVotes(&sqlStore)
 	sqlRiskFactorsStore := sqlstore.NewRiskFactors(&sqlStore)
 	sqlMarginLevelsStore := sqlstore.NewMarginLevels(&sqlStore)
+	sqlNetParamStore := sqlstore.NewNetworkParameters(&sqlStore)
+	sqlBlockStore := sqlstore.NewBlocks(&sqlStore)
+	sqlCheckpointStore := sqlstore.NewCheckpoints(&sqlStore)
 	sqlOracleSpecStore := sqlstore.NewOracleSpec(&sqlStore)
 	sqlOracleDataStore := sqlstore.NewOracleData(&sqlStore)
 
@@ -304,6 +307,9 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 		sqlVoteStore,
 		sqlRiskFactorsStore,
 		sqlMarginLevelsStore,
+		sqlNetParamStore,
+		sqlBlockStore,
+		sqlCheckpointStore,
 		sqlOracleSpecStore,
 		sqlOracleDataStore,
 	)
