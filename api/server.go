@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"code.vegaprotocol.io/data-node/candlesv2"
+
 	"code.vegaprotocol.io/data-node/accounts"
 	"code.vegaprotocol.io/data-node/assets"
 	"code.vegaprotocol.io/data-node/candles"
@@ -86,6 +88,7 @@ type GRPCServer struct {
 
 	balanceStore       *sqlstore.Balances
 	orderStore         *sqlstore.Orders
+	candleServiceV2    *candlesv2.Svc
 	networkLimitsStore *sqlstore.NetworkLimits
 	marketDataStore    *sqlstore.MarketData
 	tradeStore         *sqlstore.Trades
@@ -166,6 +169,7 @@ func NewGRPCServer(
 	netParamStore *sqlstore.NetworkParameters,
 	blockStore *sqlstore.Blocks,
 	checkpointStore *sqlstore.Checkpoints,
+	candleServiceV2 *candlesv2.Svc,
 	oracleSpecStore *sqlstore.OracleSpec,
 	oracleDataStore *sqlstore.OracleData,
 ) *GRPCServer {
@@ -225,6 +229,7 @@ func NewGRPCServer(
 		netParamStore:           netParamStore,
 		blockStore:              blockStore,
 		checkpointStore:         checkpointStore,
+		candleServiceV2:         candleServiceV2,
 		oracleSpecStore:         oracleSpecStore,
 		oracleDataStore:         oracleDataStore,
 		eventObserver: &eventObserver{
@@ -390,6 +395,7 @@ func (g *GRPCServer) Start(ctx context.Context, lis net.Listener) error {
 			netParamStore:      g.netParamStore,
 			blockStore:         g.blockStore,
 			checkpointStore:    g.checkpointStore,
+			candleServiceV2:    g.candleServiceV2,
 			oracleSpecStore:    g.oracleSpecStore,
 			oracleDataStore:    g.oracleDataStore,
 		}
@@ -400,10 +406,13 @@ func (g *GRPCServer) Start(ctx context.Context, lis net.Listener) error {
 	protoapi.RegisterTradingDataServiceServer(g.srv, g.tradingDataService)
 
 	tradingDataSvcV2 := &tradingDataServiceV2{
+		log:                g.log,
 		balanceStore:       g.balanceStore,
 		orderStore:         g.orderStore,
 		networkLimitsStore: g.networkLimitsStore,
 		marketDataStore:    g.marketDataStore,
+		tradeStore:         g.tradeStore,
+		candleServiceV2:    g.candleServiceV2,
 	}
 	protoapi2.RegisterTradingDataServiceServer(g.srv, tradingDataSvcV2)
 
