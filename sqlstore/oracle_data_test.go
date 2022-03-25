@@ -66,7 +66,7 @@ func testGetOracleDataBySpecID(t *testing.T) {
 
 	var rowCount int
 	err := conn.QueryRow(ctx, "select count(*) from oracle_data").Scan(&rowCount)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 0, rowCount)
 
 	block := addTestBlock(t, bs)
@@ -74,16 +74,17 @@ func testGetOracleDataBySpecID(t *testing.T) {
 
 	for _, proto := range dataProtos {
 		data, err := entities.OracleDataFromProto(proto, block.VegaTime)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		err = od.Add(data)
+		require.NoError(t, err)
 	}
 
 	err = conn.QueryRow(ctx, "select count(*) from oracle_data").Scan(&rowCount)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, len(dataProtos), rowCount)
 
 	got, err := od.GetOracleDataBySpecID(ctx, "DEADBEEF", entities.Pagination{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 2, len(got))
 }
 
