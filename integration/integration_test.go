@@ -88,16 +88,9 @@ func waitForSIGTERM() {
 	}
 }
 
-func assertGraphQLQueriesReturnSame(t *testing.T, query string, oldResp, newResp interface{}) {
+func compareResponses(t *testing.T, oldResp, newResp interface{}) {
 	t.Helper()
-	req := graphql.NewRequest(query)
-
-	err := oldClient.Run(context.Background(), req, &oldResp)
-	require.NoError(t, err)
 	require.NotEmpty(t, oldResp)
-
-	err = newClient.Run(context.Background(), req, &newResp)
-	require.NoError(t, err)
 	require.NotEmpty(t, newResp)
 
 	sortAccounts := cmpopts.SortSlices(func(a Account, b Account) bool {
@@ -118,6 +111,7 @@ func assertGraphQLQueriesReturnSame(t *testing.T, query string, oldResp, newResp
 	sortNetParams := cmpopts.SortSlices(func(a NetworkParameter, b NetworkParameter) bool { return a.Key < b.Key })
 	sortParties := cmpopts.SortSlices(func(a Party, b Party) bool { return a.Id < b.Id })
 	sortDeposits := cmpopts.SortSlices(func(a Deposit, b Deposit) bool { return a.ID < b.ID })
+	sortSpecs := cmpopts.SortSlices(func(a, b OracleSpec) bool { return a.ID < b.ID })
 
 	// This is a bit grim; in the old API you get repeated entries for votes when they are updated,
 	// which is a bug not present in the new API - so remove duplicates when comparing (and sort)
@@ -138,8 +132,31 @@ func assertGraphQLQueriesReturnSame(t *testing.T, query string, oldResp, newResp
 	})
 
 	diff := cmp.Diff(oldResp, newResp, removeDupVotes, sortTrades, sortAccounts,
-		sortMarkets, sortProposals, sortNetParams, sortParties, sortDeposits)
+		sortMarkets, sortProposals, sortNetParams, sortParties, sortDeposits, sortSpecs)
+
 	assert.Empty(t, diff)
+}
+
+func assertGraphQLQueriesReturnSame(t *testing.T, query string, oldResp, newResp interface{}) {
+	t.Helper()
+	req := graphql.NewRequest(query)
+
+	err := oldClient.Run(context.Background(), req, &oldResp)
+	require.NoError(t, err)
+
+	err = newClient.Run(context.Background(), req, &newResp)
+	require.NoError(t, err)
+	compareResponses(t, oldResp, newResp)
+}
+
+func assertGraphQLQueriesReturnSameIgnoreErrors(t *testing.T, query string, oldResp, newResp interface{}) {
+	t.Helper()
+	req := graphql.NewRequest(query)
+
+	_ = oldClient.Run(context.Background(), req, &oldResp)
+	_ = newClient.Run(context.Background(), req, &newResp)
+
+	compareResponses(t, oldResp, newResp)
 }
 
 func newTestConfig() (*config.Config, error) {

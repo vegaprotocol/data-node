@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"code.vegaprotocol.io/data-node/candlesv2"
+
 	"code.vegaprotocol.io/data-node/accounts"
 	"code.vegaprotocol.io/data-node/assets"
 	"code.vegaprotocol.io/data-node/candles"
@@ -86,6 +88,7 @@ type GRPCServer struct {
 
 	balanceStore       *sqlstore.Balances
 	orderStore         *sqlstore.Orders
+	candleServiceV2    *candlesv2.Svc
 	networkLimitsStore *sqlstore.NetworkLimits
 	marketDataStore    *sqlstore.MarketData
 	tradeStore         *sqlstore.Trades
@@ -96,6 +99,7 @@ type GRPCServer struct {
 	delegationsStore   *sqlstore.Delegations
 	epochStore         *sqlstore.Epochs
 	depositsStore      *sqlstore.Deposits
+	withdrawalsStore   *sqlstore.Withdrawals
 	proposalStore      *sqlstore.Proposals
 	voteStore          *sqlstore.Votes
 	riskFactorsStore   *sqlstore.RiskFactors
@@ -104,6 +108,8 @@ type GRPCServer struct {
 	blockStore         *sqlstore.Blocks
 	checkpointStore    *sqlstore.Checkpoints
 	partyStore         *sqlstore.Parties
+	oracleSpecStore    *sqlstore.OracleSpec
+	oracleDataStore    *sqlstore.OracleData
 
 	eventObserver *eventObserver
 
@@ -156,6 +162,7 @@ func NewGRPCServer(
 	delegationStore *sqlstore.Delegations,
 	epochStore *sqlstore.Epochs,
 	depositsStore *sqlstore.Deposits,
+	withdrawalsStore *sqlstore.Withdrawals,
 	proposalStore *sqlstore.Proposals,
 	voteStore *sqlstore.Votes,
 	riskFactorsStore *sqlstore.RiskFactors,
@@ -164,6 +171,9 @@ func NewGRPCServer(
 	blockStore *sqlstore.Blocks,
 	checkpointStore *sqlstore.Checkpoints,
 	partyStore *sqlstore.Parties,
+	candleServiceV2 *candlesv2.Svc,
+	oracleSpecStore *sqlstore.OracleSpec,
+	oracleDataStore *sqlstore.OracleData,
 ) *GRPCServer {
 	// setup logger
 	log = log.Named(namedLogger)
@@ -213,6 +223,7 @@ func NewGRPCServer(
 		delegationsStore:        delegationStore,
 		epochStore:              epochStore,
 		depositsStore:           depositsStore,
+		withdrawalsStore:        withdrawalsStore,
 		proposalStore:           proposalStore,
 		voteStore:               voteStore,
 		riskFactorsStore:        riskFactorsStore,
@@ -222,6 +233,9 @@ func NewGRPCServer(
 		checkpointStore:         checkpointStore,
 		partyStore:              partyStore,
 
+		candleServiceV2: candleServiceV2,
+		oracleSpecStore: oracleSpecStore,
+		oracleDataStore: oracleDataStore,
 		eventObserver: &eventObserver{
 			log:          log,
 			eventService: eventService,
@@ -377,6 +391,7 @@ func (g *GRPCServer) Start(ctx context.Context, lis net.Listener) error {
 			delegationStore:    g.delegationsStore,
 			epochStore:         g.epochStore,
 			depositsStore:      g.depositsStore,
+			withdrawalsStore:   g.withdrawalsStore,
 			proposalsStore:     g.proposalStore,
 			voteStore:          g.voteStore,
 			riskFactorStore:    g.riskFactorsStore,
@@ -385,6 +400,9 @@ func (g *GRPCServer) Start(ctx context.Context, lis net.Listener) error {
 			blockStore:         g.blockStore,
 			checkpointStore:    g.checkpointStore,
 			partyStore:         g.partyStore,
+			candleServiceV2:    g.candleServiceV2,
+			oracleSpecStore:    g.oracleSpecStore,
+			oracleDataStore:    g.oracleDataStore,
 		}
 	} else {
 		g.tradingDataService = tradingDataSvc
@@ -393,10 +411,13 @@ func (g *GRPCServer) Start(ctx context.Context, lis net.Listener) error {
 	protoapi.RegisterTradingDataServiceServer(g.srv, g.tradingDataService)
 
 	tradingDataSvcV2 := &tradingDataServiceV2{
+		log:                g.log,
 		balanceStore:       g.balanceStore,
 		orderStore:         g.orderStore,
 		networkLimitsStore: g.networkLimitsStore,
 		marketDataStore:    g.marketDataStore,
+		tradeStore:         g.tradeStore,
+		candleServiceV2:    g.candleServiceV2,
 	}
 	protoapi2.RegisterTradingDataServiceServer(g.srv, tradingDataSvcV2)
 

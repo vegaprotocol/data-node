@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"code.vegaprotocol.io/data-node/candlesv2"
+
 	"code.vegaprotocol.io/data-node/accounts"
 	"code.vegaprotocol.io/data-node/assets"
 	"code.vegaprotocol.io/data-node/broker"
@@ -137,12 +139,15 @@ func (l *NodeCommand) setupSQLSubscribers() {
 	l.delegationsSubSQL = sqlsubscribers.NewDelegation(l.delegationStoreSQL, l.Log)
 	l.epochSubSQL = sqlsubscribers.NewEpoch(l.epochStoreSQL, l.Log)
 	l.depositSubSQL = sqlsubscribers.NewDeposit(l.depositStoreSQL, l.Log)
+	l.withdrawalSubSQL = sqlsubscribers.NewWithdrawal(l.withdrawalsStoreSQL, l.Log)
 	l.proposalsSubSQL = sqlsubscribers.NewProposal(l.proposalStoreSQL, l.Log)
 	l.votesSubSQL = sqlsubscribers.NewVote(l.voteStoreSQL, l.Log)
 	l.marginLevelsSubSQL = sqlsubscribers.NewMarginLevels(l.marginLevelsStoreSQL, l.Log)
 	l.riskFactorSubSQL = sqlsubscribers.NewRiskFactor(l.riskFactorStoreSQL, l.Log)
 	l.netParamSubSQL = sqlsubscribers.NewNetworkParameter(l.netParamStoreSQL, l.Log)
 	l.checkpointSubSQL = sqlsubscribers.NewCheckpoint(l.checkpointStoreSQL, l.Log)
+	l.oracleSpecSubSQL = sqlsubscribers.NewOracleSpec(l.oracleSpecStoreSQL, l.Log)
+	l.oracleDataSubSQL = sqlsubscribers.NewOracleData(l.oracleDataStoreSQL, l.Log)
 }
 
 func (l *NodeCommand) setupStorages() error {
@@ -178,19 +183,28 @@ func (l *NodeCommand) setupStorages() error {
 		l.orderStoreSQL = sqlstore.NewOrders(sqlStore)
 		l.networkLimitsStoreSQL = sqlstore.NewNetworkLimits(sqlStore)
 		l.marketDataStoreSQL = sqlstore.NewMarketData(sqlStore)
-		l.tradeStoreSQL = sqlstore.NewTrades(sqlStore)
 		l.rewardStoreSQL = sqlstore.NewRewards(sqlStore)
 		l.marketsStoreSQL = sqlstore.NewMarkets(sqlStore)
 		l.delegationStoreSQL = sqlstore.NewDelegations(sqlStore)
 		l.epochStoreSQL = sqlstore.NewEpochs(sqlStore)
 		l.depositStoreSQL = sqlstore.NewDeposits(sqlStore)
+		l.withdrawalsStoreSQL = sqlstore.NewWithdrawals(sqlStore)
 		l.proposalStoreSQL = sqlstore.NewProposals(sqlStore)
 		l.voteStoreSQL = sqlstore.NewVotes(sqlStore)
 		l.marginLevelsStoreSQL = sqlstore.NewMarginLevels(sqlStore)
 		l.riskFactorStoreSQL = sqlstore.NewRiskFactors(sqlStore)
 		l.netParamStoreSQL = sqlstore.NewNetworkParameters(sqlStore)
 		l.checkpointStoreSQL = sqlstore.NewCheckpoints(sqlStore)
+		l.oracleSpecStoreSQL = sqlstore.NewOracleSpec(sqlStore)
+		l.oracleDataStoreSQL = sqlstore.NewOracleData(sqlStore)
 
+		candleStore, err := sqlstore.NewCandles(l.ctx, sqlStore, l.conf.CandlesV2.CandleStore)
+		if err != nil {
+			return fmt.Errorf("failed to create candles store: %w", err)
+		}
+		l.candleServiceV2 = candlesv2.NewService(l.ctx, l.Log, l.conf.CandlesV2, candleStore)
+
+		l.tradeStoreSQL = sqlstore.NewTrades(sqlStore)
 		l.sqlStore = sqlStore
 	}
 
@@ -282,6 +296,8 @@ func (l *NodeCommand) preRun(_ []string) (err error) {
 			l.riskFactorSubSQL,
 			l.netParamSubSQL,
 			l.checkpointSubSQL,
+			l.oracleSpecSubSQL,
+			l.oracleDataSubSQL,
 		)
 	}
 

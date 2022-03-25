@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"code.vegaprotocol.io/data-node/candlesv2"
+
 	vgtesting "code.vegaprotocol.io/data-node/libs/testing"
 	"code.vegaprotocol.io/data-node/sqlstore"
 	"github.com/golang/protobuf/jsonpb"
@@ -213,6 +215,13 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 	sqlMarketDataStore := sqlstore.NewMarketData(&sqlStore)
 
 	sqlOrderStore := sqlstore.NewOrders(&sqlStore)
+	conf.CandlesV2.CandleStore.DefaultCandleIntervals = ""
+	sqlCandleStore, err := sqlstore.NewCandles(ctx, &sqlStore, conf.CandlesV2.CandleStore)
+	if err != nil {
+		t.Fatalf("failed to create candle store: %v", err)
+	}
+	candlesServiceV2 := candlesv2.NewService(ctx, logger, conf.CandlesV2, sqlCandleStore)
+
 	sqlTradeStore := sqlstore.NewTrades(&sqlStore)
 	sqlNetworkLimitsStore := sqlstore.NewNetworkLimits(&sqlStore)
 	sqlAssetStore := sqlstore.NewAssets(&sqlStore)
@@ -222,6 +231,7 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 	sqlDelegationStore := sqlstore.NewDelegations(&sqlStore)
 	sqlEpochStore := sqlstore.NewEpochs(&sqlStore)
 	sqlDepositStore := sqlstore.NewDeposits(&sqlStore)
+	sqlWithdrawalsStore := sqlstore.NewWithdrawals(&sqlStore)
 	sqlProposalStore := sqlstore.NewProposals(&sqlStore)
 	sqlVoteStore := sqlstore.NewVotes(&sqlStore)
 	sqlRiskFactorsStore := sqlstore.NewRiskFactors(&sqlStore)
@@ -230,6 +240,8 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 	sqlBlockStore := sqlstore.NewBlocks(&sqlStore)
 	sqlCheckpointStore := sqlstore.NewCheckpoints(&sqlStore)
 	sqlPartyStore := sqlstore.NewParties(&sqlStore)
+	sqlOracleSpecStore := sqlstore.NewOracleSpec(&sqlStore)
+	sqlOracleDataStore := sqlstore.NewOracleData(&sqlStore)
 
 	eventSource, err := broker.NewEventSource(conf.Broker, logger)
 
@@ -302,6 +314,7 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 		sqlDelegationStore,
 		sqlEpochStore,
 		sqlDepositStore,
+		sqlWithdrawalsStore,
 		sqlProposalStore,
 		sqlVoteStore,
 		sqlRiskFactorsStore,
@@ -310,6 +323,9 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 		sqlBlockStore,
 		sqlCheckpointStore,
 		sqlPartyStore,
+		candlesServiceV2,
+		sqlOracleSpecStore,
+		sqlOracleDataStore,
 	)
 	if srv == nil {
 		t.Fatal("failed to create gRPC server")

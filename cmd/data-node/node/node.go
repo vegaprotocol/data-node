@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"code.vegaprotocol.io/data-node/candlesv2"
+
 	"code.vegaprotocol.io/data-node/api"
 
 	"code.vegaprotocol.io/data-node/accounts"
@@ -107,6 +109,7 @@ type NodeCommand struct {
 	ledgerSQL             *sqlstore.Ledger
 	partyStoreSQL         *sqlstore.Parties
 	orderStoreSQL         *sqlstore.Orders
+	candleServiceV2       *candlesv2.Svc
 	tradeStoreSQL         *sqlstore.Trades
 	networkLimitsStoreSQL *sqlstore.NetworkLimits
 	marketDataStoreSQL    *sqlstore.MarketData
@@ -115,12 +118,15 @@ type NodeCommand struct {
 	marketsStoreSQL       *sqlstore.Markets
 	epochStoreSQL         *sqlstore.Epochs
 	depositStoreSQL       *sqlstore.Deposits
+	withdrawalsStoreSQL   *sqlstore.Withdrawals
 	proposalStoreSQL      *sqlstore.Proposals
 	voteStoreSQL          *sqlstore.Votes
 	marginLevelsStoreSQL  *sqlstore.MarginLevels
 	riskFactorStoreSQL    *sqlstore.RiskFactors
 	netParamStoreSQL      *sqlstore.NetworkParameters
 	checkpointStoreSQL    *sqlstore.Checkpoints
+	oracleSpecStoreSQL    *sqlstore.OracleSpec
+	oracleDataStoreSQL    *sqlstore.OracleData
 
 	vegaCoreServiceClient vegaprotoapi.CoreServiceClient
 
@@ -164,12 +170,15 @@ type NodeCommand struct {
 	marketUpdatedSubSQL    *sqlsubscribers.MarketUpdated
 	epochSubSQL            *sqlsubscribers.Epoch
 	depositSubSQL          *sqlsubscribers.Deposit
+	withdrawalSubSQL       *sqlsubscribers.Withdrawal
 	proposalsSubSQL        *sqlsubscribers.Proposal
 	votesSubSQL            *sqlsubscribers.Vote
 	marginLevelsSubSQL     *sqlsubscribers.MarginLevels
 	riskFactorSubSQL       *sqlsubscribers.RiskFactor
 	netParamSubSQL         *sqlsubscribers.NetworkParameter
 	checkpointSubSQL       *sqlsubscribers.Checkpoint
+	oracleSpecSubSQL       *sqlsubscribers.OracleSpec
+	oracleDataSubSQL       *sqlsubscribers.OracleData
 
 	candleService     *candles.Svc
 	tradeService      *trades.Svc
@@ -364,6 +373,7 @@ func (l *NodeCommand) createGRPCServer(config api.Config, useSQLStores bool) *ap
 		l.delegationStoreSQL,
 		l.epochStoreSQL,
 		l.depositStoreSQL,
+		l.withdrawalsStoreSQL,
 		l.proposalStoreSQL,
 		l.voteStoreSQL,
 		l.riskFactorStoreSQL,
@@ -372,6 +382,9 @@ func (l *NodeCommand) createGRPCServer(config api.Config, useSQLStores bool) *ap
 		l.blockStoreSQL,
 		l.checkpointStoreSQL,
 		l.partyStoreSQL,
+		l.candleServiceV2,
+		l.oracleSpecStoreSQL,
+		l.oracleDataStoreSQL,
 	)
 	return grpcServer
 }

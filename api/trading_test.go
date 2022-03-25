@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"code.vegaprotocol.io/data-node/candlesv2"
+
 	"code.vegaprotocol.io/data-node/accounts"
 	"code.vegaprotocol.io/data-node/api"
 	"code.vegaprotocol.io/data-node/api/mocks"
@@ -259,8 +261,8 @@ func getTestGRPCServer(
 	feeService := fee.NewService(logger, conf.Fee, marketStore, marketDataStore)
 	eventService := subscribers.NewService(broker)
 
-	withdrawal := plugins.NewWithdrawal(ctx)
 	deposit := plugins.NewDeposit(ctx)
+	withdrawal := plugins.NewWithdrawal(ctx)
 	netparams := netparams.NewService(ctx)
 	oracleService := oracles.NewService(ctx)
 	rewardsService := subscribers.NewRewards(ctx, logger, true)
@@ -275,6 +277,13 @@ func getTestGRPCServer(
 	sqlOrderStore := sqlstore.NewOrders(&sqlStore)
 	sqlNetworkLimitsStore := sqlstore.NewNetworkLimits(&sqlStore)
 	sqlMarketDataStore := sqlstore.NewMarketData(&sqlStore)
+	conf.CandlesV2.CandleStore.DefaultCandleIntervals = ""
+	sqlCandleStore, err := sqlstore.NewCandles(ctx, &sqlStore, conf.CandlesV2.CandleStore)
+	if err != nil {
+		t.Fatalf("failed to create candle store: %v", err)
+	}
+	candlesServiceV2 := candlesv2.NewService(ctx, logger, conf.CandlesV2, sqlCandleStore)
+
 	sqlTradeStore := sqlstore.NewTrades(&sqlStore)
 	sqlAssetStore := sqlstore.NewAssets(&sqlStore)
 	sqlAccountStore := sqlstore.NewAccounts(&sqlStore)
@@ -283,6 +292,7 @@ func getTestGRPCServer(
 	sqlDelegationStore := sqlstore.NewDelegations(&sqlStore)
 	sqlEpochStore := sqlstore.NewEpochs(&sqlStore)
 	sqlDepositStore := sqlstore.NewDeposits(&sqlStore)
+	sqlWithdrawalStore := sqlstore.NewWithdrawals(&sqlStore)
 	sqlProposalStore := sqlstore.NewProposals(&sqlStore)
 	sqlVoteStore := sqlstore.NewVotes(&sqlStore)
 	sqlRiskFactorsStore := sqlstore.NewRiskFactors(&sqlStore)
@@ -291,6 +301,8 @@ func getTestGRPCServer(
 	sqlBlockStore := sqlstore.NewBlocks(&sqlStore)
 	sqlCheckpointStore := sqlstore.NewCheckpoints(&sqlStore)
 	sqlPartyStore := sqlstore.NewParties(&sqlStore)
+	sqlOracleSpecStore := sqlstore.NewOracleSpec(&sqlStore)
+	sqlOracleDataStore := sqlstore.NewOracleData(&sqlStore)
 
 	g := api.NewGRPCServer(
 		logger,
@@ -335,6 +347,7 @@ func getTestGRPCServer(
 		sqlDelegationStore,
 		sqlEpochStore,
 		sqlDepositStore,
+		sqlWithdrawalStore,
 		sqlProposalStore,
 		sqlVoteStore,
 		sqlRiskFactorsStore,
@@ -343,6 +356,9 @@ func getTestGRPCServer(
 		sqlBlockStore,
 		sqlCheckpointStore,
 		sqlPartyStore,
+		candlesServiceV2,
+		sqlOracleSpecStore,
+		sqlOracleDataStore,
 	)
 	if g == nil {
 		err = fmt.Errorf("failed to create gRPC server")

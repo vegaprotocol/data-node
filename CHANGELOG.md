@@ -9,6 +9,8 @@
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -
 
 ### 🛠  Improvements
+- [386](https://github.com/vegaprotocol/data-node/pull/386) - Migrate withdrawal API to retrieve data from `Postgres`
+- [378](https://github.com/vegaprotocol/data-node/issues/378) - Migrate existing Oracles API to new `Postgres` database.
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -
 
 ### 🐛 Fixes
@@ -21,6 +23,8 @@
 - [426](https://github.com/vegaprotocol/data-node/pull/426) - Add bindings for party less liquidity provision requests
 - [430](https://github.com/vegaprotocol/data-node/pull/430) - Migrate deposit API to retrieve data from `Postgres`
 - [435](https://github.com/vegaprotocol/data-node/pull/435) - Migrate governance API to retrieve data from `Postgres`
+- [438](https://github.com/vegaprotocol/data-node/pull/438) - Migrate candles to retrieve data from `Postgres`
+- [447](https://github.com/vegaprotocol/data-node/issue/447) - Use `PositionState` event to update position
 - [442](https://github.com/vegaprotocol/data-node/pull/442) - Migrate estimator API to retrieve data from `Postgres`
 - [449](https://github.com/vegaprotocol/data-node/issue/449) - Refactor identifiers to use `ID` types instead of `[]byte`
 - [373](https://github.com/vegaprotocol/data-node/issue/373) - Migrate `GetVegaTime`, `Checkpoints` and `NetworkParameters` to `Postgres`

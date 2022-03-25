@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"code.vegaprotocol.io/protos/vega"
+	v1 "code.vegaprotocol.io/protos/vega/oracles/v1"
 	"github.com/jackc/pgtype"
 )
 
@@ -291,6 +292,32 @@ func (s *DepositStatus) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
 	return nil
 }
 
+type WithdrawalStatus vega.Withdrawal_Status
+
+const (
+	WithdrawalStatusUnspecified = WithdrawalStatus(vega.Withdrawal_STATUS_UNSPECIFIED)
+	WithdrawalStatusOpen        = WithdrawalStatus(vega.Withdrawal_STATUS_OPEN)
+	WithdrawalStatusRejected    = WithdrawalStatus(vega.Withdrawal_STATUS_REJECTED)
+	WithdrawalStatusFinalized   = WithdrawalStatus(vega.Withdrawal_STATUS_FINALIZED)
+)
+
+func (s WithdrawalStatus) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
+	status, ok := vega.Withdrawal_Status_name[int32(s)]
+	if !ok {
+		return buf, fmt.Errorf("unknown withdrawal status: %s", status)
+	}
+	return append(buf, []byte(status)...), nil
+}
+
+func (s *WithdrawalStatus) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
+	val, ok := vega.Withdrawal_Status_value[string(src)]
+	if !ok {
+		return fmt.Errorf("unknown withdrawal status: %s", src)
+	}
+	*s = WithdrawalStatus(val)
+	return nil
+}
+
 /************************* Proposal State *****************************/
 
 type ProposalState vega.Proposal_State
@@ -408,5 +435,30 @@ func (s *VoteValue) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
 		return fmt.Errorf("unknown vote value: %s", src)
 	}
 	*s = VoteValue(val)
+	return nil
+}
+
+type OracleSpecStatus v1.OracleSpec_Status
+
+const (
+	OracleSpecUnspecified = OracleSpecStatus(v1.OracleSpec_STATUS_UNSPECIFIED)
+	OracleSpecActive      = OracleSpecStatus(v1.OracleSpec_STATUS_ACTIVE)
+	OracleSpecDeactivated = OracleSpecStatus(v1.OracleSpec_STATUS_DEACTIVATED)
+)
+
+func (s OracleSpecStatus) EncodeText(_ *pgtype.ConnInfo, buf []byte) ([]byte, error) {
+	status, ok := v1.OracleSpec_Status_name[int32(s)]
+	if !ok {
+		return buf, fmt.Errorf("unknown oracle spec value: %v", s)
+	}
+	return append(buf, []byte(status)...), nil
+}
+
+func (s *OracleSpecStatus) DecodeText(_ *pgtype.ConnInfo, src []byte) error {
+	val, ok := v1.OracleSpec_Status_value[string(src)]
+	if !ok {
+		return fmt.Errorf("unknown oracle spec status: %s", src)
+	}
+	*s = OracleSpecStatus(val)
 	return nil
 }
