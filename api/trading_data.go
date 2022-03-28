@@ -662,7 +662,7 @@ func (t *tradingDataService) OracleDataBySpec(_ context.Context, req *protoapi.O
 	if err != nil {
 		return nil, apiError(codes.NotFound, err)
 	}
-	out := make([]*oraclespb.OracleData, 0, len(data)+1)
+	out := make([]*oraclespb.OracleData, 0, len(data))
 	for _, v := range data {
 		v := v
 		out = append(out, &v)
