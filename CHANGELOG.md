@@ -11,6 +11,7 @@
 ### 🛠  Improvements
 - [386](https://github.com/vegaprotocol/data-node/pull/386) - Migrate withdrawal API to retrieve data from `Postgres`
 - [378](https://github.com/vegaprotocol/data-node/issues/378) - Migrate existing Oracles API to new `Postgres` database.
+- [375](https://github.com/vegaprotocol/data-node/issues/375) - Migrate existing Liquidity Provisions API to new `Postgres` database.
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -
 
 ### 🐛 Fixes
