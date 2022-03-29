@@ -172,9 +172,10 @@ create type market_trading_mode_type as enum('TRADING_MODE_UNSPECIFIED', 'TRADIN
 create type market_state_type as enum('STATE_UNSPECIFIED', 'STATE_PROPOSED', 'STATE_REJECTED', 'STATE_PENDING', 'STATE_CANCELLED', 'STATE_ACTIVE', 'STATE_SUSPENDED', 'STATE_CLOSED', 'STATE_TRADING_TERMINATED', 'STATE_SETTLED');
 
 create table market_data (
-    market bytea not null,
+    synthetic_time       TIMESTAMP WITH TIME ZONE NOT NULL,
     vega_time timestamp with time zone not null references blocks(vega_time),
-    seq_num bigint not null,
+    seq_num    BIGINT NOT NULL,
+    market bytea not null,
     mark_price numeric(32),
     best_bid_price numeric(32),
     best_bid_volume bigint,
@@ -201,7 +202,7 @@ create table market_data (
     liquidity_provider_fee_shares jsonb
 );
 
-select create_hypertable('market_data', 'vega_time', chunk_time_interval => INTERVAL '1 day');
+select create_hypertable('market_data', 'synthetic_time', chunk_time_interval => INTERVAL '1 day');
 
 create index on market_data (market, vega_time);
 
@@ -394,6 +395,26 @@ create table if not exists oracle_data (
 
 create index if not exists idx_oracle_data_matched_spec_ids on oracle_data(matched_spec_ids);
 
+create type liquidity_provision_status as enum('STATUS_UNSPECIFIED', 'STATUS_ACTIVE', 'STATUS_STOPPED',
+    'STATUS_CANCELLED', 'STATUS_REJECTED', 'STATUS_UNDEPLOYED', 'STATUS_PENDING');
+
+create table if not exists liquidity_provisions (
+    id bytea not null,
+    party_id bytea,
+    created_at timestamp with time zone not null,
+    updated_at timestamp with time zone not null,
+    market_id bytea,
+    commitment_amount numeric(32, 0),
+    fee numeric(32, 16),
+    sells jsonb,
+    buys jsonb,
+    version text,
+    status liquidity_provision_status not null,
+    reference text,
+    vega_time timestamp with time zone not null references blocks(vega_time),
+    primary key (id, vega_time)
+);
+
 -- +goose Down
 DROP AGGREGATE IF EXISTS public.first(anyelement);
 DROP AGGREGATE IF EXISTS public.last(anyelement);
@@ -403,6 +424,9 @@ DROP FUNCTION IF EXISTS public.last_agg(anyelement, anyelement);
 DROP TABLE IF EXISTS checkpoints;
 
 DROP TABLE IF EXISTS network_parameters;
+
+DROP TABLE IF EXISTS liquidity_provisions;
+DROP TYPE IF EXISTS liquidity_provision_status;
 
 DROP INDEX IF EXISTS idx_oracle_data_matched_spec_ids;
 DROP TABLE IF EXISTS oracle_data;
