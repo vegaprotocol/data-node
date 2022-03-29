@@ -35,7 +35,7 @@ var (
 	newClient               *graphql.Client
 	oldClient               *graphql.Client
 	integrationTestsEnabled *bool = flag.Bool("integration", false, "run integration tests")
-	blockWhenDone           bool  = true
+	blockWhenDone           bool  = false
 )
 
 func TestMain(m *testing.M) {
