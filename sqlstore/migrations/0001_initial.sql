@@ -443,6 +443,26 @@ create index on transfers (to_account_id);
 CREATE VIEW transfers_current AS ( SELECT DISTINCT ON (id) * FROM transfers ORDER BY id DESC, vega_time DESC);
 
 
+create type stake_linking_type as enum('TYPE_UNSPECIFIED', 'TYPE_LINK', 'TYPE_UNLINK');
+create type stake_linking_status as enum('STATUS_UNSPECIFIED', 'STATUS_PENDING', 'STATUS_ACCEPTED', 'STATUS_REJECTED');
+
+create table if not exists stake_linking(
+    id bytea not null,
+    stake_linking_type stake_linking_type not null,
+    ts timestamp with time zone not null,
+    party_id bytea not null,
+    amount numeric(32, 0),
+    stake_linking_status stake_linking_status not null,
+    finalized_at timestamp with time zone,
+    tx_hash text not null,
+    block_height bigint,
+    block_time timestamp with time zone,
+    log_index bigint,
+    ethereum_address text not null,
+    vega_time timestamp with time zone not null references blocks(vega_time),
+    primary key (id, vega_time)
+);
+
 -- +goose Down
 DROP AGGREGATE IF EXISTS public.first(anyelement);
 DROP AGGREGATE IF EXISTS public.last(anyelement);
@@ -458,6 +478,10 @@ DROP TYPE IF EXISTS transfer_type;
 DROP TABLE IF EXISTS checkpoints;
 
 DROP TABLE IF EXISTS network_parameters;
+
+DROP TABLE IF EXISTS stake_linking;
+DROP TYPE IF EXISTS stake_linking_status;
+DROP TYPE IF EXISTS stake_linking_type;
 
 DROP TABLE IF EXISTS liquidity_provisions;
 DROP TYPE IF EXISTS liquidity_provision_status;
