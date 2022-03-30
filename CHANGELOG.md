@@ -14,6 +14,7 @@
 - [461](https://github.com/vegaprotocol/data-node/pull/461) - Migrate market data time series to consistent format
 - [375](https://github.com/vegaprotocol/data-node/issues/375) - Migrate existing Liquidity Provisions API to new `Postgres` database.
 - [381](https://github.com/vegaprotocol/data-node/issues/381) - Migrate existing Positions API to new `Postgres` database.
+- [467](https://github.com/vegaprotocol/data-node/pull/467) - Migrate transfers API to retrieve data from `Postgres`
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -
 
 ### 🐛 Fixes

@@ -118,6 +118,7 @@ func compareResponses(t *testing.T, oldResp, newResp interface{}) {
 		}
 		return a.Market.Id < b.Market.Id
 	})
+	sortTransfers := cmpopts.SortSlices(func(a Transfer, b Transfer) bool { return a.Id < b.Id })
 
 	// This is a bit grim; in the old API you get repeated entries for votes when they are updated,
 	// which is a bug not present in the new API - so remove duplicates when comparing (and sort)
@@ -142,7 +143,7 @@ func compareResponses(t *testing.T, oldResp, newResp interface{}) {
 
 	diff := cmp.Diff(oldResp, newResp, removeDupVotes, sortTrades, sortAccounts,
 		sortMarkets, sortProposals, sortNetParams, sortParties, sortDeposits, sortSpecs,
-		ignorePositionTimestamps, sortPositions)
+		ignorePositionTimestamps, sortPositions, sortTransfers)
 
 	assert.Empty(t, diff)
 }

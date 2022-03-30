@@ -129,6 +129,7 @@ type NodeCommand struct {
 	oracleDataStoreSQL         *sqlstore.OracleData
 	liquidityProvisionStoreSQL *sqlstore.LiquidityProvision
 	positionStoreSQL           *sqlstore.Positions
+	transfersStoreSQL          *sqlstore.Transfers
 
 	vegaCoreServiceClient vegaprotoapi.CoreServiceClient
 
@@ -183,6 +184,7 @@ type NodeCommand struct {
 	oracleDataSubSQL         *sqlsubscribers.OracleData
 	liquidityProvisionSubSQL *sqlsubscribers.LiquidityProvision
 	positionsSubSQL          *sqlsubscribers.Position
+	transferSubSQL           *sqlsubscribers.Transfer
 
 	candleService     *candles.Svc
 	tradeService      *trades.Svc
@@ -391,6 +393,7 @@ func (l *NodeCommand) createGRPCServer(config api.Config, useSQLStores bool) *ap
 		l.oracleDataStoreSQL,
 		l.liquidityProvisionStoreSQL,
 		l.positionStoreSQL,
+		l.transfersStoreSQL,
 	)
 	return grpcServer
 }
