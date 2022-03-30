@@ -63,8 +63,6 @@ order by id, vega_time desc`, sqlOracleSpecColumns)
 
 	var bindVars []interface{}
 	query, bindVars = orderAndPaginateQuery(query, nil, pagination, bindVars...)
-	var err error
-
-	err = pgxscan.Select(ctx, os.pool, &specs, query, bindVars...)
+	err := pgxscan.Select(ctx, os.pool, &specs, query, bindVars...)
 	return specs, err
 }
