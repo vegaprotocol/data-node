@@ -112,6 +112,12 @@ func compareResponses(t *testing.T, oldResp, newResp interface{}) {
 	sortParties := cmpopts.SortSlices(func(a Party, b Party) bool { return a.Id < b.Id })
 	sortDeposits := cmpopts.SortSlices(func(a Deposit, b Deposit) bool { return a.ID < b.ID })
 	sortSpecs := cmpopts.SortSlices(func(a, b OracleSpec) bool { return a.ID < b.ID })
+	sortPositions := cmpopts.SortSlices(func(a, b Position) bool {
+		if a.Party.Id != b.Party.Id {
+			return a.Party.Id < b.Party.Id
+		}
+		return a.Market.Id < b.Market.Id
+	})
 
 	// This is a bit grim; in the old API you get repeated entries for votes when they are updated,
 	// which is a bug not present in the new API - so remove duplicates when comparing (and sort)
@@ -131,8 +137,12 @@ func compareResponses(t *testing.T, oldResp, newResp interface{}) {
 		return out
 	})
 
+	// The old API has nulls for the 'UpdatedAt' field in positions
+	ignorePositionTimestamps := cmpopts.IgnoreFields(Position{}, "UpdatedAt")
+
 	diff := cmp.Diff(oldResp, newResp, removeDupVotes, sortTrades, sortAccounts,
-		sortMarkets, sortProposals, sortNetParams, sortParties, sortDeposits, sortSpecs)
+		sortMarkets, sortProposals, sortNetParams, sortParties, sortDeposits, sortSpecs,
+		ignorePositionTimestamps, sortPositions)
 
 	assert.Empty(t, diff)
 }

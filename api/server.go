@@ -111,6 +111,7 @@ type GRPCServer struct {
 	oracleSpecStore         *sqlstore.OracleSpec
 	oracleDataStore         *sqlstore.OracleData
 	liquidityProvisionStore *sqlstore.LiquidityProvision
+	positionStore           *sqlstore.Positions
 
 	eventObserver *eventObserver
 
@@ -176,6 +177,7 @@ func NewGRPCServer(
 	oracleSpecStore *sqlstore.OracleSpec,
 	oracleDataStore *sqlstore.OracleData,
 	liquidityProvisionStore *sqlstore.LiquidityProvision,
+	positionStore *sqlstore.Positions,
 ) *GRPCServer {
 	// setup logger
 	log = log.Named(namedLogger)
@@ -238,6 +240,7 @@ func NewGRPCServer(
 		oracleSpecStore:         oracleSpecStore,
 		oracleDataStore:         oracleDataStore,
 		liquidityProvisionStore: liquidityProvisionStore,
+		positionStore:           positionStore,
 		eventObserver: &eventObserver{
 			log:          log,
 			eventService: eventService,
@@ -406,6 +409,7 @@ func (g *GRPCServer) Start(ctx context.Context, lis net.Listener) error {
 			oracleSpecStore:         g.oracleSpecStore,
 			oracleDataStore:         g.oracleDataStore,
 			liquidityProvisionStore: g.liquidityProvisionStore,
+			positionStore:           g.positionStore,
 		}
 	} else {
 		g.tradingDataService = tradingDataSvc
