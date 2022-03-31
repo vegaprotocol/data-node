@@ -449,18 +449,23 @@ create type stake_linking_status as enum('STATUS_UNSPECIFIED', 'STATUS_PENDING',
 create table if not exists stake_linking(
     id bytea not null,
     stake_linking_type stake_linking_type not null,
-    ts timestamp with time zone not null,
+    ethereum_timestamp timestamp with time zone not null,
     party_id bytea not null,
     amount numeric(32, 0),
     stake_linking_status stake_linking_status not null,
     finalized_at timestamp with time zone,
     tx_hash text not null,
-    block_height bigint,
-    block_time timestamp with time zone,
     log_index bigint,
     ethereum_address text not null,
     vega_time timestamp with time zone not null references blocks(vega_time),
     primary key (id, vega_time)
+);
+
+create view stake_linking_current as (
+    select distinct on (id) id, stake_linking_type, ethereum_timestamp, party_id, amount, stake_linking_status, finalized_at,
+        tx_hash, log_index, ethereum_address, vega_time
+    from stake_linking
+    order by id, vega_time desc
 );
 
 -- +goose Down
@@ -479,6 +484,7 @@ DROP TABLE IF EXISTS checkpoints;
 
 DROP TABLE IF EXISTS network_parameters;
 
+DROP VIEW IF EXISTS stake_linking_current;
 DROP TABLE IF EXISTS stake_linking;
 DROP TYPE IF EXISTS stake_linking_status;
 DROP TYPE IF EXISTS stake_linking_type;

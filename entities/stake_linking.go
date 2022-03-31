@@ -22,14 +22,12 @@ func NewStakeLinkingID(id string) StakeLinkingID {
 type StakeLinking struct {
 	ID                 StakeLinkingID
 	StakeLinkingType   StakeLinkingType
-	Ts                 time.Time
+	EthereumTimestamp  time.Time
 	PartyID            PartyID
 	Amount             decimal.Decimal
 	StakeLinkingStatus StakeLinkingStatus
 	FinalizedAt        time.Time
 	TxHash             string
-	BlockHeight        int64
-	BlockTime          time.Time
 	LogIndex           int64
 	EthereumAddress    string
 	VegaTime           time.Time
@@ -49,20 +47,17 @@ func StakeLinkingFromProto(stake *eventspb.StakeLinking, vegaTime time.Time) (*S
 		return nil, fmt.Errorf("log index is too hight: %d", stake.LogIndex)
 	}
 
-	blockHeight := int64(stake.BlockHeight)
 	logIndex := int64(stake.LogIndex)
 
 	return &StakeLinking{
 		ID:                 id,
 		StakeLinkingType:   StakeLinkingType(stake.Type),
-		Ts:                 time.Unix(0, stake.Ts),
+		EthereumTimestamp:  time.Unix(stake.Ts, 0),
 		PartyID:            partyID,
 		Amount:             amount,
 		StakeLinkingStatus: StakeLinkingStatus(stake.Status),
 		FinalizedAt:        time.Unix(0, stake.FinalizedAt),
 		TxHash:             stake.TxHash,
-		BlockHeight:        blockHeight,
-		BlockTime:          time.Unix(0, stake.BlockTime),
 		LogIndex:           logIndex,
 		EthereumAddress:    stake.EthereumAddress,
 		VegaTime:           vegaTime,
@@ -73,14 +68,12 @@ func (s *StakeLinking) ToProto() *eventspb.StakeLinking {
 	return &eventspb.StakeLinking{
 		Id:              s.ID.String(),
 		Type:            eventspb.StakeLinking_Type(s.StakeLinkingType),
-		Ts:              s.Ts.UnixNano(),
+		Ts:              s.EthereumTimestamp.Unix(),
 		Party:           s.PartyID.String(),
 		Amount:          s.Amount.String(),
 		Status:          eventspb.StakeLinking_Status(s.StakeLinkingStatus),
 		FinalizedAt:     s.FinalizedAt.UnixNano(),
 		TxHash:          s.TxHash,
-		BlockHeight:     uint64(s.BlockHeight),
-		BlockTime:       s.BlockTime.UnixNano(),
 		LogIndex:        uint64(s.LogIndex),
 		EthereumAddress: s.EthereumAddress,
 	}

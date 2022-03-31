@@ -51,7 +51,6 @@ func testUpsertShouldAddNewInBlock(t *testing.T) {
 
 	proto := stakingProtos[0]
 	data, err := entities.StakeLinkingFromProto(proto, block.VegaTime)
-	data.BlockTime = block.VegaTime
 	require.NoError(t, err)
 	assert.NoError(t, sl.Upsert(data))
 
@@ -76,7 +75,6 @@ func testUpsertShouldUpdateExistingInBlock(t *testing.T) {
 	for _, proto := range stakingProtos {
 		data, err := entities.StakeLinkingFromProto(proto, block.VegaTime)
 		require.NoError(t, err)
-		data.BlockTime = block.VegaTime
 		assert.NoError(t, sl.Upsert(data))
 	}
 
@@ -101,7 +99,6 @@ func testGetStake(t *testing.T) {
 	for _, proto := range stakingProtos {
 		data, err := entities.StakeLinkingFromProto(proto, block.VegaTime)
 		require.NoError(t, err)
-		data.BlockTime = block.VegaTime
 		assert.NoError(t, sl.Upsert(data))
 	}
 

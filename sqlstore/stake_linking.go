@@ -17,8 +17,8 @@ type StakeLinking struct {
 }
 
 const (
-	sqlStakeLinkingColumns = `id, stake_linking_type, ts, party_id, amount, stake_linking_status, finalized_at,
-tx_hash, block_height, block_time, log_index, ethereum_address, vega_time`
+	sqlStakeLinkingColumns = `id, stake_linking_type, ethereum_timestamp, party_id, amount, stake_linking_status, finalized_at,
+tx_hash, log_index, ethereum_address, vega_time`
 )
 
 func NewStakeLinking(sqlStore *SQLStore) *StakeLinking {
@@ -32,23 +32,21 @@ func (s *StakeLinking) Upsert(stake *entities.StakeLinking) error {
 	defer cancel()
 
 	query := fmt.Sprintf(`insert into stake_linking (%s)
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
 on conflict (id, vega_time) do update
 set
 	stake_linking_type=EXCLUDED.stake_linking_type,
-	ts=EXCLUDED.ts,
+	ethereum_timestamp=EXCLUDED.ethereum_timestamp,
 	party_id=EXCLUDED.party_id,
 	amount=EXCLUDED.amount,
 	stake_linking_status=EXCLUDED.stake_linking_status,
 	finalized_at=EXCLUDED.finalized_at,
 	tx_hash=EXCLUDED.tx_hash,
-	block_height=EXCLUDED.block_height,
-	block_time=EXCLUDED.block_time,
 	log_index=EXCLUDED.log_index,
 	ethereum_address=EXCLUDED.ethereum_address`, sqlStakeLinkingColumns)
 
-	if _, err := s.pool.Exec(ctx, query, stake.ID, stake.StakeLinkingType, stake.Ts, stake.PartyID, stake.Amount,
-		stake.StakeLinkingStatus, stake.FinalizedAt, stake.TxHash, stake.BlockHeight, stake.BlockTime, stake.LogIndex,
+	if _, err := s.pool.Exec(ctx, query, stake.ID, stake.StakeLinkingType, stake.EthereumTimestamp, stake.PartyID, stake.Amount,
+		stake.StakeLinkingStatus, stake.FinalizedAt, stake.TxHash, stake.LogIndex,
 		stake.EthereumAddress, stake.VegaTime); err != nil {
 		return err
 	}
@@ -61,10 +59,9 @@ func (s *StakeLinking) GetStake(ctx context.Context, partyID entities.PartyID,
 	var links []entities.StakeLinking
 	var bindVars []interface{}
 	// get the links from the database
-	query := fmt.Sprintf(`select distinct on (id) %s
-from stake_linking
-where party_id=%s
-order by id, vega_time desc`, sqlStakeLinkingColumns, nextBindVar(&bindVars, partyID))
+	query := fmt.Sprintf(`select %s
+from stake_linking_current
+where party_id=%s`, sqlStakeLinkingColumns, nextBindVar(&bindVars, partyID))
 
 	query, bindVars = orderAndPaginateQuery(query, nil, pagination, bindVars...)
 	var bal *num.Uint
@@ -89,10 +86,9 @@ func (s *StakeLinking) calculateBalance(ctx context.Context, partyID entities.Pa
 	var bindVars []interface{}
 
 	query := fmt.Sprintf(`with cte_stake_linking(%s) as (
-	select distinct on (id, vega_time) %s
-	from stake_linking
+	select %s
+	from stake_linking_current
 	where party_id = %s
-	order by id, vega_time desc
 ), ctelinks(party_id, amount) as (
     select party_id, sum(amount)
     from cte_stake_linking
@@ -111,8 +107,8 @@ func (s *StakeLinking) calculateBalance(ctx context.Context, partyID entities.Pa
 )
     select p.party_id, coalesce(l.amount, 0) - coalesce(u.amount, 0) as current_balance
     from cteparty p 
-		left join ctelinks l on p.party_id = l.party_id
-        left join cteunlinks u on l.party_id = u.party_id
+		full outer join ctelinks l on p.party_id = l.party_id
+        full outer join cteunlinks u on l.party_id = u.party_id
 `, sqlStakeLinkingColumns, sqlStakeLinkingColumns, nextBindVar(&bindVars, partyID), nextBindVar(&bindVars, partyID))
 
 	result := struct {
