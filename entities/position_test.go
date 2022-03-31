@@ -95,15 +95,12 @@ func TestMultipleTradesAndLossSocializationPartyNoOpenVolume(t *testing.T) {
 	}, 1, num.DecimalFromFloat(1))
 	position.UpdateWithPositionSettlement(ps)
 	pp := position.ToProto()
-	// average entry price should be 1k
-	// initially calculation say the RealisedPNL should be 1000
 	assert.Equal(t, "1000", pp.RealisedPnl)
 
 	// then we process the event for LossSocialization
 	lsevt := events.NewLossSocializationEvent(ctx, party, market, num.NewUint(300), true, 1)
 	position.UpdateWithLossSocialization(lsevt)
 	pp = position.ToProto()
-	// with the changes, the RealisedPNL should be 700
 	assert.Equal(t, "700", pp.RealisedPnl)
 	assert.Equal(t, "0", pp.UnrealisedPnl)
 }
@@ -126,8 +123,6 @@ func TestDistressedPartyUpdate(t *testing.T) {
 	}, 1, num.DecimalFromFloat(1))
 	position.UpdateWithPositionSettlement(ps)
 	pp := position.ToProto()
-	// average entry price should be 1k
-	// initially calculation say the RealisedPNL should be 1000
 	assert.Equal(t, "0", pp.RealisedPnl)
 	assert.Equal(t, "-600", pp.UnrealisedPnl)
 
@@ -135,7 +130,6 @@ func TestDistressedPartyUpdate(t *testing.T) {
 	lsevt := events.NewLossSocializationEvent(ctx, party, market, num.NewUint(300), true, 1)
 	position.UpdateWithLossSocialization(lsevt)
 	pp = position.ToProto()
-	// with the changes, the RealisedPNL should be 700
 	assert.Equal(t, "-300", pp.RealisedPnl)
 	assert.Equal(t, "-600", pp.UnrealisedPnl)
 
@@ -165,8 +159,6 @@ func TestMultipleTradesAndLossSocializationPartyWithOpenVolume(t *testing.T) {
 	}, 1, num.DecimalFromFloat(1))
 	position.UpdateWithPositionSettlement(ps)
 	pp := position.ToProto()
-	// average entry price should be 1k
-	// initially calculation say the RealisedPNL should be 1000
 	assert.Equal(t, "0", pp.RealisedPnl)
 	assert.Equal(t, "-600", pp.UnrealisedPnl)
 
@@ -174,7 +166,6 @@ func TestMultipleTradesAndLossSocializationPartyWithOpenVolume(t *testing.T) {
 	lsevt := events.NewLossSocializationEvent(ctx, party, market, num.NewUint(300), true, 1)
 	position.UpdateWithLossSocialization(lsevt)
 	pp = position.ToProto()
-	// with the changes, the RealisedPNL should be 700
 	assert.Equal(t, "-300", pp.RealisedPnl)
 	assert.Equal(t, "-600", pp.UnrealisedPnl)
 }
