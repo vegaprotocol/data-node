@@ -118,7 +118,7 @@ func getStakingProtos() []*eventspb.StakeLinking {
 		{
 			Id:              "deadbeef",
 			Type:            eventspb.StakeLinking_TYPE_LINK,
-			Ts:              time.Now().UnixNano(),
+			Ts:              time.Now().Unix(),
 			Party:           "cafed00d",
 			Amount:          "10000",
 			Status:          eventspb.StakeLinking_STATUS_ACCEPTED,
@@ -132,7 +132,7 @@ func getStakingProtos() []*eventspb.StakeLinking {
 		{
 			Id:              "deadbeef",
 			Type:            eventspb.StakeLinking_TYPE_LINK,
-			Ts:              time.Now().UnixNano(),
+			Ts:              time.Now().Unix(),
 			Party:           "cafed00d",
 			Amount:          "10001",
 			Status:          eventspb.StakeLinking_STATUS_ACCEPTED,
@@ -146,7 +146,7 @@ func getStakingProtos() []*eventspb.StakeLinking {
 		{
 			Id:              "deadbaad",
 			Type:            eventspb.StakeLinking_TYPE_LINK,
-			Ts:              time.Now().UnixNano(),
+			Ts:              time.Now().Unix(),
 			Party:           "cafed00d",
 			Amount:          "20001",
 			Status:          eventspb.StakeLinking_STATUS_ACCEPTED,
