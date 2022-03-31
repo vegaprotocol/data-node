@@ -85,49 +85,28 @@ func (s *StakeLinking) calculateBalance(ctx context.Context, partyID entities.Pa
 	bal := num.Zero()
 	var bindVars []interface{}
 
-	query := fmt.Sprintf(`with cte_stake_linking(%s) as (
-	select %s
-	from stake_linking_current
-	where party_id = %s
-), ctelinks(party_id, amount) as (
-    select party_id, sum(amount)
-    from cte_stake_linking
-    where stake_linking_type = 'TYPE_LINK'
-    and stake_linking_status = 'STATUS_ACCEPTED'
-    group by party_id
-), cteunlinks(party_id, amount) as (
-    select party_id, sum(amount)
-    from cte_stake_linking
-    where stake_linking_type = 'TYPE_UNLINK'
-    and stake_linking_status = 'STATUS_ACCEPTED'
-    group by party_id
-), cteparty(party_id) as (
-	-- this is to ensure we always return one row with the party_id that has been requested, even if we have no data
-	select %s::bytea 
-)
-    select p.party_id, coalesce(l.amount, 0) - coalesce(u.amount, 0) as current_balance
-    from cteparty p 
-		full outer join ctelinks l on p.party_id = l.party_id
-        full outer join cteunlinks u on l.party_id = u.party_id
-`, sqlStakeLinkingColumns, sqlStakeLinkingColumns, nextBindVar(&bindVars, partyID), nextBindVar(&bindVars, partyID))
+	query := fmt.Sprintf(`select coalesce(sum(CASE stake_linking_type
+    WHEN 'TYPE_LINK' THEN amount
+    WHEN 'TYPE_UNLINK' THEN -amount
+    ELSE 0
+    END), 0)
+    FROM stake_linking_current
+WHERE party_id = %s
+  AND stake_linking_status = 'STATUS_ACCEPTED'
+`, nextBindVar(&bindVars, partyID))
 
-	result := struct {
-		PartyID        []byte
-		CurrentBalance decimal.Decimal
-	}{}
-
-	if err := pgxscan.Get(ctx, s.pool, &result, query, bindVars...); err != nil {
+	var currentBalance decimal.Decimal
+	if err := pgxscan.Get(ctx, s.pool, &currentBalance, query, bindVars...); err != nil {
 		return bal, err
 	}
 
-	if result.CurrentBalance.LessThan(decimal.Zero) {
+	if currentBalance.LessThan(decimal.Zero) {
 		return bal, errors.New("unlinked amount is greater than linked amount, potential missed events")
 	}
 
 	var overflowed bool
-
-	if bal, overflowed = num.UintFromDecimal(result.CurrentBalance); overflowed {
-		return num.Zero(), fmt.Errorf("current balance is invalid: %s", result.CurrentBalance.String())
+	if bal, overflowed = num.UintFromDecimal(currentBalance); overflowed {
+		return num.Zero(), fmt.Errorf("current balance is invalid: %s", currentBalance.String())
 	}
 
 	return bal, nil
