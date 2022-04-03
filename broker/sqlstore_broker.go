@@ -2,8 +2,13 @@ package broker
 
 import (
 	"context"
+	"fmt"
+	"math"
+	"sync"
+	"time"
 
 	"code.vegaprotocol.io/data-node/logging"
+	eventspb "code.vegaprotocol.io/protos/vega/events/v1"
 	"code.vegaprotocol.io/vega/events"
 )
 
@@ -74,6 +79,16 @@ func (b *concurrentSqlStoreBroker) Receive(ctx context.Context) error {
 			for _, ch := range b.typeToEvtCh {
 				ch <- e
 			}
+
+			waitGroup := &WaitGroupEvent{}
+			waitGroup.Add(len(b.typeToEvtCh))
+
+			for _, ch := range b.typeToEvtCh {
+				ch <- waitGroup
+			}
+
+			waitGroup.Wait()
+
 		} else {
 			if ch, ok := b.typeToEvtCh[e.Type()]; ok {
 				ch <- e
@@ -108,7 +123,10 @@ func (b *concurrentSqlStoreBroker) startSendingEvents(ctx context.Context) {
 				case <-ctx.Done():
 					return
 				case evt := <-ch:
-					if evt.Type() == events.TimeUpdate {
+					if evt.Type() == WaitGroupEventType {
+						waitGroup := evt.(*WaitGroupEvent)
+						waitGroup.Done()
+					} else if evt.Type() == events.TimeUpdate {
 						time := evt.(*events.Time)
 						for _, sub := range subs {
 							sub.Push(time)
@@ -127,6 +145,55 @@ func (b *concurrentSqlStoreBroker) startSendingEvents(ctx context.Context) {
 			}
 		}(ch, b.typeToSubs[t])
 	}
+}
+
+const WaitGroupEventType = events.Type(math.MaxInt32)
+
+type WaitGroupEvent struct {
+	sync.WaitGroup
+}
+
+func (c *WaitGroupEvent) Type() events.Type {
+	return WaitGroupEventType
+}
+
+func (c *WaitGroupEvent) Context() context.Context {
+	panic("implement me")
+}
+
+func (c *WaitGroupEvent) TraceID() string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c *WaitGroupEvent) TxHash() string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c *WaitGroupEvent) ChainID() string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c *WaitGroupEvent) Sequence() uint64 {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c WaitGroupEvent) SetSequenceID(s uint64) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c WaitGroupEvent) BlockNr() int64 {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c WaitGroupEvent) StreamMessage() *eventspb.BusEvent {
+	//TODO implement me
+	panic("implement me")
 }
 
 // sequentialSqlStoreBroker : push events to each subscriber with a single go routine across all types
@@ -164,10 +231,19 @@ func (b *sequentialSqlStoreBroker) Receive(ctx context.Context) error {
 
 	receiveCh, errCh := b.eventSource.Receive(ctx)
 
+	start := time.Now()
+
 	for e := range receiveCh {
 		if err := checkChainID(b.chainInfo, e.ChainID()); err != nil {
 			return err
 		}
+
+		if e.BlockNr() >= 2000 {
+			now := time.Now()
+			fmt.Printf("total time:%s", now.Sub(start))
+		}
+
+		fmt.Printf("Event:%s\n", e.StreamMessage())
 
 		// If the event is a time event send it to all subscribers, this indicates a new block start (for now)
 		if e.Type() == events.TimeUpdate {

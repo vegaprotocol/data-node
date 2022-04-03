@@ -17,6 +17,52 @@ import (
 
 var logger = logging.NewTestLogger()
 
+func TestConcurrentSqlBrokerBlockSync(t *testing.T) {
+
+	s1 := testSqlBrokerSubscriber{eventType: events.AssetEvent, receivedCh: make(chan events.Event)}
+	s2 := testSqlBrokerSubscriber{eventType: events.AccountEvent, receivedCh: make(chan events.Event)}
+	tes, sb := createTestBroker(t, 10, false, s1, s2)
+	go sb.Receive(context.Background())
+
+	tes.eventsCh <- events.NewAssetEvent(context.Background(), types.Asset{ID: "a1"})
+
+	assert.Equal(t, events.NewAssetEvent(context.Background(), types.Asset{ID: "a1"}), <-s1.receivedCh)
+
+	tes.eventsCh <- events.NewAccountEvent(context.Background(), types.Account{ID: "a1"})
+
+	assert.Equal(t, events.NewAccountEvent(context.Background(), types.Account{ID: "a1"}), <-s2.receivedCh)
+
+	timeEvent := events.NewTime(context.Background(), time.Now())
+
+	tes.eventsCh <- timeEvent
+
+	assert.Equal(t, timeEvent, <-s1.receivedCh)
+
+	// Don't read the time event on the 2nd channel, this will prevent other channels from proceeding
+
+	tes.eventsCh <- events.NewAssetEvent(context.Background(), types.Asset{ID: "a2"})
+	tes.eventsCh <- events.NewAccountEvent(context.Background(), types.Account{ID: "a2"})
+
+	select {
+	case <-s1.receivedCh:
+		t.Fatalf("event should not be received before all channels have processed new time event")
+	default:
+	}
+
+	// Process the time event on the 2nd channel which will allow all channels to proceed
+	assert.Equal(t, timeEvent, <-s2.receivedCh)
+
+	assert.Equal(t, events.NewAssetEvent(context.Background(), types.Asset{ID: "a2"}), <-s1.receivedCh)
+	assert.Equal(t, events.NewAccountEvent(context.Background(), types.Account{ID: "a2"}), <-s2.receivedCh)
+
+	tes.eventsCh <- events.NewAssetEvent(context.Background(), types.Asset{ID: "a3"})
+	tes.eventsCh <- events.NewAccountEvent(context.Background(), types.Account{ID: "a3"})
+
+	assert.Equal(t, events.NewAssetEvent(context.Background(), types.Asset{ID: "a3"}), <-s1.receivedCh)
+	assert.Equal(t, events.NewAccountEvent(context.Background(), types.Account{ID: "a3"}), <-s2.receivedCh)
+
+}
+
 func TestSqlBrokerEventDistribution(t *testing.T) {
 	testSqlBrokerEventDistribution(t, false)
 	testSqlBrokerEventDistribution(t, true)
@@ -26,7 +72,7 @@ func testSqlBrokerEventDistribution(t *testing.T, sequential bool) {
 	s1 := testSqlBrokerSubscriber{eventType: events.AssetEvent, receivedCh: make(chan events.Event)}
 	s2 := testSqlBrokerSubscriber{eventType: events.AssetEvent, receivedCh: make(chan events.Event)}
 	s3 := testSqlBrokerSubscriber{eventType: events.AccountEvent, receivedCh: make(chan events.Event)}
-	tes, sb := createTestBroker(t, sequential, s1, s2, s3)
+	tes, sb := createTestBroker(t, 0, sequential, s1, s2, s3)
 	go sb.Receive(context.Background())
 
 	tes.eventsCh <- events.NewAssetEvent(context.Background(), types.Asset{ID: "a1"})
@@ -52,7 +98,7 @@ func TestSqlBrokerTimeEventSentToAllSubscribers(t *testing.T) {
 func testSqlBrokerTimeEventSentToAllSubscribers(t *testing.T, sequential bool) {
 	s1 := testSqlBrokerSubscriber{eventType: events.AssetEvent, receivedCh: make(chan events.Event)}
 	s2 := testSqlBrokerSubscriber{eventType: events.AssetEvent, receivedCh: make(chan events.Event)}
-	tes, sb := createTestBroker(t, sequential, s1, s2)
+	tes, sb := createTestBroker(t, 0, sequential, s1, s2)
 
 	go sb.Receive(context.Background())
 
@@ -71,7 +117,7 @@ func TestSqlBrokerTimeEventOnlySendOnceToTimeSubscribers(t *testing.T) {
 
 func testNewSqlStoreBrokerestSqlBrokerTimeEventOnlySendOnceToTimeSubscribers(t *testing.T, seq bool) {
 	s1 := testSqlBrokerSubscriber{eventType: events.TimeUpdate, receivedCh: make(chan events.Event)}
-	tes, sb := createTestBroker(t, seq, s1)
+	tes, sb := createTestBroker(t, 0, seq, s1)
 
 	go sb.Receive(context.Background())
 
@@ -83,12 +129,12 @@ func testNewSqlStoreBrokerestSqlBrokerTimeEventOnlySendOnceToTimeSubscribers(t *
 	assert.Equal(t, 0, len(s1.receivedCh))
 }
 
-func createTestBroker(t *testing.T, sequential bool, subs ...broker.SqlBrokerSubscriber) (*testEventSource, broker.SqlStoreEventBroker) {
+func createTestBroker(t *testing.T, eventsChannelSize int, sequential bool, subs ...broker.SqlBrokerSubscriber) (*testEventSource, broker.SqlStoreEventBroker) {
 	conf := broker.NewDefaultConfig()
 	conf.UseSequentialSqlStoreBroker = encoding.Bool(sequential)
 	testChainInfo := testChainInfo{chainId: ""}
 	tes := &testEventSource{
-		eventsCh: make(chan events.Event),
+		eventsCh: make(chan events.Event, eventsChannelSize),
 		errorsCh: make(chan error, 1),
 	}
 
