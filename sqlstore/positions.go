@@ -15,19 +15,22 @@ var ErrPositionNotFound = errors.New("party not found")
 type Positions struct {
 	*SQLStore
 	cache     map[entities.MarketID]map[entities.PartyID]entities.Position
-	cacheLock sync.RWMutex
+	cacheLock sync.Mutex
 }
 
 func NewPositions(sqlStore *SQLStore) *Positions {
 	a := &Positions{
 		SQLStore:  sqlStore,
 		cache:     map[entities.MarketID]map[entities.PartyID]entities.Position{},
-		cacheLock: sync.RWMutex{},
+		cacheLock: sync.Mutex{},
 	}
 	return a
 }
 
 func (ps *Positions) Add(ctx context.Context, p entities.Position) error {
+	ps.cacheLock.Lock()
+	defer ps.cacheLock.Unlock()
+
 	_, err := ps.pool.Exec(ctx,
 		`INSERT INTO positions(market_id, party_id, open_volume, realised_pnl, unrealised_pnl, average_entry_price, loss, adjustment, vega_time)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -58,6 +61,9 @@ func (ps *Positions) GetByMarketAndParty(ctx context.Context,
 	marketID entities.MarketID,
 	partyID entities.PartyID,
 ) (entities.Position, error) {
+	ps.cacheLock.Lock()
+	defer ps.cacheLock.Unlock()
+
 	position, found := ps.checkCache(marketID, partyID)
 	if found {
 		return position, nil
@@ -102,9 +108,6 @@ func (ps *Positions) GetAll(ctx context.Context) ([]entities.Position, error) {
 }
 
 func (ps *Positions) updateCache(p entities.Position) {
-	ps.cacheLock.Lock()
-	defer ps.cacheLock.Unlock()
-
 	if _, ok := ps.cache[p.MarketID]; !ok {
 		ps.cache[p.MarketID] = map[entities.PartyID]entities.Position{}
 	}
@@ -113,9 +116,6 @@ func (ps *Positions) updateCache(p entities.Position) {
 }
 
 func (ps *Positions) checkCache(marketID entities.MarketID, partyID entities.PartyID) (entities.Position, bool) {
-	ps.cacheLock.RLock()
-	defer ps.cacheLock.RUnlock()
-
 	if _, ok := ps.cache[marketID]; !ok {
 		return entities.Position{}, false
 	}

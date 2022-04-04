@@ -2,7 +2,6 @@ package sqlsubscribers
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"code.vegaprotocol.io/data-node/sqlstore"
 	"code.vegaprotocol.io/vega/events"
 	"code.vegaprotocol.io/vega/types/num"
+	"github.com/pkg/errors"
 )
 
 type positionEventBase interface {
@@ -75,54 +75,54 @@ func (t *Position) Types() []events.Type {
 	}
 }
 
-func (nl *Position) Push(evt events.Event) {
+func (nl *Position) Push(evt events.Event) error {
 	switch event := evt.(type) {
 	case TimeUpdateEvent:
 		nl.vegaTime = event.Time()
 	case positionSettlement:
-		nl.handlePositionSettlement(event)
+		return nl.handlePositionSettlement(event)
 	case lossSocialization:
-		nl.handleLossSocialization(event)
+		return nl.handleLossSocialization(event)
 	case settleDistressed:
-		nl.handleSettleDestressed(event)
+		return nl.handleSettleDestressed(event)
 	case positionState:
-		nl.handlePositionState(event)
+		return nl.handlePositionState(event)
 	default:
-		nl.log.Panic("Unknown event type in position subscriber",
-			logging.String("Type", event.Type().String()))
+		return errors.Errorf("unknown event type %s", evt.Type().String())
 	}
+	return nil
 }
 
-func (ps *Position) handlePositionSettlement(event positionSettlement) {
+func (ps *Position) handlePositionSettlement(event positionSettlement) error {
 	ps.mutex.Lock()
 	defer ps.mutex.Unlock()
 	pos := ps.getPosition(event)
 	pos.UpdateWithPositionSettlement(event)
-	ps.updatePosition(pos)
+	return ps.updatePosition(pos)
 }
 
-func (ps *Position) handleLossSocialization(event lossSocialization) {
+func (ps *Position) handleLossSocialization(event lossSocialization) error {
 	ps.mutex.Lock()
 	defer ps.mutex.Unlock()
 	pos := ps.getPosition(event)
 	pos.UpdateWithLossSocialization(event)
-	ps.updatePosition(pos)
+	return ps.updatePosition(pos)
 }
 
-func (ps *Position) handleSettleDestressed(event settleDistressed) {
+func (ps *Position) handleSettleDestressed(event settleDistressed) error {
 	ps.mutex.Lock()
 	defer ps.mutex.Unlock()
 	pos := ps.getPosition(event)
 	pos.UpdateWithSettleDestressed(event)
-	ps.updatePosition(pos)
+	return ps.updatePosition(pos)
 }
 
-func (ps *Position) handlePositionState(event positionState) {
+func (ps *Position) handlePositionState(event positionState) error {
 	ps.mutex.Lock()
 	defer ps.mutex.Unlock()
 	pos := ps.getPosition(event)
 	pos.UpdateWithPositionState(event)
-	ps.updatePosition(pos)
+	return ps.updatePosition(pos)
 }
 
 func (ps *Position) getPosition(e positionEventBase) entities.Position {
@@ -143,11 +143,9 @@ func (ps *Position) getPosition(e positionEventBase) entities.Position {
 	return position
 }
 
-func (ps *Position) updatePosition(pos entities.Position) {
+func (ps *Position) updatePosition(pos entities.Position) error {
 	pos.VegaTime = ps.vegaTime
 
 	err := ps.store.Add(context.Background(), pos)
-	if err != nil {
-		ps.log.Error("Error updating position", logging.Error(err))
-	}
+	return errors.Wrap(err, "error updating position")
 }
