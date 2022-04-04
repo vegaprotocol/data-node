@@ -15,12 +15,15 @@
 - [375](https://github.com/vegaprotocol/data-node/issues/375) - Migrate existing Liquidity Provisions API to new `Postgres` database.
 - [381](https://github.com/vegaprotocol/data-node/issues/381) - Migrate existing Positions API to new `Postgres` database.
 - [467](https://github.com/vegaprotocol/data-node/pull/467) - Migrate transfers API to retrieve data from `Postgres`
+- [469](https://github.com/vegaprotocol/data-node/issues/469) - Migrate existing stake linking API to new `Postgres` database.
+- [474](https://github.com/vegaprotocol/data-node/pull/474) - Clean up error handling in subscribers and make action on error configurable 
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -
 
 ### 🐛 Fixes
 - [451](https://github.com/vegaprotocol/data-node/issues/451) - Correct conversion of pending validator status
 - [391](https://github.com/vegaprotocol/data-node/issues/391) - Fix `OracleSpecs GraphQL` query returns error and null when there is no data.
-
+- [281](https://github.com/vegaprotocol/data-node/issues/281) - Fix Estimate Margin calculates incorrectly for Limit Orders
+- [482](https://github.com/vegaprotocol/data-node/issues/482) - Fan out event broker should only call listen once on source broker
 
 ## 0.49.3
 

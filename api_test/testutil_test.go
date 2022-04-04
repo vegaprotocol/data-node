@@ -245,9 +245,9 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 	sqlOracleDataStore := sqlstore.NewOracleData(&sqlStore)
 	sqlLPDataStore := sqlstore.NewLiquidityProvision(&sqlStore)
 	sqlTransfersStore := sqlstore.NewTransfers(&sqlStore)
+	sqlStakeLinkingStore := sqlstore.NewStakeLinking(&sqlStore)
 
 	eventSource, err := broker.NewEventSource(conf.Broker, logger)
-
 	if err != nil {
 		t.Fatalf("failed to create event source: %v", err)
 	}
@@ -332,6 +332,7 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 		sqlLPDataStore,
 		sqlPositionStore,
 		sqlTransfersStore,
+		sqlStakeLinkingStore,
 	)
 	if srv == nil {
 		t.Fatal("failed to create gRPC server")
@@ -384,7 +385,6 @@ func PublishEvents(
 	b *broker.Broker,
 	convertEvt func(be *eventspb.BusEvent) (events.Event, error),
 	goldenFile string) {
-
 	t.Helper()
 	path := filepath.Join("testdata", goldenFile)
 	f, err := os.Open(path)

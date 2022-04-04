@@ -130,6 +130,7 @@ type NodeCommand struct {
 	liquidityProvisionStoreSQL *sqlstore.LiquidityProvision
 	positionStoreSQL           *sqlstore.Positions
 	transfersStoreSQL          *sqlstore.Transfers
+	stakeLinkingStoreSQL       *sqlstore.StakeLinking
 
 	vegaCoreServiceClient vegaprotoapi.CoreServiceClient
 
@@ -185,6 +186,7 @@ type NodeCommand struct {
 	liquidityProvisionSubSQL *sqlsubscribers.LiquidityProvision
 	positionsSubSQL          *sqlsubscribers.Position
 	transferSubSQL           *sqlsubscribers.Transfer
+	stakeLinkingSubSQL       *sqlsubscribers.StakeLinking
 
 	candleService     *candles.Svc
 	tradeService      *trades.Svc
@@ -394,6 +396,7 @@ func (l *NodeCommand) createGRPCServer(config api.Config, useSQLStores bool) *ap
 		l.liquidityProvisionStoreSQL,
 		l.positionStoreSQL,
 		l.transfersStoreSQL,
+		l.stakeLinkingStoreSQL,
 	)
 	return grpcServer
 }
