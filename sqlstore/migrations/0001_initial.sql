@@ -130,7 +130,7 @@ create table trades
     seller_auction_batch BIGINT
 );
 
-SELECT create_hypertable('trades', 'synthetic_time', chunk_time_interval => INTERVAL '1 day');
+SELECT create_hypertable('trades', 'synthetic_time', chunk_time_interval => INTERVAL '1 hour');
 CREATE INDEX ON trades (market_id, synthetic_time DESC);
 SELECT add_retention_policy('trades', INTERVAL '7 days');
 
@@ -304,7 +304,7 @@ create table market_data (
     liquidity_provider_fee_shares jsonb
 );
 
-select create_hypertable('market_data', 'synthetic_time', chunk_time_interval => INTERVAL '1 day');
+select create_hypertable('market_data', 'synthetic_time', chunk_time_interval => INTERVAL '1 hour');
 
 create index on market_data (market, vega_time);
 
@@ -447,12 +447,10 @@ create table if not exists margin_levels (
     search_level numeric(32, 0),
     initial_margin numeric(32, 0),
     collateral_release_level numeric(32, 0),
-    vega_time timestamp with time zone not null references blocks(vega_time),
-    synthetic_time timestamp with time zone not null,
-    seq_num int
+    vega_time timestamp with time zone not null references blocks(vega_time)
 );
 
-select create_hypertable('margin_levels', 'synthetic_time', chunk_time_interval => INTERVAL '1 day');
+select create_hypertable('margin_levels', 'vega_time', chunk_time_interval => INTERVAL '1 day');
 
 create index on margin_levels (market_id, asset_id, party_id, vega_time);
 
