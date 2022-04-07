@@ -12,6 +12,7 @@ import (
 	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/shared/paths"
 	embeddedpostgres "github.com/fergusstrange/embedded-postgres"
+	"github.com/jackc/pgconn"
 	"github.com/jackc/pgtype"
 	shopspring "github.com/jackc/pgtype/ext/shopspring-numeric"
 	"github.com/jackc/pgx/v4"
@@ -26,13 +27,103 @@ var (
 	tableNames = [...]string{"ledger", "accounts", "parties", "assets", "blocks"}
 )
 
+var Pool *pgxpool.Pool
+var GlobalTx pgx.Tx
+var GlobalConn *pgx.Conn
+
+type TxDelegator struct {
+}
+
+func (t TxDelegator) Begin(ctx context.Context) (pgx.Tx, error) {
+	if GlobalTx != nil {
+		return GlobalTx.Begin(ctx)
+	} else {
+		return GlobalConn.Begin(ctx)
+	}
+}
+
+func (t TxDelegator) BeginFunc(ctx context.Context, f func(pgx.Tx) error) (err error) {
+	if GlobalTx != nil {
+		return GlobalTx.BeginFunc(ctx, f)
+	} else {
+		return GlobalConn.BeginFunc(ctx, f)
+	}
+}
+
+func (t TxDelegator) CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int64, error) {
+
+	if GlobalTx != nil {
+		return GlobalTx.CopyFrom(ctx, tableName, columnNames, rowSrc)
+	} else {
+		return GlobalConn.CopyFrom(ctx, tableName, columnNames, rowSrc)
+	}
+
+}
+
+func (t TxDelegator) SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults {
+	if GlobalTx != nil {
+		return GlobalTx.SendBatch(ctx, b)
+	} else {
+		return GlobalConn.SendBatch(ctx, b)
+	}
+
+}
+
+func (t TxDelegator) Prepare(ctx context.Context, name, sql string) (*pgconn.StatementDescription, error) {
+	if GlobalTx != nil {
+		return GlobalTx.Prepare(ctx, name, sql)
+	} else {
+		return GlobalConn.Prepare(ctx, name, sql)
+	}
+}
+
+func (t TxDelegator) Exec(ctx context.Context, sql string, arguments ...interface{}) (commandTag pgconn.CommandTag, err error) {
+	if GlobalTx != nil {
+		return GlobalTx.Exec(ctx, sql, arguments...)
+	} else {
+		return GlobalConn.Exec(ctx, sql, arguments...)
+	}
+}
+
+func (t TxDelegator) Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error) {
+	if GlobalTx != nil {
+		return GlobalTx.Query(ctx, sql, args...)
+	} else {
+		return GlobalConn.Query(ctx, sql, args...)
+	}
+}
+
+func (t TxDelegator) QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row {
+	if GlobalTx != nil {
+		return GlobalTx.QueryRow(ctx, sql, args...)
+	} else {
+		return GlobalConn.QueryRow(ctx, sql, args...)
+	}
+}
+
+func (t TxDelegator) QueryFunc(ctx context.Context, sql string, args []interface{}, scans []interface{}, f func(pgx.QueryFuncRow) error) (pgconn.CommandTag, error) {
+	if GlobalTx != nil {
+		return GlobalTx.QueryFunc(ctx, sql, args, scans, f)
+	} else {
+		return GlobalConn.QueryFunc(ctx, sql, args, scans, f)
+	}
+}
+
+func init() {
+	var err error
+	GlobalConn, err = pgx.Connect(context.Background(), "postgresql://vega:vega@127.0.0.1:5432/vega")
+	if err != nil {
+		panic(err)
+	}
+}
+
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
 type SQLStore struct {
 	conf Config
-	pool *pgxpool.Pool
 	log  *logging.Logger
+	pool TxDelegator
 	db   *embeddedpostgres.EmbeddedPostgres
 }
 
@@ -58,7 +149,7 @@ func (s *SQLStore) migrateToLatestSchema() error {
 	goose.SetBaseFS(embedMigrations)
 	goose.SetLogger(s.log.Named("db migration").GooseLogger())
 
-	db := stdlib.OpenDB(*s.pool.Config().ConnConfig)
+	db := stdlib.OpenDB(*Pool.Config().ConnConfig)
 
 	currentVersion, err := goose.GetDBVersion(db)
 	if err != nil {
@@ -144,7 +235,7 @@ func setupStorage(store *SQLStore) (*SQLStore, error) {
 
 	registerNumericType(poolConfig)
 
-	if store.pool, err = pgxpool.ConnectConfig(context.Background(), poolConfig); err != nil {
+	if Pool, err = pgxpool.ConnectConfig(context.Background(), poolConfig); err != nil {
 		store.Stop()
 		return nil, fmt.Errorf("error connecting to database: %w", err)
 	}
@@ -159,7 +250,7 @@ func setupStorage(store *SQLStore) (*SQLStore, error) {
 
 func (s *SQLStore) DeleteEverything() error {
 	for _, table := range tableNames {
-		if _, err := s.pool.Exec(context.Background(), "truncate table "+table+" CASCADE"); err != nil {
+		if _, err := Pool.Exec(context.Background(), "truncate table "+table+" CASCADE"); err != nil {
 			return fmt.Errorf("error truncating table: %s %w", table, err)
 		}
 	}

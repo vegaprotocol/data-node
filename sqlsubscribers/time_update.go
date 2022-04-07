@@ -21,8 +21,9 @@ type BlockStore interface {
 }
 
 type Time struct {
-	store BlockStore
-	log   *logging.Logger
+	store     BlockStore
+	log       *logging.Logger
+	lastBlock *entities.Block
 }
 
 func NewTimeSub(
@@ -64,9 +65,14 @@ func (t *Time) consume(te TimeUpdateEvent) error {
 	}
 
 	//@Todo figure out why still getting dup key violation on this at startup:return errors.Wrap(t.store.Add(block), "error adding block")
-	err = t.store.Add(block)
-	if err != nil {
-		t.log.Errorf("error adding block:%s", err)
+	if t.lastBlock == nil || !block.VegaTime.Equal(t.lastBlock.VegaTime) {
+		t.lastBlock = &block
+		err = t.store.Add(block)
+		if err != nil {
+			t.log.Errorf("error adding block:%s", err)
+		}
+	} else {
+		t.log.Errorf("AH shit times are same to within a ms last:%s  new:%s :%s\n", t.lastBlock.VegaTime, block.VegaTime, err)
 	}
 
 	return nil

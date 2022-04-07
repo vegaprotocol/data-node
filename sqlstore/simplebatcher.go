@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type SimpleBatcher struct {
@@ -31,7 +30,7 @@ func (b *SimpleBatcher) Add(entity simpleEntity) {
 	b.pending = append(b.pending, row)
 }
 
-func (b *SimpleBatcher) Flush(ctx context.Context, pool *pgxpool.Pool) error {
+func (b *SimpleBatcher) Flush(ctx context.Context, pool TxDelegator) error {
 	copyCount, err := pool.CopyFrom(
 		ctx,
 		pgx.Identifier{b.tableName},

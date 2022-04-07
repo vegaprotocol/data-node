@@ -4,10 +4,17 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync"
+	"time"
 
 	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/metrics"
+	"code.vegaprotocol.io/data-node/sqlstore"
+	"code.vegaprotocol.io/data-node/sqlsubscribers"
+	eventspb "code.vegaprotocol.io/protos/vega/events/v1"
 	"code.vegaprotocol.io/vega/events"
+
+	"math"
 )
 
 type SqlBrokerSubscriber interface {
@@ -24,11 +31,11 @@ func NewSqlStoreBroker(log *logging.Logger, config Config, chainInfo ChainInfoI,
 ) SqlStoreEventBroker {
 	log = log.Named(namedLogger)
 	log.SetLevel(config.Level.Get())
-	if config.UseSequentialSqlStoreBroker {
-		return newSequentialSqlStoreBroker(log, chainInfo, eventsource, eventTypeBufferSize, subs, bool(config.PanicOnError))
-	} else {
-		return newConcurrentSqlStoreBroker(log, chainInfo, eventsource, eventTypeBufferSize, subs, bool(config.PanicOnError))
-	}
+	//if config.UseSequentialSqlStoreBroker {
+	return newSequentialSqlStoreBroker(log, chainInfo, eventsource, eventTypeBufferSize, subs, bool(config.PanicOnError))
+	//	} else {
+	//return newConcurrentSqlStoreBroker(log, chainInfo, eventsource, eventTypeBufferSize, subs, bool(config.PanicOnError))
+	//	}
 }
 
 // concurrentSqlStoreBroker : push events to each subscriber with a go-routine per type
@@ -51,7 +58,7 @@ func newConcurrentSqlStoreBroker(log *logging.Logger, chainInfo ChainInfoI, even
 		typeToEvtCh:         map[events.Type]chan events.Event{},
 		eventSource:         eventsource,
 		chainInfo:           chainInfo,
-		eventTypeBufferSize: eventTypeBufferSize,
+		eventTypeBufferSize: 10000,
 		panicOnError:        panicOnError,
 	}
 
@@ -69,16 +76,53 @@ func (b *concurrentSqlStoreBroker) Receive(ctx context.Context) error {
 	receiveCh, errCh := b.eventSource.Receive(ctx)
 	b.startSendingEvents(ctx)
 
+	start := time.Now()
+	blockStart := time.Now()
+	eventCount := 0
+	typeToCount := map[events.Type]int{}
+
 	for e := range receiveCh {
 		if err := checkChainID(b.chainInfo, e.ChainID()); err != nil {
 			return err
 		}
 
+		eventCount++
+		typeToCount[e.Type()] = typeToCount[e.Type()] + 1
+		if e.BlockNr() >= 60000 {
+			now := time.Now()
+			taken := now.Sub(start)
+			fmt.Printf("total time:%s", taken)
+		}
+
 		// If the event is a time event send it to all type channels, this indicates a new block start (for now)
 		if e.Type() == events.TimeUpdate {
+			timeUpdate := e.(sqlsubscribers.TimeUpdateEvent)
+
+			now := time.Now()
+			typeCount := ""
+			for t, c := range typeToCount {
+				typeCount += fmt.Sprintf(",EVENT%s=%d", t.String(), c)
+			}
+
+			fmt.Printf("Time=%s,Block=%d,VegaTime=%s,BlockProcessingTime:%s,BlockEventCount=%d%s\n", now, e.BlockNr(),
+				timeUpdate.Time(), now.Sub(blockStart), eventCount, typeCount)
+			blockStart = now
+			eventCount = 0
+			typeToCount = map[events.Type]int{}
+
 			for _, ch := range b.typeToEvtCh {
 				ch <- e
 			}
+
+			waitGroup := &WaitGroupEvent{}
+			waitGroup.Add(len(b.typeToEvtCh))
+
+			for _, ch := range b.typeToEvtCh {
+				ch <- waitGroup
+			}
+
+			waitGroup.Wait()
+
 		} else {
 			if ch, ok := b.typeToEvtCh[e.Type()]; ok {
 				ch <- e
@@ -113,7 +157,10 @@ func (b *concurrentSqlStoreBroker) startSendingEvents(ctx context.Context) {
 				case <-ctx.Done():
 					return
 				case evt := <-ch:
-					if evt.Type() == events.TimeUpdate {
+					if evt.Type() == WaitGroupEventType {
+						waitGroup := evt.(*WaitGroupEvent)
+						waitGroup.Done()
+					} else if evt.Type() == events.TimeUpdate {
 						time := evt.(*events.Time)
 						for _, sub := range subs {
 							err := sub.Push(time)
@@ -142,12 +189,61 @@ func (b *concurrentSqlStoreBroker) startSendingEvents(ctx context.Context) {
 
 func (b *concurrentSqlStoreBroker) OnPushEventError(evt events.Event, err error) {
 	errMsg := fmt.Sprintf("failed to process event %v error:%+v", evt.StreamMessage(), err)
-	if b.panicOnError {
-		b.log.Panic(errMsg)
-	} else {
-		b.log.Error(errMsg)
-	}
+	//	if b.panicOnError {
+	//		b.log.Panic(errMsg)
+	//	} else {
+	b.log.Error(errMsg)
+	//	}
 
+}
+
+const WaitGroupEventType = events.Type(math.MaxInt32)
+
+type WaitGroupEvent struct {
+	sync.WaitGroup
+}
+
+func (c *WaitGroupEvent) Type() events.Type {
+	return WaitGroupEventType
+}
+
+func (c *WaitGroupEvent) Context() context.Context {
+	panic("implement me")
+}
+
+func (c *WaitGroupEvent) TraceID() string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c *WaitGroupEvent) TxHash() string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c *WaitGroupEvent) ChainID() string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c *WaitGroupEvent) Sequence() uint64 {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c WaitGroupEvent) SetSequenceID(s uint64) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c WaitGroupEvent) BlockNr() int64 {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c WaitGroupEvent) StreamMessage() *eventspb.BusEvent {
+	//TODO implement me
+	panic("implement me")
 }
 
 // sequentialSqlStoreBroker : push events to each subscriber with a single go routine across all types
@@ -188,19 +284,69 @@ func (b *sequentialSqlStoreBroker) Receive(ctx context.Context) error {
 
 	receiveCh, errCh := b.eventSource.Receive(ctx)
 
+	start := time.Now()
+	blockStart := time.Now()
+	eventCount := 0
+	typeToCount := map[events.Type]int{}
+
 	for e := range receiveCh {
 		if err := checkChainID(b.chainInfo, e.ChainID()); err != nil {
 			return err
 		}
+
+		eventCount++
+		typeToCount[e.Type()] = typeToCount[e.Type()] + 1
+
+		if e.BlockNr() >= 60000 {
+			now := time.Now()
+			taken := now.Sub(start)
+			fmt.Printf("total time:%s", taken)
+		}
+
+		if sqlstore.GlobalTx == nil {
+			var err error
+			sqlstore.GlobalTx, err = sqlstore.Pool.Begin(context.Background())
+			if err != nil {
+				panic(err)
+			}
+		}
+
 		metrics.EventCounterInc(e.Type().String())
 		// If the event is a time event send it to all subscribers, this indicates a new block start (for now)
 		if e.Type() == events.TimeUpdate {
-			metrics.BlockCounterInc()
+
 			for _, subs := range b.typeToSubs {
 				for _, sub := range subs {
 					b.push(sub, e)
 				}
 			}
+
+			err := sqlstore.GlobalTx.Commit(context.Background())
+			if err != nil {
+				b.log.Errorf("commitly error:%v\n", err)
+				sqlstore.GlobalTx.Rollback(context.TODO())
+			} else {
+				b.log.Info("commited transaction succesfully")
+			}
+
+			sqlstore.GlobalTx = nil
+
+			timeUpdate := e.(sqlsubscribers.TimeUpdateEvent)
+
+			now := time.Now()
+			typeCount := ""
+			for t, c := range typeToCount {
+				typeCount += fmt.Sprintf(",EVENT%s=%d", t.String(), c)
+			}
+
+			fmt.Printf("Time=%s,Block=%d,VegaTime=%s,BlockProcessingTime:%s,BlockEventCount=%d%s\n", now, e.BlockNr(),
+				timeUpdate.Time(), now.Sub(blockStart), eventCount, typeCount)
+			blockStart = now
+			eventCount = 0
+			typeToCount = map[events.Type]int{}
+
+			metrics.BlockCounterInc()
+
 		} else {
 			if subs, ok := b.typeToSubs[e.Type()]; ok {
 				for _, sub := range subs {
@@ -231,10 +377,10 @@ func (b *sequentialSqlStoreBroker) push(sub SqlBrokerSubscriber, e events.Event)
 
 func (b *sequentialSqlStoreBroker) OnPushEventError(evt events.Event, err error) {
 	errMsg := fmt.Sprintf("failed to process event %v error:%+v", evt.StreamMessage(), err)
-	if b.panicOnError {
-		b.log.Panic(errMsg)
-	} else {
-		b.log.Error(errMsg)
-	}
+	//	if b.panicOnError {
+	//		b.log.Panic(errMsg)
+	//	} else {
+	b.log.Error(errMsg)
+	//	}
 
 }

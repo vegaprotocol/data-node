@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type Batcher[K entityKey, V entity[K]] struct {
@@ -35,7 +34,7 @@ func (b *Batcher[K, V]) Add(e V) {
 	b.pending[e.Key()] = e
 }
 
-func (b *Batcher[K, V]) Flush(ctx context.Context, pool *pgxpool.Pool) error {
+func (b *Batcher[K, V]) Flush(ctx context.Context, pool TxDelegator) error {
 	rows := make([][]interface{}, 0, len(b.pending))
 	for _, entity := range b.pending {
 		rows = append(rows, entity.ToRow())
