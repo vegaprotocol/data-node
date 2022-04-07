@@ -10,7 +10,7 @@ import (
 )
 
 type LiquidityProvision struct {
-	*SQLStore
+	*ConnectionSource
 }
 
 const (
@@ -18,15 +18,13 @@ const (
 		commitment_amount, fee, sells, buys, version, status, reference, vega_time`
 )
 
-func NewLiquidityProvision(sqlStore *SQLStore) *LiquidityProvision {
+func NewLiquidityProvision(sqlStore *ConnectionSource) *LiquidityProvision {
 	return &LiquidityProvision{
-		SQLStore: sqlStore,
+		ConnectionSource: sqlStore,
 	}
 }
 
-func (lp *LiquidityProvision) Upsert(liquidityProvision *entities.LiquidityProvision) error {
-	ctx, cancel := context.WithTimeout(context.Background(), lp.conf.Timeout.Duration)
-	defer cancel()
+func (lp *LiquidityProvision) Upsert(ctx context.Context, liquidityProvision *entities.LiquidityProvision) error {
 
 	query := fmt.Sprintf(`insert into liquidity_provisions (%s)
 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
@@ -44,7 +42,7 @@ set
 	status=EXCLUDED.status,
 	reference=EXCLUDED.reference`, sqlOracleLiquidityProvisionColumns)
 
-	if _, err := lp.pool.Exec(ctx, query, liquidityProvision.ID, liquidityProvision.PartyID,
+	if _, err := lp.Connection.Exec(ctx, query, liquidityProvision.ID, liquidityProvision.PartyID,
 		liquidityProvision.CreatedAt, liquidityProvision.UpdatedAt, liquidityProvision.MarketID,
 		liquidityProvision.CommitmentAmount, liquidityProvision.Fee, liquidityProvision.Sells,
 		liquidityProvision.Buys, liquidityProvision.Version, liquidityProvision.Status,
@@ -86,6 +84,6 @@ order by id, vega_time desc`, selectSql, where)
 
 	var liquidityProvisions []entities.LiquidityProvision
 
-	err := pgxscan.Select(ctx, lp.pool, &liquidityProvisions, query, bindVars...)
+	err := pgxscan.Select(ctx, lp.Connection, &liquidityProvisions, query, bindVars...)
 	return liquidityProvisions, err
 }

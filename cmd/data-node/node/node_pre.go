@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"code.vegaprotocol.io/data-node/candlesv2"
+	"code.vegaprotocol.io/shared/paths"
 
 	"code.vegaprotocol.io/data-node/accounts"
 	"code.vegaprotocol.io/data-node/assets"
@@ -129,9 +130,9 @@ func (l *NodeCommand) setupSQLSubscribers() {
 	l.partySubSQL = sqlsubscribers.NewParty(l.partyStoreSQL, l.Log)
 	l.timeSubSQL = sqlsubscribers.NewTimeSub(l.blockStoreSQL, l.Log)
 	l.transferResponseSubSQL = sqlsubscribers.NewTransferResponse(l.ledgerSQL, l.accountStoreSQL, l.balanceStoreSQL, l.partyStoreSQL, l.Log)
-	l.orderSubSQL = sqlsubscribers.NewOrder(l.ctx, l.orderStoreSQL, l.blockStoreSQL, l.Log)
+	l.orderSubSQL = sqlsubscribers.NewOrder(l.orderStoreSQL, l.Log)
 	l.networkLimitsSubSQL = sqlsubscribers.NewNetworkLimitSub(l.ctx, l.networkLimitsStoreSQL, l.Log)
-	l.marketDataSubSQL = sqlsubscribers.NewMarketData(l.marketDataStoreSQL, l.Log, l.conf.SQLStore.Timeout.Duration)
+	l.marketDataSubSQL = sqlsubscribers.NewMarketData(l.marketDataStoreSQL, l.Log)
 	l.tradesSubSQL = sqlsubscribers.NewTradesSubscriber(l.tradeStoreSQL, l.Log)
 	l.rewardsSubSQL = sqlsubscribers.NewReward(l.rewardStoreSQL, l.Log)
 	l.marketCreatedSubSQL = sqlsubscribers.NewMarketCreated(l.marketsStoreSQL, l.Log)
@@ -172,48 +173,64 @@ func (l *NodeCommand) setupStorages() error {
 	}
 
 	if l.conf.SQLStore.Enabled {
-		sqlStore, err := sqlstore.InitialiseStorage(l.Log, l.conf.SQLStore, l.vegaPaths)
-		if err != nil {
-			return fmt.Errorf("couldn't initialise sql storage: %w", err)
+
+		if l.conf.SQLStore.UseEmbedded {
+			l.embeddedPostgres, err = sqlstore.StartEmbeddedPostgres(l.Log, l.conf.SQLStore,
+				l.vegaPaths.StatePathFor(paths.DataNodeStorageHome))
+			if err != nil {
+				return fmt.Errorf("failed to start embedded postgres: %w", err)
+			}
 		}
 
-		l.assetStoreSQL = sqlstore.NewAssets(sqlStore)
-		l.blockStoreSQL = sqlstore.NewBlocks(sqlStore)
-		l.partyStoreSQL = sqlstore.NewParties(sqlStore)
-		l.partyStoreSQL.Initialise()
-		l.accountStoreSQL = sqlstore.NewAccounts(sqlStore)
-		l.balanceStoreSQL = sqlstore.NewBalances(sqlStore)
-		l.ledgerSQL = sqlstore.NewLedger(sqlStore)
-		l.orderStoreSQL = sqlstore.NewOrders(sqlStore)
-		l.networkLimitsStoreSQL = sqlstore.NewNetworkLimits(sqlStore)
-		l.marketDataStoreSQL = sqlstore.NewMarketData(sqlStore)
-		l.rewardStoreSQL = sqlstore.NewRewards(sqlStore)
-		l.marketsStoreSQL = sqlstore.NewMarkets(sqlStore)
-		l.delegationStoreSQL = sqlstore.NewDelegations(sqlStore)
-		l.epochStoreSQL = sqlstore.NewEpochs(sqlStore)
-		l.depositStoreSQL = sqlstore.NewDeposits(sqlStore)
-		l.withdrawalsStoreSQL = sqlstore.NewWithdrawals(sqlStore)
-		l.proposalStoreSQL = sqlstore.NewProposals(sqlStore)
-		l.voteStoreSQL = sqlstore.NewVotes(sqlStore)
-		l.marginLevelsStoreSQL = sqlstore.NewMarginLevels(sqlStore)
-		l.riskFactorStoreSQL = sqlstore.NewRiskFactors(sqlStore)
-		l.netParamStoreSQL = sqlstore.NewNetworkParameters(sqlStore)
-		l.checkpointStoreSQL = sqlstore.NewCheckpoints(sqlStore)
-		l.positionStoreSQL = sqlstore.NewPositions(sqlStore)
-		l.oracleSpecStoreSQL = sqlstore.NewOracleSpec(sqlStore)
-		l.oracleDataStoreSQL = sqlstore.NewOracleData(sqlStore)
-		l.liquidityProvisionStoreSQL = sqlstore.NewLiquidityProvision(sqlStore)
-		l.transfersStoreSQL = sqlstore.NewTransfers(sqlStore)
-		l.stakeLinkingStoreSQL = sqlstore.NewStakeLinking(sqlStore)
+		err = sqlstore.MigrateToLatestSchema(l.Log, l.conf.SQLStore)
+		if err != nil {
+			return fmt.Errorf("failed to migrate to latest schema:%w", err)
+		}
 
-		candleStore, err := sqlstore.NewCandles(l.ctx, sqlStore, l.conf.CandlesV2.CandleStore)
+		connectionSource, err := sqlstore.NewConnectionSource(l.Log, l.conf.SQLStore.ConnectionConfig)
+		if err != nil {
+			return fmt.Errorf("failed to create connection source:%w", err)
+		}
+
+		l.transactionManager = connectionSource
+
+		l.assetStoreSQL = sqlstore.NewAssets(connectionSource)
+		l.blockStoreSQL = sqlstore.NewBlocks(connectionSource)
+		l.partyStoreSQL = sqlstore.NewParties(connectionSource)
+		l.partyStoreSQL.Initialise()
+		l.accountStoreSQL = sqlstore.NewAccounts(connectionSource)
+		l.balanceStoreSQL = sqlstore.NewBalances(connectionSource)
+		l.ledgerSQL = sqlstore.NewLedger(connectionSource)
+		l.orderStoreSQL = sqlstore.NewOrders(connectionSource)
+		l.networkLimitsStoreSQL = sqlstore.NewNetworkLimits(connectionSource)
+		l.marketDataStoreSQL = sqlstore.NewMarketData(connectionSource)
+		l.rewardStoreSQL = sqlstore.NewRewards(connectionSource)
+		l.marketsStoreSQL = sqlstore.NewMarkets(connectionSource)
+		l.delegationStoreSQL = sqlstore.NewDelegations(connectionSource)
+		l.epochStoreSQL = sqlstore.NewEpochs(connectionSource)
+		l.depositStoreSQL = sqlstore.NewDeposits(connectionSource)
+		l.withdrawalsStoreSQL = sqlstore.NewWithdrawals(connectionSource)
+		l.proposalStoreSQL = sqlstore.NewProposals(connectionSource)
+		l.voteStoreSQL = sqlstore.NewVotes(connectionSource)
+		l.marginLevelsStoreSQL = sqlstore.NewMarginLevels(connectionSource)
+		l.riskFactorStoreSQL = sqlstore.NewRiskFactors(connectionSource)
+		l.netParamStoreSQL = sqlstore.NewNetworkParameters(connectionSource)
+		l.checkpointStoreSQL = sqlstore.NewCheckpoints(connectionSource)
+		l.positionStoreSQL = sqlstore.NewPositions(connectionSource)
+		l.oracleSpecStoreSQL = sqlstore.NewOracleSpec(connectionSource)
+		l.oracleDataStoreSQL = sqlstore.NewOracleData(connectionSource)
+		l.liquidityProvisionStoreSQL = sqlstore.NewLiquidityProvision(connectionSource)
+		l.transfersStoreSQL = sqlstore.NewTransfers(connectionSource)
+		l.stakeLinkingStoreSQL = sqlstore.NewStakeLinking(connectionSource)
+
+		candleStore, err := sqlstore.NewCandles(l.ctx, connectionSource, l.conf.CandlesV2.CandleStore)
 		if err != nil {
 			return fmt.Errorf("failed to create candles store: %w", err)
 		}
 		l.candleServiceV2 = candlesv2.NewService(l.ctx, l.Log, l.conf.CandlesV2, candleStore)
 
-		l.tradeStoreSQL = sqlstore.NewTrades(sqlStore)
-		l.sqlStore = sqlStore
+		l.tradeStoreSQL = sqlstore.NewTrades(connectionSource)
+
 	}
 
 	st, err := storage.InitialiseStorage(l.vegaPaths)
@@ -281,7 +298,7 @@ func (l *NodeCommand) preRun(_ []string) (err error) {
 		eventSource = broker.NewFanOutEventSource(eventSource, l.conf.SQLStore.FanOutBufferSize, 2)
 
 		l.sqlBroker = broker.NewSqlStoreBroker(l.Log, l.conf.Broker, l.chainInfoStore, eventSource,
-			l.conf.SQLStore.SqlEventBrokerBufferSize,
+			l.transactionManager,
 			l.timeSubSQL,
 			l.assetSubSQL,
 			l.partySubSQL,

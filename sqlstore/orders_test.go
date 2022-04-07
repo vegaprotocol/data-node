@@ -35,7 +35,7 @@ func addTestOrder(t *testing.T, os *sqlstore.Orders, block entities.Block, party
 		VegaTime:        block.VegaTime,
 	}
 
-	err := os.Add(context.Background(), order)
+	err := os.Add(order)
 	require.NoError(t, err)
 	return order
 }
@@ -43,10 +43,10 @@ func addTestOrder(t *testing.T, os *sqlstore.Orders, block entities.Block, party
 const numTestOrders = 30
 
 func TestOrders(t *testing.T) {
-	defer testStore.DeleteEverything()
-	ps := sqlstore.NewParties(testStore)
-	os := sqlstore.NewOrders(testStore)
-	bs := sqlstore.NewBlocks(testStore)
+	defer DeleteEverything()
+	ps := sqlstore.NewParties(connectionSource)
+	os := sqlstore.NewOrders(connectionSource)
+	bs := sqlstore.NewBlocks(connectionSource)
 	block := addTestBlock(t, bs)
 	block2 := addTestBlock(t, bs)
 
@@ -83,7 +83,7 @@ func TestOrders(t *testing.T) {
 		if i%4 == 1 {
 			updatedOrder = order
 			updatedOrder.Remaining = 50
-			err = os.Add(context.Background(), updatedOrder)
+			err = os.Add(updatedOrder)
 			require.NoError(t, err)
 		}
 
@@ -92,7 +92,7 @@ func TestOrders(t *testing.T) {
 			updatedOrder = order
 			updatedOrder.Remaining = 25
 			updatedOrder.VegaTime = block2.VegaTime
-			err = os.Add(context.Background(), updatedOrder)
+			err = os.Add(updatedOrder)
 			require.NoError(t, err)
 			numOrdersUpdatedInDifferentBlock++
 		}
@@ -103,7 +103,7 @@ func TestOrders(t *testing.T) {
 			updatedOrder.Remaining = 10
 			updatedOrder.VegaTime = block2.VegaTime
 			updatedOrder.Version++
-			err = os.Add(context.Background(), updatedOrder)
+			err = os.Add(updatedOrder)
 			require.NoError(t, err)
 			numOrdersUpdatedInDifferentBlock++
 		}

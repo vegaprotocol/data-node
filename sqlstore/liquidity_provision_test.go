@@ -25,14 +25,13 @@ func TestLiquidityProvision(t *testing.T) {
 func setupLPTests(t *testing.T, ctx context.Context) (*sqlstore.Blocks, *sqlstore.LiquidityProvision, *pgx.Conn) {
 	t.Helper()
 
-	err := testStore.DeleteEverything()
-	require.NoError(t, err)
+	DeleteEverything()
 
-	bs := sqlstore.NewBlocks(testStore)
-	lp := sqlstore.NewLiquidityProvision(testStore)
+	bs := sqlstore.NewBlocks(connectionSource)
+	lp := sqlstore.NewLiquidityProvision(connectionSource)
 
 	config := NewTestConfig(testDBPort)
-	conn, err := pgx.Connect(ctx, connectionString(config))
+	conn, err := pgx.Connect(ctx, config.ConnectionConfig.GetConnectionString())
 	require.NoError(t, err)
 
 	return bs, lp, conn
@@ -54,7 +53,7 @@ func testInsertNewInCurrentBlock(t *testing.T) {
 
 	data, err := entities.LiquidityProvisionFromProto(lpProto[0], block.VegaTime)
 	require.NoError(t, err)
-	assert.NoError(t, lp.Upsert(data))
+	assert.NoError(t, lp.Upsert(context.Background(), data))
 
 	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions").Scan(&rowCount))
 	assert.Equal(t, 1, rowCount)
@@ -76,10 +75,10 @@ func testUpdateExistingInCurrentBlock(t *testing.T) {
 
 	data, err := entities.LiquidityProvisionFromProto(lpProto[0], block.VegaTime)
 	require.NoError(t, err)
-	assert.NoError(t, lp.Upsert(data))
+	assert.NoError(t, lp.Upsert(context.Background(), data))
 
 	data.Reference = "Updated"
-	assert.NoError(t, lp.Upsert(data))
+	assert.NoError(t, lp.Upsert(context.Background(), data))
 
 	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions").Scan(&rowCount))
 	assert.Equal(t, 1, rowCount)
@@ -105,7 +104,7 @@ func testGetLPByPartyOnly(t *testing.T) {
 
 		data, err := entities.LiquidityProvisionFromProto(lpp, block.VegaTime)
 		require.NoError(t, err)
-		assert.NoError(t, lp.Upsert(data))
+		assert.NoError(t, lp.Upsert(context.Background(), data))
 
 		data.CreatedAt = data.CreatedAt.Truncate(time.Microsecond)
 		data.UpdatedAt = data.UpdatedAt.Truncate(time.Microsecond)
@@ -148,7 +147,7 @@ func testGetLPByPartyAndMarket(t *testing.T) {
 
 		data, err := entities.LiquidityProvisionFromProto(lpp, block.VegaTime)
 		require.NoError(t, err)
-		assert.NoError(t, lp.Upsert(data))
+		assert.NoError(t, lp.Upsert(context.Background(), data))
 
 		data.CreatedAt = data.CreatedAt.Truncate(time.Microsecond)
 		data.UpdatedAt = data.UpdatedAt.Truncate(time.Microsecond)
@@ -203,7 +202,7 @@ func testGetLPNoPartyWithMarket(t *testing.T) {
 
 		data, err := entities.LiquidityProvisionFromProto(lpp, block.VegaTime)
 		require.NoError(t, err)
-		assert.NoError(t, lp.Upsert(data))
+		assert.NoError(t, lp.Upsert(context.Background(), data))
 
 		data.CreatedAt = data.CreatedAt.Truncate(time.Microsecond)
 		data.UpdatedAt = data.UpdatedAt.Truncate(time.Microsecond)

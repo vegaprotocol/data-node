@@ -11,7 +11,7 @@ import (
 )
 
 type MarginLevels struct {
-	*SQLStore
+	*ConnectionSource
 	columns      []string
 	marginLevels []*entities.MarginLevels
 }
@@ -20,10 +20,10 @@ const (
 	sqlMarginLevelColumns = `market_id,asset_id,party_id,timestamp,maintenance_margin,search_level,initial_margin,collateral_release_level,vega_time,synthetic_time,seq_num`
 )
 
-func NewMarginLevels(sqlStore *SQLStore) *MarginLevels {
+func NewMarginLevels(sqlStore *ConnectionSource) *MarginLevels {
 	return &MarginLevels{
-		SQLStore: sqlStore,
-		columns:  strings.Split(sqlMarginLevelColumns, ","),
+		ConnectionSource: sqlStore,
+		columns:          strings.Split(sqlMarginLevelColumns, ","),
 	}
 }
 
@@ -33,8 +33,6 @@ func (ml *MarginLevels) Add(marginLevel *entities.MarginLevels) error {
 }
 
 func (ml *MarginLevels) OnTimeUpdateEvent(ctx context.Context) error {
-	timeoutCtx, cancel := context.WithTimeout(ctx, ml.conf.Timeout.Duration)
-	defer cancel()
 
 	var rows [][]interface{}
 	for _, data := range ml.marginLevels {
@@ -54,8 +52,8 @@ func (ml *MarginLevels) OnTimeUpdateEvent(ctx context.Context) error {
 	}
 
 	if rows != nil {
-		copyCount, err := ml.pool.CopyFrom(
-			timeoutCtx,
+		copyCount, err := ml.Connection.CopyFrom(
+			ctx,
 			pgx.Identifier{"margin_levels"},
 			ml.columns,
 			pgx.CopyFromRows(rows),
@@ -110,7 +108,7 @@ func (ml *MarginLevels) GetMarginLevelsByID(ctx context.Context, partyID, market
 		whereClause)
 
 	query, bindVars = orderAndPaginateQuery(query, nil, pagination, bindVars...)
-	err := pgxscan.Select(ctx, ml.pool, &marginLevels, query, bindVars...)
+	err := pgxscan.Select(ctx, ml.Connection, &marginLevels, query, bindVars...)
 
 	return marginLevels, err
 }

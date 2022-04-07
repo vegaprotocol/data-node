@@ -1,6 +1,7 @@
 package sqlsubscribers
 
 import (
+	"context"
 	"time"
 
 	"code.vegaprotocol.io/data-node/entities"
@@ -17,7 +18,7 @@ type LiquidityProvisionEvent interface {
 
 //go:generate go run github.com/golang/mock/mockgen -destination mocks/liquidity_provision_mock.go -package mocks code.vegaprotocol.io/data-node/sqlsubscribers LiquidityProvisionStore
 type LiquidityProvisionStore interface {
-	Upsert(*entities.LiquidityProvision) error
+	Upsert(context.Context, *entities.LiquidityProvision) error
 }
 
 type LiquidityProvision struct {
@@ -37,12 +38,12 @@ func (lp *LiquidityProvision) Types() []events.Type {
 	return []events.Type{events.LiquidityProvisionEvent}
 }
 
-func (lp *LiquidityProvision) Push(evt events.Event) error {
+func (lp *LiquidityProvision) Push(ctx context.Context, evt events.Event) error {
 	switch e := evt.(type) {
 	case TimeUpdateEvent:
 		lp.vegaTime = e.Time()
 	case LiquidityProvisionEvent:
-		return lp.consume(e)
+		return lp.consume(ctx, e)
 	default:
 		return errors.Errorf("unknown event type %s", e.Type().String())
 	}
@@ -50,12 +51,12 @@ func (lp *LiquidityProvision) Push(evt events.Event) error {
 	return nil
 }
 
-func (lp *LiquidityProvision) consume(event LiquidityProvisionEvent) error {
+func (lp *LiquidityProvision) consume(ctx context.Context, event LiquidityProvisionEvent) error {
 	provision := event.LiquidityProvision()
 	entity, err := entities.LiquidityProvisionFromProto(provision, lp.vegaTime)
 	if err != nil {
 		return errors.Wrap(err, "converting liquidity provision to database entity failed")
 	}
 
-	return errors.Wrap(lp.store.Upsert(entity), "inserting liquidity provision to SQL store failed")
+	return errors.Wrap(lp.store.Upsert(ctx, entity), "inserting liquidity provision to SQL store failed")
 }
