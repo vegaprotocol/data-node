@@ -1521,7 +1521,7 @@ func (t *tradingDataDelegator) ERC20WithdrawalApproval(ctx context.Context, req 
 func (t *tradingDataDelegator) GetNodeSignaturesAggregate(ctx context.Context,
 	req *protoapi.GetNodeSignaturesAggregateRequest,
 ) (*protoapi.GetNodeSignaturesAggregateResponse, error) {
-	defer metrics.StartAPIRequestAndTimeGRPC("GetNodeSignaturesAggregate")()
+	defer metrics.StartAPIRequestAndTimeGRPC("GetNodeSignaturesAggregate SQL")()
 	if len(req.Id) <= 0 {
 		return nil, apiError(codes.InvalidArgument, errors.New("missing ID"))
 	}
