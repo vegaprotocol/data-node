@@ -9,7 +9,7 @@
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -
 
 ### 🛠  Improvements
-- [](https://github.com/vegaprotocol/data-node/pull/xxx) -
+- [414](https://github.com/vegaprotocol/data-node/issues/414) - Migrate market depth to retrieve data from `Postgres`
 
 ### 🐛 Fixes
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -
