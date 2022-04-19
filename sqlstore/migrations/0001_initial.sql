@@ -566,6 +566,27 @@ create index on transfers (to_account_id);
 
 CREATE VIEW transfers_current AS ( SELECT DISTINCT ON (id) * FROM transfers ORDER BY id DESC, vega_time DESC);
 
+create table if not exists erc20_multisig_signer_added(
+    id bytea not null,
+    validator_id bytea not null,
+    new_signer bytea not null,
+    submitter bytea not null,
+    nonce text not null,
+    timestamp timestamp with time zone,
+    epoch_id bigint not null,
+    primary key (id)
+);
+
+create table if not exists erc20_multisig_signer_removed(
+    id bytea not null,
+    validator_id bytea not null,
+    old_signer bytea not null,
+    submitter bytea not null,
+    nonce text not null,
+    timestamp timestamp with time zone,
+    epoch_id bigint not null,
+    primary key (id)
+);
 
 create type stake_linking_type as enum('TYPE_UNSPECIFIED', 'TYPE_LINK', 'TYPE_UNLINK');
 create type stake_linking_status as enum('STATUS_UNSPECIFIED', 'STATUS_PENDING', 'STATUS_ACCEPTED', 'STATUS_REJECTED');
@@ -676,6 +697,9 @@ DROP TABLE IF EXISTS market_data;
 DROP TYPE IF EXISTS auction_trigger_type;
 DROP TYPE IF EXISTS market_trading_mode_type;
 DROP TYPE IF EXISTS market_state_type;
+
+DROP TYPE IF EXISTS erc20_multisig_signer_added;
+DROP TYPE IF EXISTS erc20_multisig_signer_removed;
 
 DROP TABLE IF EXISTS ledger;
 DROP TABLE IF EXISTS balances;

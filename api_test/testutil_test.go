@@ -247,6 +247,8 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 	sqlTransfersStore := sqlstore.NewTransfers(&sqlStore)
 	sqlStakeLinkingStore := sqlstore.NewStakeLinking(&sqlStore)
 	sqlNotaryStore := sqlstore.NewNotary(&sqlStore)
+	sqlMultiSigSignerAddedStore := sqlstore.NewERC20MultiSigSignerAdded(&sqlStore)
+	sqlMultiSigSignerRemovedStore := sqlstore.NewERC20MultiSigSignerRemoved(&sqlStore)
 
 	eventSource, err := broker.NewEventSource(conf.Broker, logger)
 	if err != nil {
@@ -335,6 +337,8 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 		sqlTransfersStore,
 		sqlStakeLinkingStore,
 		sqlNotaryStore,
+		sqlMultiSigSignerAddedStore,
+		sqlMultiSigSignerRemovedStore,
 	)
 	if srv == nil {
 		t.Fatal("failed to create gRPC server")
