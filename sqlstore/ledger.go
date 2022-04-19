@@ -12,9 +12,9 @@ type Ledger struct {
 	batcher SimpleBatcher
 }
 
-func NewLedger(sqlStore *ConnectionSource) *Ledger {
+func NewLedger(connectionSource *ConnectionSource) *Ledger {
 	a := &Ledger{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 		batcher:          NewSimpleBatcher("ledger", entities.LedgerEntryColumns),
 	}
 	return a

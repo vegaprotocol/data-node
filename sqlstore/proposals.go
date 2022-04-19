@@ -13,9 +13,9 @@ type Proposals struct {
 	*ConnectionSource
 }
 
-func NewProposals(sqlStore *ConnectionSource) *Proposals {
+func NewProposals(connectionSource *ConnectionSource) *Proposals {
 	p := &Proposals{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 	return p
 }

@@ -11,9 +11,9 @@ type NetworkParameters struct {
 	*ConnectionSource
 }
 
-func NewNetworkParameters(sqlStore *ConnectionSource) *NetworkParameters {
+func NewNetworkParameters(connectionSource *ConnectionSource) *NetworkParameters {
 	p := &NetworkParameters{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 	return p
 }

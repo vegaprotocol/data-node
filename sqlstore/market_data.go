@@ -20,9 +20,9 @@ type MarketData struct {
 
 var ErrInvalidDateRange = errors.New("invalid date range, end date must be after start date")
 
-func NewMarketData(sqlStore *ConnectionSource) *MarketData {
+func NewMarketData(connectionSource *ConnectionSource) *MarketData {
 	return &MarketData{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 		columns: []string{"synthetic_time", "vega_time", "seq_num",
 			"market", "mark_price", "best_bid_price", "best_bid_volume",
 			"best_offer_price", "best_offer_volume", "best_static_bid_price", "best_static_bid_volume",

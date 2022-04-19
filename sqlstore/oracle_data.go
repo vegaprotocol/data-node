@@ -16,9 +16,9 @@ const (
 	sqlOracleDataColumns = `public_keys, data, matched_spec_ids, broadcast_at, vega_time`
 )
 
-func NewOracleData(sqlStore *ConnectionSource) *OracleData {
+func NewOracleData(connectionSource *ConnectionSource) *OracleData {
 	return &OracleData{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 }
 

@@ -12,9 +12,9 @@ type Epochs struct {
 	*ConnectionSource
 }
 
-func NewEpochs(sqlStore *ConnectionSource) *Epochs {
+func NewEpochs(connectionSource *ConnectionSource) *Epochs {
 	e := &Epochs{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 	return e
 }

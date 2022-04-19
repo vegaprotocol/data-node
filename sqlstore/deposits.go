@@ -18,9 +18,9 @@ const (
 		credited_timestamp, created_timestamp, vega_time`
 )
 
-func NewDeposits(sqlStore *ConnectionSource) *Deposits {
+func NewDeposits(connectionSource *ConnectionSource) *Deposits {
 	return &Deposits{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 }
 

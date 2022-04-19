@@ -18,9 +18,9 @@ const (
 		commitment_amount, fee, sells, buys, version, status, reference, vega_time`
 )
 
-func NewLiquidityProvision(sqlStore *ConnectionSource) *LiquidityProvision {
+func NewLiquidityProvision(connectionSource *ConnectionSource) *LiquidityProvision {
 	return &LiquidityProvision{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 }
 

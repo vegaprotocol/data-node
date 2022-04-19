@@ -11,8 +11,8 @@ type NetworkLimits struct {
 	*ConnectionSource
 }
 
-func NewNetworkLimits(sqlStore *ConnectionSource) *NetworkLimits {
-	return &NetworkLimits{ConnectionSource: sqlStore}
+func NewNetworkLimits(connectionSource *ConnectionSource) *NetworkLimits {
+	return &NetworkLimits{ConnectionSource: connectionSource}
 }
 
 // Add inserts a row into the network limits table. If a row with the same vega time

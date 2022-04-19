@@ -24,9 +24,9 @@ type Blocks struct {
 	mu               sync.Mutex
 }
 
-func NewBlocks(sqlStore *ConnectionSource) *Blocks {
+func NewBlocks(connectionSource *ConnectionSource) *Blocks {
 	b := &Blocks{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 		lastBlockChanged: make(chan struct{}),
 	}
 	return b

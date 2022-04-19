@@ -11,9 +11,9 @@ type Checkpoints struct {
 	*ConnectionSource
 }
 
-func NewCheckpoints(sqlStore *ConnectionSource) *Checkpoints {
+func NewCheckpoints(connectionSource *ConnectionSource) *Checkpoints {
 	p := &Checkpoints{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 	return p
 }

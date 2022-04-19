@@ -16,9 +16,9 @@ const (
 	sqlRiskFactorColumns = `market_id, short, long, vega_time`
 )
 
-func NewRiskFactors(sqlStore *ConnectionSource) *RiskFactors {
+func NewRiskFactors(connectionSource *ConnectionSource) *RiskFactors {
 	return &RiskFactors{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 }
 

@@ -16,9 +16,9 @@ const (
 	sqlOracleSpecColumns = `id, created_at, updated_at, public_keys, filters, status, vega_time`
 )
 
-func NewOracleSpec(sqlStore *ConnectionSource) *OracleSpec {
+func NewOracleSpec(connectionSource *ConnectionSource) *OracleSpec {
 	return &OracleSpec{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 }
 

@@ -17,9 +17,9 @@ type Parties struct {
 	*ConnectionSource
 }
 
-func NewParties(sqlStore *ConnectionSource) *Parties {
+func NewParties(connectionSource *ConnectionSource) *Parties {
 	ps := &Parties{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 	return ps
 }

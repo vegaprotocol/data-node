@@ -12,9 +12,9 @@ type Withdrawals struct {
 	*ConnectionSource
 }
 
-func NewWithdrawals(sqlStore *ConnectionSource) *Withdrawals {
+func NewWithdrawals(connectionSource *ConnectionSource) *Withdrawals {
 	return &Withdrawals{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 }
 

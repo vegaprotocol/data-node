@@ -15,9 +15,9 @@ type Trades struct {
 	trades []*entities.Trade
 }
 
-func NewTrades(sqlStore *ConnectionSource) *Trades {
+func NewTrades(connectionSource *ConnectionSource) *Trades {
 	t := &Trades{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 	return t
 }

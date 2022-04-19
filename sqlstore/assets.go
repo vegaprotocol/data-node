@@ -11,9 +11,9 @@ type Assets struct {
 	*ConnectionSource
 }
 
-func NewAssets(sqlStore *ConnectionSource) *Assets {
+func NewAssets(connectionSource *ConnectionSource) *Assets {
 	a := &Assets{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 	return a
 }

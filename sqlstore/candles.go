@@ -27,9 +27,9 @@ type Candles struct {
 	ctx    context.Context
 }
 
-func NewCandles(ctx context.Context, sqlStore *ConnectionSource, config candlesv2.CandleStoreConfig) (*Candles, error) {
+func NewCandles(ctx context.Context, connectionSource *ConnectionSource, config candlesv2.CandleStoreConfig) (*Candles, error) {
 	cs := &Candles{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 		ctx:              ctx,
 		config:           config,
 	}

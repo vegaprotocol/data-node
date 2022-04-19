@@ -13,9 +13,9 @@ type Accounts struct {
 	*ConnectionSource
 }
 
-func NewAccounts(sqlStore *ConnectionSource) *Accounts {
+func NewAccounts(connectionSource *ConnectionSource) *Accounts {
 	a := &Accounts{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 	return a
 }

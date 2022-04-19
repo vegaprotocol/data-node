@@ -18,9 +18,9 @@ type Positions struct {
 	cacheLock sync.Mutex
 }
 
-func NewPositions(sqlStore *ConnectionSource) *Positions {
+func NewPositions(connectionSource *ConnectionSource) *Positions {
 	a := &Positions{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 		cache:            map[entities.MarketID]map[entities.PartyID]entities.Position{},
 		cacheLock:        sync.Mutex{},
 	}

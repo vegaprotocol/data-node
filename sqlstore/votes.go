@@ -13,9 +13,9 @@ type Votes struct {
 	*ConnectionSource
 }
 
-func NewVotes(sqlStore *ConnectionSource) *Votes {
+func NewVotes(connectionSource *ConnectionSource) *Votes {
 	d := &Votes{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 	return d
 }

@@ -13,9 +13,9 @@ type Orders struct {
 	batcher Batcher[entities.OrderKey, entities.Order]
 }
 
-func NewOrders(sqlStore *ConnectionSource) *Orders {
+func NewOrders(connectionSource *ConnectionSource) *Orders {
 	a := &Orders{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 		batcher: NewBatcher[entities.OrderKey, entities.Order](
 			"orders",
 			entities.OrderColumns),

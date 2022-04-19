@@ -21,9 +21,9 @@ const (
 tx_hash, log_index, ethereum_address, vega_time`
 )
 
-func NewStakeLinking(sqlStore *ConnectionSource) *StakeLinking {
+func NewStakeLinking(connectionSource *ConnectionSource) *StakeLinking {
 	return &StakeLinking{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 }
 

@@ -18,9 +18,9 @@ const (
 		trading_mode, state, market_timestamps, position_decimal_places`
 )
 
-func NewMarkets(sqlStore *ConnectionSource) *Markets {
+func NewMarkets(connectionSource *ConnectionSource) *Markets {
 	return &Markets{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 }
 

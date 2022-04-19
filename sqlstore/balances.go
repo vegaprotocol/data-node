@@ -13,9 +13,9 @@ type Balances struct {
 	batcher Batcher[entities.BalanceKey, entities.Balance]
 }
 
-func NewBalances(sqlStore *ConnectionSource) *Balances {
+func NewBalances(connectionSource *ConnectionSource) *Balances {
 	b := &Balances{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 		batcher: NewBatcher[entities.BalanceKey, entities.Balance](
 			"balances",
 			entities.BalanceColumns),

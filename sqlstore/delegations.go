@@ -13,9 +13,9 @@ type Delegations struct {
 	*ConnectionSource
 }
 
-func NewDelegations(sqlStore *ConnectionSource) *Delegations {
+func NewDelegations(connectionSource *ConnectionSource) *Delegations {
 	d := &Delegations{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 	return d
 }

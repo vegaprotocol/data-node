@@ -12,9 +12,9 @@ type Rewards struct {
 	*ConnectionSource
 }
 
-func NewRewards(sqlStore *ConnectionSource) *Rewards {
+func NewRewards(connectionSource *ConnectionSource) *Rewards {
 	r := &Rewards{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 	return r
 }

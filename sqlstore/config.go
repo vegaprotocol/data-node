@@ -9,13 +9,12 @@ import (
 )
 
 type Config struct {
-	Enabled                  encoding.Bool     `long:"enabled"`
-	ConnectionConfig         ConnectionConfig  `group:"ConnectionConfig" namespace:"ConnectionConfig"`
-	WipeOnStartup            encoding.Bool     `long:"wipe-on-startup"`
-	Level                    encoding.LogLevel `long:"log-level"`
-	UseEmbedded              encoding.Bool     `long:"use-embedded" description:"Use an embedded version of Postgresql for the SQL data store"`
-	FanOutBufferSize         int               `long:"fan-out-buffer-size" description:"buffer size used by the fan out event source"`
-	SqlEventBrokerBufferSize int               `long:"sql-broker-buffer-size" description:"the per type buffer size in the sql event broker"`
+	Enabled          encoding.Bool     `long:"enabled"`
+	ConnectionConfig ConnectionConfig  `group:"ConnectionConfig" namespace:"ConnectionConfig"`
+	WipeOnStartup    encoding.Bool     `long:"wipe-on-startup"`
+	Level            encoding.LogLevel `long:"log-level"`
+	UseEmbedded      encoding.Bool     `long:"use-embedded" description:"Use an embedded version of Postgresql for the SQL data store"`
+	FanOutBufferSize int               `long:"fan-out-buffer-size" description:"buffer size used by the fan out event source"`
 }
 
 type ConnectionConfig struct {
@@ -56,10 +55,9 @@ func NewDefaultConfig() Config {
 			Database:        "vega",
 			UseTransactions: true,
 		},
-		WipeOnStartup:            true,
-		Level:                    encoding.LogLevel{Level: logging.InfoLevel},
-		UseEmbedded:              false,
-		FanOutBufferSize:         1000,
-		SqlEventBrokerBufferSize: 100,
+		WipeOnStartup:    true,
+		Level:            encoding.LogLevel{Level: logging.InfoLevel},
+		UseEmbedded:      false,
+		FanOutBufferSize: 1000,
 	}
 }

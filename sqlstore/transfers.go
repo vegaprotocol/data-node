@@ -12,9 +12,9 @@ type Transfers struct {
 	*ConnectionSource
 }
 
-func NewTransfers(sqlStore *ConnectionSource) *Transfers {
+func NewTransfers(connectionSource *ConnectionSource) *Transfers {
 	return &Transfers{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 	}
 }
 

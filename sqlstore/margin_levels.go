@@ -20,9 +20,9 @@ const (
 	sqlMarginLevelColumns = `market_id,asset_id,party_id,timestamp,maintenance_margin,search_level,initial_margin,collateral_release_level,vega_time,synthetic_time,seq_num`
 )
 
-func NewMarginLevels(sqlStore *ConnectionSource) *MarginLevels {
+func NewMarginLevels(connectionSource *ConnectionSource) *MarginLevels {
 	return &MarginLevels{
-		ConnectionSource: sqlStore,
+		ConnectionSource: connectionSource,
 		columns:          strings.Split(sqlMarginLevelColumns, ","),
 	}
 }
