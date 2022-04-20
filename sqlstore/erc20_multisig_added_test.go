@@ -14,16 +14,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestERC20MultiSigAdded(t *testing.T) {
+func TestERC20MultiSigEvent(t *testing.T) {
 	t.Run("Adding a single bundle", testAddSigner)
 	t.Run("Get with filters", testGetWithFilters)
+	t.Run("Get with add and removed events", testGetWithAddAndRemoveEvents)
 }
 
-func setupERC20MultiSigAddedStoreTests(t *testing.T, ctx context.Context) (*sqlstore.ERC20MultiSigSignerAdded, *pgx.Conn) {
+func setupERC20MultiSigEventStoreTests(t *testing.T, ctx context.Context) (*sqlstore.ERC20MultiSigSignerEvent, *pgx.Conn) {
 	t.Helper()
 	err := testStore.DeleteEverything()
 	require.NoError(t, err)
-	ms := sqlstore.NewERC20MultiSigSignerAdded(testStore)
+	ms := sqlstore.NewERC20MultiSigSignerEvent(testStore)
 
 	config := NewTestConfig(testDBPort)
 
@@ -38,19 +39,19 @@ func testAddSigner(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 
-	ms, conn := setupERC20MultiSigAddedStoreTests(t, ctx)
+	ms, conn := setupERC20MultiSigEventStoreTests(t, ctx)
 
 	var rowCount int
 
-	err := conn.QueryRow(ctx, `select count(*) from erc20_multisig_signer_added`).Scan(&rowCount)
+	err := conn.QueryRow(ctx, `select count(*) from erc20_multisig_signer_events`).Scan(&rowCount)
 	require.NoError(t, err)
 	assert.Equal(t, 0, rowCount)
 
-	sa := getTestSignerAdded(t, "fc677151d0c93726", "12")
+	sa := getTestSignerEvent(t, "fc677151d0c93726", vgcrypto.RandomHash(), "12", true)
 	err = ms.Add(sa)
 	require.NoError(t, err)
 
-	err = conn.QueryRow(ctx, `select count(*) from erc20_multisig_signer_added`).Scan(&rowCount)
+	err = conn.QueryRow(ctx, `select count(*) from erc20_multisig_signer_events`).Scan(&rowCount)
 	require.NoError(t, err)
 	assert.Equal(t, 1, rowCount)
 
@@ -58,7 +59,7 @@ func testAddSigner(t *testing.T) {
 	err = ms.Add(sa)
 	require.NoError(t, err)
 
-	err = conn.QueryRow(ctx, `select count(*) from erc20_multisig_signer_added`).Scan(&rowCount)
+	err = conn.QueryRow(ctx, `select count(*) from erc20_multisig_signer_events`).Scan(&rowCount)
 	require.NoError(t, err)
 	assert.Equal(t, 1, rowCount)
 }
@@ -68,61 +69,124 @@ func testGetWithFilters(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 
-	ms, conn := setupERC20MultiSigAddedStoreTests(t, ctx)
+	ms, conn := setupERC20MultiSigEventStoreTests(t, ctx)
 
 	var rowCount int
 	vID1 := "fc677151d0c93726"
 	vID2 := "15d1d5fefa8988eb"
 
-	err := conn.QueryRow(ctx, `select count(*) from erc20_multisig_signer_added`).Scan(&rowCount)
+	err := conn.QueryRow(ctx, `select count(*) from erc20_multisig_signer_events`).Scan(&rowCount)
 	require.NoError(t, err)
 	assert.Equal(t, 0, rowCount)
 
-	err = ms.Add(getTestSignerAdded(t, vID1, "12"))
+	err = ms.Add(getTestSignerEvent(t, vID1, vgcrypto.RandomHash(), "12", true))
 	require.NoError(t, err)
 
 	// same validator different epoch
-	err = ms.Add(getTestSignerAdded(t, vID1, "24"))
+	err = ms.Add(getTestSignerEvent(t, vID1, vgcrypto.RandomHash(), "24", true))
 	require.NoError(t, err)
 
 	// same epoch different validator
-	err = ms.Add(getTestSignerAdded(t, vID2, "12"))
+	err = ms.Add(getTestSignerEvent(t, vID2, vgcrypto.RandomHash(), "12", true))
 	require.NoError(t, err)
 
-	res, err := ms.GetByValidatorID(ctx, vID1, nil, entities.Pagination{})
+	res, err := ms.GetAddedEvents(ctx, vID1, nil, entities.Pagination{})
 	require.NoError(t, err)
 	require.Len(t, res, 2)
 	assert.Equal(t, vID1, res[0].ValidatorID.String())
 	assert.Equal(t, vID1, res[1].ValidatorID.String())
 
-	res, err = ms.GetByEpochID(ctx, 12, entities.Pagination{})
-	require.NoError(t, err)
-	require.Len(t, res, 2)
-	assert.Equal(t, int64(12), res[0].EpochID)
-	assert.Equal(t, int64(12), res[1].EpochID)
-
 	epoch := int64(12)
-	res, err = ms.GetByValidatorID(ctx, vID1, &epoch, entities.Pagination{})
+	res, err = ms.GetAddedEvents(ctx, vID1, &epoch, entities.Pagination{})
 	require.NoError(t, err)
 	require.Len(t, res, 1)
 	assert.Equal(t, vID1, res[0].ValidatorID.String())
 	assert.Equal(t, int64(12), res[0].EpochID)
 }
 
-func getTestSignerAdded(t *testing.T, validatorID string, epochSeq string) *entities.ERC20MultiSigSignerAdded {
+func testGetWithAddAndRemoveEvents(t *testing.T) {
+	testTimeout := time.Second * 10
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+	defer cancel()
+
+	ms, conn := setupERC20MultiSigEventStoreTests(t, ctx)
+
+	var rowCount int
+	vID1 := "fc677151d0c93726"
+	vID2 := "15d1d5fefa8988eb"
+	submitter := "15d1d5fefa8988bb"
+	wrongSubmitter := "15d155fefa8988bb"
+
+	err := conn.QueryRow(ctx, `select count(*) from erc20_multisig_signer_events`).Scan(&rowCount)
+	require.NoError(t, err)
+	assert.Equal(t, 0, rowCount)
+
+	err = ms.Add(getTestSignerEvent(t, vID1, vgcrypto.RandomHash(), "12", true))
+	require.NoError(t, err)
+
+	// same validator different epoch
+	err = ms.Add(getTestSignerEvent(t, vID1, submitter, "24", false))
+	require.NoError(t, err)
+
+	// same epoch different validator
+	err = ms.Add(getTestSignerEvent(t, vID2, vgcrypto.RandomHash(), "12", true))
+	require.NoError(t, err)
+
+	res, err := ms.GetAddedEvents(ctx, vID1, nil, entities.Pagination{})
+	require.NoError(t, err)
+	require.Len(t, res, 1)
+	assert.Equal(t, vID1, res[0].ValidatorID.String())
+
+	res, err = ms.GetRemovedEvents(ctx, vID1, submitter, nil, entities.Pagination{})
+	require.NoError(t, err)
+	require.Len(t, res, 1)
+	assert.Equal(t, vID1, res[0].ValidatorID.String())
+
+	res, err = ms.GetRemovedEvents(ctx, vID1, wrongSubmitter, nil, entities.Pagination{})
+	require.NoError(t, err)
+	require.Len(t, res, 0)
+}
+
+func getTestSignerEvent(t *testing.T, validatorID string, submitter string, epochSeq string, addedEvent bool) *entities.ERC20MultiSigSignerEvent {
 	t.Helper()
 	vgcrypto.RandomHash()
-	ns, err := entities.ERC20MultiSigSignerAddedFromProto(
-		&eventspb.ERC20MultiSigSignerAdded{
-			SignatureId: vgcrypto.RandomHash(),
-			ValidatorId: validatorID,
-			NewSigner:   vgcrypto.RandomHash(),
-			Submitter:   vgcrypto.RandomHash(),
-			Nonce:       "nonce",
-			EpochSeq:    epochSeq,
-			Timestamp:   time.Unix(10000, 13).UnixNano(),
-		},
-	)
+
+	var err error
+	var evt *entities.ERC20MultiSigSignerEvent
+	switch addedEvent {
+	case true:
+		evt, err = entities.ERC20MultiSigSignerEventFromAddedProto(
+			&eventspb.ERC20MultiSigSignerAdded{
+				SignatureId: vgcrypto.RandomHash(),
+				ValidatorId: validatorID,
+				NewSigner:   vgcrypto.RandomHash(),
+				Submitter:   submitter,
+				Nonce:       "nonce",
+				EpochSeq:    epochSeq,
+				Timestamp:   time.Unix(10000, 13).UnixNano(),
+			},
+		)
+		require.NoError(t, err)
+	case false:
+		evts, err := entities.ERC20MultiSigSignerEventFromRemovedProto(
+			&eventspb.ERC20MultiSigSignerRemoved{
+				SignatureSubmitters: []*eventspb.ERC20MulistSigSignerRemovedSubmitter{
+					{
+						SignatureId: vgcrypto.RandomHash(),
+						Submitter:   submitter,
+					},
+				},
+				ValidatorId: validatorID,
+				OldSigner:   vgcrypto.RandomHash(),
+				Nonce:       "nonce",
+				EpochSeq:    epochSeq,
+				Timestamp:   time.Unix(10000, 13).UnixNano(),
+			},
+		)
+		require.NoError(t, err)
+		evt = evts[0]
+	}
+
 	require.NoError(t, err)
-	return ns
+	return evt
 }

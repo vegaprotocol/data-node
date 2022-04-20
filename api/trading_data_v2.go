@@ -29,16 +29,15 @@ var defaultPaginationV2 = entities.Pagination{
 
 type tradingDataServiceV2 struct {
 	v2.UnimplementedTradingDataServiceServer
-	log                        *logging.Logger
-	balanceStore               *sqlstore.Balances
-	orderStore                 *sqlstore.Orders
-	networkLimitsStore         *sqlstore.NetworkLimits
-	marketDataStore            *sqlstore.MarketData
-	tradeStore                 *sqlstore.Trades
-	multiSigSignerAddedStore   *sqlstore.ERC20MultiSigSignerAdded
-	multiSigSignerRemovedStore *sqlstore.ERC20MultiSigSignerRemoved
-	notaryStore                *sqlstore.Notary
-	candleServiceV2            *candlesv2.Svc
+	log                      *logging.Logger
+	balanceStore             *sqlstore.Balances
+	orderStore               *sqlstore.Orders
+	networkLimitsStore       *sqlstore.NetworkLimits
+	marketDataStore          *sqlstore.MarketData
+	tradeStore               *sqlstore.Trades
+	multiSigSignerEventStore *sqlstore.ERC20MultiSigSignerEvent
+	notaryStore              *sqlstore.Notary
+	candleServiceV2          *candlesv2.Svc
 }
 
 func (t *tradingDataServiceV2) QueryBalanceHistory(ctx context.Context, req *v2.QueryBalanceHistoryRequest) (*v2.QueryBalanceHistoryResponse, error) {
@@ -308,7 +307,7 @@ func (t *tradingDataServiceV2) GetERC20MultiSigSignerAddedBundles(ctx context.Co
 		p = entities.PaginationFromProto(req.Pagination)
 	}
 
-	res, err := t.multiSigSignerAddedStore.GetByValidatorID(ctx, nodeID, epochID, p)
+	res, err := t.multiSigSignerEventStore.GetAddedEvents(ctx, nodeID, epochID, p)
 	if err != nil {
 		c := codes.Internal
 		if errors.Is(err, entities.ErrInvalidID) {
@@ -334,10 +333,10 @@ func (t *tradingDataServiceV2) GetERC20MultiSigSignerAddedBundles(ctx context.Co
 
 		bundles = append(bundles,
 			&v2.ERC20MultiSigSignerAddedBundle{
-				NewSigner:  "0x" + b.NewSigner.String(),
+				NewSigner:  "0x" + b.SignerChange.String(),
 				Submitter:  "0x" + b.Submitter.String(),
 				Nonce:      b.Nonce,
-				Timestamp:  b.Timestamp.UnixNano(),
+				Timestamp:  b.VegaTime.UnixNano(),
 				Signatures: pack,
 				EpochSeq:   strconv.FormatInt(b.EpochID, 10),
 			},
@@ -372,7 +371,7 @@ func (t *tradingDataServiceV2) GetERC20MultiSigSignerRemovedBundles(ctx context.
 		p = entities.PaginationFromProto(req.Pagination)
 	}
 
-	res, err := t.multiSigSignerRemovedStore.GetByValidatorID(ctx, nodeID, strings.TrimPrefix(submitter, "0x"), epochID, p)
+	res, err := t.multiSigSignerEventStore.GetRemovedEvents(ctx, nodeID, strings.TrimPrefix(submitter, "0x"), epochID, p)
 	if err != nil {
 		c := codes.Internal
 		if errors.Is(err, entities.ErrInvalidID) {
@@ -396,10 +395,10 @@ func (t *tradingDataServiceV2) GetERC20MultiSigSignerRemovedBundles(ctx context.
 		}
 
 		bundles = append(bundles, &v2.ERC20MultiSigSignerRemovedBundle{
-			OldSigner:  "0x" + b.OldSigner.String(),
+			OldSigner:  "0x" + b.SignerChange.String(),
 			Submitter:  "0x" + b.Submitter.String(),
 			Nonce:      b.Nonce,
-			Timestamp:  b.Timestamp.UnixNano(),
+			Timestamp:  b.VegaTime.UnixNano(),
 			Signatures: pack,
 			EpochSeq:   strconv.FormatInt(b.EpochID, 10),
 		})
