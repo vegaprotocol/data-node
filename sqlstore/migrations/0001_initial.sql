@@ -61,50 +61,90 @@ create table ledger
 );
 SELECT create_hypertable('ledger', 'vega_time', chunk_time_interval => INTERVAL '1 day');
 
-
-CREATE TABLE orders (
-    id                BYTEA                     NOT NULL,
-    market_id         BYTEA                     NOT NULL,
-    party_id          BYTEA                     NOT NULL, -- at some point add REFERENCES parties(id),
-    side              SMALLINT                  NOT NULL,
-    price             BIGINT                    NOT NULL,
-    size              BIGINT                    NOT NULL,
-    remaining         BIGINT                    NOT NULL,
-    time_in_force     SMALLINT                  NOT NULL,
-    type              SMALLINT                  NOT NULL,
-    status            SMALLINT                  NOT NULL,
-    reference         TEXT,
-    reason            SMALLINT,
-    version           INT                       NOT NULL,
-    batch_id          INT                       NOT NULL,
-    pegged_offset     INT,
-    pegged_reference  SMALLINT,
-    lp_id             BYTEA,
-    created_at        TIMESTAMP WITH TIME ZONE NOT NULL,
-    updated_at        TIMESTAMP WITH TIME ZONE,
-    expires_at        TIMESTAMP WITH TIME ZONE,
-    vega_time         TIMESTAMP WITH TIME ZONE NOT NULL REFERENCES blocks(vega_time),
-    seq_num           BIGINT NOT NULL -- event sequence number in the block
+CREATE TABLE live_orders
+(
+    id               BYTEA                    PRIMARY KEY,
+    market_id        BYTEA                    NOT NULL,
+    party_id         BYTEA                    NOT NULL, -- at some point add REFERENCES parties(id),
+    side             SMALLINT                 NOT NULL,
+    price            BIGINT                   NOT NULL,
+    size             BIGINT                   NOT NULL,
+    remaining        BIGINT                   NOT NULL,
+    time_in_force    SMALLINT                 NOT NULL,
+    type             SMALLINT                 NOT NULL,
+    status           SMALLINT                 NOT NULL,
+    reference        TEXT,
+    reason           SMALLINT,
+    version          INT                      NOT NULL,
+    batch_id         INT                      NOT NULL,
+    pegged_offset    INT,
+    pegged_reference SMALLINT,
+    lp_id            BYTEA,
+    created_at       TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at       TIMESTAMP WITH TIME ZONE,
+    expires_at       TIMESTAMP WITH TIME ZONE,
+    vega_time        TIMESTAMP WITH TIME ZONE NOT NULL REFERENCES blocks (vega_time),
+    seq_num          BIGINT                   NOT NULL  -- event sequence number in the block
     -- PRIMARY key(vega_time, id, version)
 );
 
-SELECT create_hypertable('orders', 'vega_time', chunk_time_interval => INTERVAL '1 day');
-CREATE INDEX ON orders (market_id, vega_time DESC);
-CREATE INDEX ON orders (party_id, vega_time DESC);
+CREATE INDEX ON live_orders (market_id);
+CREATE INDEX ON live_orders (party_id);
+
+CREATE TABLE order_history
+(
+    id               BYTEA                    NOT NULL,
+    market_id        BYTEA                    NOT NULL,
+    party_id         BYTEA                    NOT NULL, -- at some point add REFERENCES parties(id),
+    side             SMALLINT                 NOT NULL,
+    price            BIGINT                   NOT NULL,
+    size             BIGINT                   NOT NULL,
+    remaining        BIGINT                   NOT NULL,
+    time_in_force    SMALLINT                 NOT NULL,
+    type             SMALLINT                 NOT NULL,
+    status           SMALLINT                 NOT NULL,
+    reference        TEXT,
+    reason           SMALLINT,
+    version          INT                      NOT NULL,
+    batch_id         INT                      NOT NULL,
+    pegged_offset    INT,
+    pegged_reference SMALLINT,
+    lp_id            BYTEA,
+    created_at       TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at       TIMESTAMP WITH TIME ZONE,
+    expires_at       TIMESTAMP WITH TIME ZONE,
+    vega_time        TIMESTAMP WITH TIME ZONE NOT NULL REFERENCES blocks (vega_time),
+    seq_num          BIGINT                   NOT NULL  -- event sequence number in the block
+    -- PRIMARY key(vega_time, id, version)
+);
+
+SELECT create_hypertable('order_history', 'vega_time', chunk_time_interval => INTERVAL '1 day');
+CREATE INDEX ON order_history (market_id, vega_time DESC);
+CREATE INDEX ON order_history (party_id, vega_time DESC);
+CREATE INDEX ON order_history (id, vega_time DESC);
+SELECT add_retention_policy('order_history', INTERVAL '7 days');
 
 -- Orders contains all the historical changes to each order (as of the end of the block),
 -- this view contains the *current* state of the latest version each order
 --  (e.g. it's unique on order ID)
-CREATE VIEW orders_current AS (
-  SELECT DISTINCT ON (id) * FROM orders ORDER BY id, version DESC, vega_time DESC
-);
+CREATE VIEW orders_current AS
+(
+SELECT DISTINCT ON (id) *
+FROM order_history
+UNION all Select * from live_orders where not exists (select 1 from order_history where live_orders.id = order_history.id)
+ORDER BY id, version DESC, vega_time DESC
+    );
 
 -- Manual updates to the order (e.g. user changing price level) increment the 'version'
 -- this view contains the current state of each *version* of the order (e.g. it is
 -- unique on (order ID, version)
-CREATE VIEW orders_current_versions AS (
-  SELECT DISTINCT ON (id, version) * FROM orders ORDER BY id, version DESC, vega_time DESC
-);
+CREATE VIEW orders_current_versions AS
+(
+SELECT DISTINCT ON (id, version) *
+FROM order_history
+UNION all Select * from live_orders where not exists (select 1 from order_history where live_orders.id = order_history.id)
+ORDER BY id, version DESC, vega_time DESC
+    );
 
 create table trades
 (
@@ -675,7 +715,9 @@ DROP TYPE IF EXISTS deposit_status;
 DROP TABLE IF EXISTS withdrawals;
 DROP TYPE IF EXISTS withdrawal_status;
 
-DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS live_orders;
+
+DROP TABLE IF EXISTS order_history;
 DROP TYPE IF EXISTS order_time_in_force;
 DROP TYPE IF EXISTS order_status;
 DROP TYPE IF EXISTS order_side;

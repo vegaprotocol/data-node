@@ -38,7 +38,7 @@ func addTestOrder(t *testing.T, os *sqlstore.Orders, id entities.OrderID, block 
 		SeqNum:          seqNum,
 	}
 
-	err := os.Add(order)
+	err := os.Add(context.Background(), order)
 	require.NoError(t, err)
 	return order
 }
@@ -100,7 +100,7 @@ func TestOrders(t *testing.T) {
 		if i%4 == 1 {
 			updatedOrder = order
 			updatedOrder.Remaining = 50
-			err = os.Add(updatedOrder)
+			err = os.Add(context.Background(), updatedOrder)
 			require.NoError(t, err)
 		}
 
@@ -109,7 +109,7 @@ func TestOrders(t *testing.T) {
 			updatedOrder = order
 			updatedOrder.Remaining = 25
 			updatedOrder.VegaTime = block2.VegaTime
-			err = os.Add(updatedOrder)
+			err = os.Add(context.Background(), updatedOrder)
 			require.NoError(t, err)
 			numOrdersUpdatedInDifferentBlock++
 		}
@@ -120,7 +120,7 @@ func TestOrders(t *testing.T) {
 			updatedOrder.Remaining = 10
 			updatedOrder.VegaTime = block2.VegaTime
 			updatedOrder.Version++
-			err = os.Add(updatedOrder)
+			err = os.Add(context.Background(), updatedOrder)
 			require.NoError(t, err)
 			numOrdersUpdatedInDifferentBlock++
 		}
@@ -413,4 +413,403 @@ func TestOrders_GetLiveOrders(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 5, len(got))
 	assert.ElementsMatch(t, want, got)
+}
+
+func TestOrders_GetAllOrderVersionsWithLiveOrders(t *testing.T) {
+	defer DeleteEverything()
+
+	marketId := generateID()
+	partyId := generateID()
+
+	bs := sqlstore.NewBlocks(connectionSource)
+	vegaTime := time.Now()
+	block := addTestBlockForTime(t, bs, vegaTime)
+	os := sqlstore.NewOrders(connectionSource)
+
+	orderId1 := generateID()
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusActive, block))
+	err := os.Flush(context.Background())
+	require.NoError(t, err)
+
+	vegaTime = vegaTime.Add(1 * time.Second)
+	block = addTestBlockForTime(t, bs, vegaTime)
+	testOrder := newTestOrder(orderId1, marketId, partyId, entities.OrderStatusPartiallyFilled, block)
+	testOrder.Version = 1
+	os.Add(context.Background(), testOrder)
+	err = os.Flush(context.Background())
+	require.NoError(t, err)
+
+	versions, _ := os.GetAllVersionsByOrderID(context.Background(), orderId1, entities.Pagination{})
+	assert.Equal(t, 2, len(versions))
+
+	_, err = connectionSource.Connection.Exec(context.Background(), "delete from order_history")
+	assert.NoError(t, err)
+
+	versions, _ = os.GetAllVersionsByOrderID(context.Background(), orderId1, entities.Pagination{})
+	assert.Equal(t, 1, len(versions))
+
+	assert.Equal(t, entities.OrderStatusPartiallyFilled, versions[0].Status)
+
+}
+
+func TestOrders_LatestOrderVersionReturnedForLiveOrderWhenHistoryRemoved(t *testing.T) {
+	defer DeleteEverything()
+
+	marketId := generateID()
+	partyId := generateID()
+
+	bs := sqlstore.NewBlocks(connectionSource)
+	vegaTime := time.Now()
+	block := addTestBlockForTime(t, bs, vegaTime)
+	os := sqlstore.NewOrders(connectionSource)
+
+	orderId1 := generateID()
+	orderId2 := generateID()
+	orderId3 := generateID()
+	orderId4 := generateID()
+
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusActive, block))
+	os.Add(context.Background(), newTestOrder(orderId2, marketId, partyId, entities.OrderStatusActive, block))
+	os.Add(context.Background(), newTestOrder(orderId3, marketId, partyId, entities.OrderStatusPartiallyFilled, block))
+	os.Add(context.Background(), newTestOrder(orderId4, marketId, partyId, entities.OrderStatusFilled, block))
+
+	err := os.Flush(context.Background())
+	require.NoError(t, err)
+
+	liveOrders, _ := os.GetLiveOrders(context.Background())
+	assert.Equal(t, 3, len(liveOrders))
+	assert.True(t, containsOrderWithId(liveOrders, orderId1, orderId2, orderId3))
+
+	vegaTime = vegaTime.Add(1 * time.Second)
+	block = addTestBlockForTime(t, bs, vegaTime)
+
+	os.Add(context.Background(), newTestOrder(orderId3, marketId, partyId, entities.OrderStatusFilled, block))
+
+	err = os.Flush(context.Background())
+	require.NoError(t, err)
+
+	_, err = connectionSource.Connection.Exec(context.Background(), "delete from order_history where vega_time < $1", vegaTime)
+	assert.NoError(t, err)
+
+	orders, _ := os.GetByMarket(context.Background(), marketId, entities.Pagination{})
+
+	assert.Equal(t, 3, len(orders))
+	assert.True(t, containsOrderWithId(liveOrders, orderId1, orderId2, orderId3))
+
+}
+
+func TestOrders_LatestLiveOrderVersionCanBeRetrievedByIdAfterHistoryRemoved(t *testing.T) {
+	defer DeleteEverything()
+
+	marketId := generateID()
+	partyId := generateID()
+
+	bs := sqlstore.NewBlocks(connectionSource)
+	vegaTime := time.Now()
+	block := addTestBlockForTime(t, bs, vegaTime)
+	os := sqlstore.NewOrders(connectionSource)
+
+	orderId1 := generateID()
+
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusActive, block))
+
+	err := os.Flush(context.Background())
+	require.NoError(t, err)
+
+	_, err = connectionSource.Connection.Exec(context.Background(), "delete from order_history")
+	assert.NoError(t, err)
+
+	var version int32 = 0
+	order, _ := os.GetByOrderID(context.Background(), orderId1, &version)
+	assert.Equal(t, orderId1, order.ID.String())
+}
+
+func TestOrders_LiveOrdersExistAfterOrderHistoryRemoval(t *testing.T) {
+	defer DeleteEverything()
+
+	marketId := generateID()
+	partyId := generateID()
+
+	bs := sqlstore.NewBlocks(connectionSource)
+	vegaTime := time.Now()
+	block := addTestBlockForTime(t, bs, vegaTime)
+	os := sqlstore.NewOrders(connectionSource)
+
+	orderId1 := generateID()
+	orderId2 := generateID()
+	orderId3 := generateID()
+	orderId4 := generateID()
+
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusActive, block))
+	os.Add(context.Background(), newTestOrder(orderId2, marketId, partyId, entities.OrderStatusActive, block))
+	os.Add(context.Background(), newTestOrder(orderId3, marketId, partyId, entities.OrderStatusPartiallyFilled, block))
+	os.Add(context.Background(), newTestOrder(orderId4, marketId, partyId, entities.OrderStatusFilled, block))
+
+	err := os.Flush(context.Background())
+	require.NoError(t, err)
+
+	connectionSource.Connection.Exec(context.Background(), "delete from order_history")
+
+	liveOrders, _ := os.GetLiveOrders(context.Background())
+	assert.Equal(t, 3, len(liveOrders))
+	assert.True(t, containsOrderWithId(liveOrders, orderId1, orderId2, orderId3))
+}
+
+func TestOrders_LiveOrdersExistAfterPartialOrderHistoryRemoval(t *testing.T) {
+	defer DeleteEverything()
+
+	marketId := generateID()
+	partyId := generateID()
+
+	bs := sqlstore.NewBlocks(connectionSource)
+	vegaTime := time.Now()
+	block := addTestBlockForTime(t, bs, vegaTime)
+	os := sqlstore.NewOrders(connectionSource)
+
+	orderId1 := generateID()
+	orderId2 := generateID()
+	orderId3 := generateID()
+	orderId4 := generateID()
+
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusActive, block))
+	os.Add(context.Background(), newTestOrder(orderId2, marketId, partyId, entities.OrderStatusActive, block))
+	os.Add(context.Background(), newTestOrder(orderId3, marketId, partyId, entities.OrderStatusPartiallyFilled, block))
+	os.Add(context.Background(), newTestOrder(orderId4, marketId, partyId, entities.OrderStatusFilled, block))
+
+	err := os.Flush(context.Background())
+	require.NoError(t, err)
+
+	liveOrders, _ := os.GetLiveOrders(context.Background())
+	assert.Equal(t, 3, len(liveOrders))
+	assert.True(t, containsOrderWithId(liveOrders, orderId1, orderId2, orderId3))
+
+	vegaTime = vegaTime.Add(1 * time.Second)
+	block = addTestBlockForTime(t, bs, vegaTime)
+
+	os.Add(context.Background(), newTestOrder(orderId3, marketId, partyId, entities.OrderStatusFilled, block))
+
+	err = os.Flush(context.Background())
+	require.NoError(t, err)
+
+	connectionSource.Connection.Exec(context.Background(), "delete from order_history where vega_time < $1", vegaTime)
+
+	liveOrders, _ = os.GetLiveOrders(context.Background())
+	assert.Equal(t, 2, len(liveOrders))
+	assert.True(t, containsOrderWithId(liveOrders, orderId1, orderId2))
+
+}
+
+func TestOrders_LiveOrderSetUpdatesAcrossMultipleBlocks(t *testing.T) {
+	defer DeleteEverything()
+
+	marketId := generateID()
+	partyId := generateID()
+
+	bs := sqlstore.NewBlocks(connectionSource)
+	vegaTime := time.Now()
+	block := addTestBlockForTime(t, bs, vegaTime)
+	os := sqlstore.NewOrders(connectionSource)
+
+	orderId1 := generateID()
+	orderId2 := generateID()
+	orderId3 := generateID()
+	orderId4 := generateID()
+
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusActive, block))
+	os.Add(context.Background(), newTestOrder(orderId2, marketId, partyId, entities.OrderStatusActive, block))
+	os.Add(context.Background(), newTestOrder(orderId3, marketId, partyId, entities.OrderStatusPartiallyFilled, block))
+	os.Add(context.Background(), newTestOrder(orderId4, marketId, partyId, entities.OrderStatusFilled, block))
+
+	err := os.Flush(context.Background())
+	require.NoError(t, err)
+
+	liveOrders, _ := os.GetLiveOrders(context.Background())
+	assert.Equal(t, 3, len(liveOrders))
+	assert.True(t, containsOrderWithId(liveOrders, orderId1, orderId2, orderId3))
+
+	vegaTime = vegaTime.Add(1 * time.Second)
+	block = addTestBlockForTime(t, bs, vegaTime)
+
+	os.Add(context.Background(), newTestOrder(orderId3, marketId, partyId, entities.OrderStatusFilled, block))
+
+	err = os.Flush(context.Background())
+	require.NoError(t, err)
+
+	liveOrders, _ = os.GetLiveOrders(context.Background())
+	assert.Equal(t, 2, len(liveOrders))
+	assert.True(t, containsOrderWithId(liveOrders, orderId1, orderId2))
+
+	vegaTime = vegaTime.Add(1 * time.Second)
+	block = addTestBlockForTime(t, bs, vegaTime)
+
+	orderId5 := generateID()
+
+	os.Add(context.Background(), newTestOrder(orderId5, marketId, partyId, entities.OrderStatusActive, block))
+	os.Add(context.Background(), newTestOrder(orderId5, marketId, partyId, entities.OrderStatusFilled, block))
+
+	err = os.Flush(context.Background())
+	require.NoError(t, err)
+
+	liveOrders, _ = os.GetLiveOrders(context.Background())
+	assert.Equal(t, 2, len(liveOrders))
+	assert.True(t, containsOrderWithId(liveOrders, orderId1, orderId2))
+
+	vegaTime = vegaTime.Add(1 * time.Second)
+	block = addTestBlockForTime(t, bs, vegaTime)
+	orderId6 := generateID()
+
+	os.Add(context.Background(), newTestOrder(orderId6, marketId, partyId, entities.OrderStatusFilled, block))
+
+	err = os.Flush(context.Background())
+	require.NoError(t, err)
+
+	liveOrders, _ = os.GetLiveOrders(context.Background())
+	assert.Equal(t, 2, len(liveOrders))
+	assert.True(t, containsOrderWithId(liveOrders, orderId1, orderId2))
+
+	vegaTime = vegaTime.Add(1 * time.Second)
+	block = addTestBlockForTime(t, bs, vegaTime)
+	os.Add(context.Background(), newTestOrder(orderId2, marketId, partyId, entities.OrderStatusPartiallyFilled, block))
+
+	err = os.Flush(context.Background())
+	require.NoError(t, err)
+
+	liveOrders, _ = os.GetLiveOrders(context.Background())
+	assert.Equal(t, 2, len(liveOrders))
+	assert.True(t, containsOrderWithId(liveOrders, orderId1, orderId2))
+
+	order2 := getOrderForId(liveOrders, orderId2)
+	assert.Equal(t, order2.Status, entities.OrderStatusPartiallyFilled)
+
+	vegaTime = vegaTime.Add(1 * time.Second)
+	block = addTestBlockForTime(t, bs, vegaTime)
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusPartiallyFilled, block))
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusFilled, block))
+
+	err = os.Flush(context.Background())
+	require.NoError(t, err)
+
+	liveOrders, _ = os.GetLiveOrders(context.Background())
+	assert.Equal(t, 1, len(liveOrders))
+	assert.True(t, containsOrderWithId(liveOrders, orderId2))
+
+	orderId7 := generateID()
+
+	vegaTime = vegaTime.Add(1 * time.Second)
+	block = addTestBlockForTime(t, bs, vegaTime)
+	os.Add(context.Background(), newTestOrder(orderId7, marketId, partyId, entities.OrderStatusActive, block))
+
+	err = os.Flush(context.Background())
+	require.NoError(t, err)
+
+	liveOrders, _ = os.GetLiveOrders(context.Background())
+	assert.Equal(t, 2, len(liveOrders))
+	assert.True(t, containsOrderWithId(liveOrders, orderId7, orderId2))
+}
+
+func TestOrders_LiveOrderAmends(t *testing.T) {
+	defer DeleteEverything()
+
+	marketId := generateID()
+	partyId := generateID()
+
+	bs := sqlstore.NewBlocks(connectionSource)
+	vegaTime := time.Now()
+	addTestBlockForTime(t, bs, vegaTime)
+	os := sqlstore.NewOrders(connectionSource)
+
+	orderId1 := generateID()
+	orderId2 := generateID()
+
+	vegaTime = vegaTime.Add(1 * time.Second)
+	block := addTestBlockForTime(t, bs, vegaTime)
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusActive, block))
+	os.Add(context.Background(), newTestOrder(orderId2, marketId, partyId, entities.OrderStatusActive, block))
+
+	err := os.Flush(context.Background())
+	require.NoError(t, err)
+
+	vegaTime = vegaTime.Add(1 * time.Second)
+	block = addTestBlockForTime(t, bs, vegaTime)
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusCancelled, block))
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusActive, block))
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusCancelled, block))
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusActive, block))
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusCancelled, block))
+
+	err = os.Flush(context.Background())
+	require.NoError(t, err)
+
+	liveOrders, _ := os.GetLiveOrders(context.Background())
+	assert.Equal(t, 1, len(liveOrders))
+	assert.True(t, containsOrderWithId(liveOrders, orderId2))
+
+	vegaTime = vegaTime.Add(1 * time.Second)
+	block = addTestBlockForTime(t, bs, vegaTime)
+	os.Add(context.Background(), newTestOrder(orderId1, marketId, partyId, entities.OrderStatusActive, block))
+
+	err = os.Flush(context.Background())
+	require.NoError(t, err)
+
+	liveOrders, _ = os.GetLiveOrders(context.Background())
+	assert.Equal(t, 2, len(liveOrders))
+	assert.True(t, containsOrderWithId(liveOrders, orderId1, orderId2))
+
+}
+
+func getOrderForId(orders []entities.Order, orderIdStr string) *entities.Order {
+	orderId := entities.NewOrderID(orderIdStr)
+
+	for _, order := range orders {
+		if order.ID == orderId {
+			return &order
+		}
+	}
+
+	return nil
+}
+
+func containsOrderWithId(orders []entities.Order, orderIdStr ...string) bool {
+	for _, id := range orderIdStr {
+		orderId := entities.NewOrderID(id)
+		containsId := false
+		for _, order := range orders {
+			if order.ID == orderId {
+				containsId = true
+			}
+		}
+
+		if !containsId {
+			return false
+		}
+	}
+
+	return true
+}
+
+func newTestOrder(orderId, marketId, partyId string, status entities.OrderStatus, block entities.Block) entities.Order {
+	return entities.Order{
+		ID:              entities.NewOrderID(orderId),
+		MarketID:        entities.NewMarketID(marketId),
+		PartyID:         entities.NewPartyID(partyId),
+		Side:            0,
+		Price:           0,
+		Size:            0,
+		Remaining:       0,
+		TimeInForce:     0,
+		Type:            0,
+		Status:          status,
+		Reference:       "",
+		Reason:          0,
+		Version:         0,
+		PeggedOffset:    0,
+		BatchID:         0,
+		PeggedReference: 0,
+		LpID:            nil,
+		CreatedAt:       time.Time{},
+		UpdatedAt:       time.Time{},
+		ExpiresAt:       time.Time{},
+		VegaTime:        block.VegaTime,
+		SeqNum:          0,
+	}
 }

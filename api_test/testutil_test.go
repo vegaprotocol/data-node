@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"code.vegaprotocol.io/data-node/candlesv2"
-
 	vgtesting "code.vegaprotocol.io/data-node/libs/testing"
 	"code.vegaprotocol.io/data-node/sqlstore"
 	"github.com/golang/protobuf/jsonpb"
@@ -211,6 +210,7 @@ func NewTestServer(t testing.TB, ctx context.Context, blocking bool) *TestServer
 	}
 
 	sqlStore := sqlstore.ConnectionSource{}
+
 	sqlBalanceStore := sqlstore.NewBalances(&sqlStore)
 	sqlMarketDataStore := sqlstore.NewMarketData(&sqlStore)
 

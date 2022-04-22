@@ -6,24 +6,74 @@ import (
 
 	"code.vegaprotocol.io/data-node/entities"
 	"github.com/georgysavva/scany/pgxscan"
+	"github.com/pkg/errors"
 )
 
 type Orders struct {
 	*ConnectionSource
-	batcher MapBatcher[entities.OrderKey, entities.Order]
+	batcher                    MapBatcher[entities.OrderKey, entities.Order]
+	liveOrders                 map[entities.OrderID]entities.Order
+	liveOrdersCompletedInBlock map[entities.OrderID]entities.Order
+	newLiveOrdersInBlock       map[entities.OrderID]entities.Order
+	updatedLiveOrdersInBlock   map[entities.OrderID]entities.Order
+
+	liveOrdersBatcher ListBatcher
 }
 
 func NewOrders(connectionSource *ConnectionSource) *Orders {
 	a := &Orders{
 		ConnectionSource: connectionSource,
 		batcher: NewMapBatcher[entities.OrderKey, entities.Order](
-			"orders",
+			"order_history",
 			entities.OrderColumns),
+		liveOrdersCompletedInBlock: map[entities.OrderID]entities.Order{},
+		newLiveOrdersInBlock:       map[entities.OrderID]entities.Order{},
+		updatedLiveOrdersInBlock:   map[entities.OrderID]entities.Order{},
+
+		liveOrdersBatcher: NewListBatcher("live_orders", entities.OrderColumns),
 	}
+
 	return a
 }
 
 func (os *Orders) Flush(ctx context.Context) error {
+
+	var idsToDelete [][]byte
+
+	for _, newLiveOrder := range os.newLiveOrdersInBlock {
+		os.liveOrders[newLiveOrder.ID] = newLiveOrder
+		os.liveOrdersBatcher.Add(newLiveOrder)
+	}
+
+	for _, updatedOrder := range os.updatedLiveOrdersInBlock {
+		os.liveOrders[updatedOrder.ID] = updatedOrder
+		bytes, _ := updatedOrder.ID.Bytes()
+		idsToDelete = append(idsToDelete, bytes)
+
+		os.liveOrdersBatcher.Add(updatedOrder)
+	}
+
+	for _, completedOrder := range os.liveOrdersCompletedInBlock {
+		delete(os.liveOrders, completedOrder.ID)
+		bytes, _ := completedOrder.ID.Bytes()
+		idsToDelete = append(idsToDelete, bytes)
+	}
+
+	results, err := os.ConnectionSource.Connection.Exec(ctx, "delete from live_orders where id = ANY ($1)", idsToDelete)
+	if err != nil {
+		return errors.Wrap(err, "failed to delete from live orders")
+	}
+
+	if results.RowsAffected() != int64(len(idsToDelete)) {
+		return errors.Errorf("expected to delete %d orders, deleted %d", len(idsToDelete), results.RowsAffected())
+	}
+
+	os.liveOrdersBatcher.Flush(ctx, os.Connection)
+
+	os.liveOrdersCompletedInBlock = map[entities.OrderID]entities.Order{}
+	os.newLiveOrdersInBlock = map[entities.OrderID]entities.Order{}
+	os.updatedLiveOrdersInBlock = map[entities.OrderID]entities.Order{}
+
 	return os.batcher.Flush(ctx, os.Connection)
 }
 
@@ -31,8 +81,38 @@ func (os *Orders) Flush(ctx context.Context) error {
 // does not already exist; otherwise update the existing row with information supplied.
 // Currently we only store the last update to an order per block, so the order history is not
 // complete if multiple updates happen in one block.
-func (os *Orders) Add(o entities.Order) error {
+func (os *Orders) Add(ctx context.Context, o entities.Order) error {
+
+	if os.liveOrders == nil {
+		os.liveOrders = map[entities.OrderID]entities.Order{}
+
+		liveOrders, err := os.GetLiveOrders(ctx)
+		if err != nil {
+			return errors.Wrap(err, "failed to get live orders")
+		}
+
+		for _, order := range liveOrders {
+			os.liveOrders[order.ID] = order
+		}
+	}
+
+	if o.IsLive() {
+		if _, alreadyLive := os.liveOrders[o.ID]; alreadyLive {
+			os.updatedLiveOrdersInBlock[o.ID] = o
+		} else {
+			os.newLiveOrdersInBlock[o.ID] = o
+		}
+		delete(os.liveOrdersCompletedInBlock, o.ID)
+	} else {
+		if _, alreadyLive := os.liveOrders[o.ID]; alreadyLive {
+			os.liveOrdersCompletedInBlock[o.ID] = o
+		}
+		delete(os.updatedLiveOrdersInBlock, o.ID)
+		delete(os.newLiveOrdersInBlock, o.ID)
+	}
+
 	os.batcher.Add(o)
+
 	return nil
 }
 
@@ -40,7 +120,7 @@ func (os *Orders) Add(o entities.Order) error {
 func (os *Orders) GetAll(ctx context.Context) ([]entities.Order, error) {
 	orders := []entities.Order{}
 	err := pgxscan.Select(ctx, os.Connection, &orders, `
-		SELECT * from orders;`)
+		SELECT * from order_history;`)
 	return orders, err
 }
 
@@ -61,7 +141,6 @@ func (os *Orders) GetByOrderID(ctx context.Context, orderIdStr string, version *
 // GetByMarket returns the last update of the all the orders in a particular market
 func (os *Orders) GetByMarket(ctx context.Context, marketIdStr string, p entities.Pagination) ([]entities.Order, error) {
 	marketId := entities.NewMarketID(marketIdStr)
-
 	query := `SELECT * from orders_current WHERE market_id=$1`
 	args := []interface{}{marketId}
 	return os.queryOrders(ctx, query, args, &p)
@@ -70,7 +149,6 @@ func (os *Orders) GetByMarket(ctx context.Context, marketIdStr string, p entitie
 // GetByParty returns the last update of the all the orders in a particular party
 func (os *Orders) GetByParty(ctx context.Context, partyIdStr string, p entities.Pagination) ([]entities.Order, error) {
 	partyId := entities.NewPartyID(partyIdStr)
-
 	query := `SELECT * from orders_current WHERE party_id=$1`
 	args := []interface{}{partyId}
 	return os.queryOrders(ctx, query, args, &p)
@@ -94,11 +172,7 @@ func (os *Orders) GetAllVersionsByOrderID(ctx context.Context, id string, p enti
 // GetLiveOrders fetches all currently live orders so the market depth data can be rebuilt
 // from the orders data in the database
 func (os *Orders) GetLiveOrders(ctx context.Context) ([]entities.Order, error) {
-	query := `select * from orders_current
-where type = 1
-and time_in_force not in (3, 4)
-and status in (1, 7)
-order by vega_time, seq_num`
+	query := `select * from live_orders`
 	return os.queryOrders(ctx, query, nil, nil)
 }
 

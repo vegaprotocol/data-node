@@ -164,6 +164,14 @@ func (o Order) ToRow() []interface{} {
 	}
 }
 
+func (o Order) IsLive() bool {
+	if o.TimeInForce == OrderTimeInForceIOC || o.TimeInForce == OrderTimeInForceFOK {
+		return false
+	}
+
+	return o.Status == OrderStatusActive || o.Status == OrderStatusPartiallyFilled
+}
+
 var OrderColumns = []string{
 	"id", "market_id", "party_id", "side", "price",
 	"size", "remaining", "time_in_force", "type", "status",

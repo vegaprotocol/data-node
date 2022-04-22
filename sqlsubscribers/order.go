@@ -17,7 +17,7 @@ type OrderEvent interface {
 }
 
 type OrderStore interface {
-	Add(entities.Order) error
+	Add(context.Context, entities.Order) error
 	Flush(ctx context.Context) error
 }
 
@@ -44,13 +44,13 @@ func (os *Order) Push(ctx context.Context, evt events.Event) error {
 		os.vegaTime = e.Time()
 		return os.store.Flush(ctx)
 	case OrderEvent:
-		return os.consume(e, e.Sequence())
+		return os.consume(ctx, e, e.Sequence())
 	default:
 		return errors.Errorf("unknown event type %s", e.Type().String())
 	}
 }
 
-func (os *Order) consume(oe OrderEvent, seqNum uint64) error {
+func (os *Order) consume(ctx context.Context, oe OrderEvent, seqNum uint64) error {
 	protoOrder := oe.Order()
 
 	order, err := entities.OrderFromProto(protoOrder, seqNum)
@@ -59,5 +59,5 @@ func (os *Order) consume(oe OrderEvent, seqNum uint64) error {
 	}
 	order.VegaTime = os.vegaTime
 
-	return errors.Wrap(os.store.Add(order), "adding order to database")
+	return errors.Wrap(os.store.Add(ctx, order), "adding order to database")
 }
