@@ -126,10 +126,11 @@ func (l *NodeCommand) setupSQLSubscribers() {
 		return
 	}
 
+	l.accountSubSQL = sqlsubscribers.NewAccount(l.accountStoreSQL, l.balanceStoreSQL, l.Log)
 	l.assetSubSQL = sqlsubscribers.NewAsset(l.assetStoreSQL, l.Log)
 	l.partySubSQL = sqlsubscribers.NewParty(l.partyStoreSQL, l.Log)
 	l.timeSubSQL = sqlsubscribers.NewTimeSub(l.blockStoreSQL, l.Log)
-	l.transferResponseSubSQL = sqlsubscribers.NewTransferResponse(l.ledgerSQL, l.accountStoreSQL, l.balanceStoreSQL, l.partyStoreSQL, l.Log)
+	l.transferResponseSubSQL = sqlsubscribers.NewTransferResponse(l.ledgerSQL, l.accountStoreSQL, l.Log)
 	l.orderSubSQL = sqlsubscribers.NewOrder(l.orderStoreSQL, l.Log)
 	l.networkLimitsSubSQL = sqlsubscribers.NewNetworkLimitSub(l.ctx, l.networkLimitsStoreSQL, l.Log)
 	l.marketDataSubSQL = sqlsubscribers.NewMarketData(l.marketDataStoreSQL, l.Log)
@@ -143,7 +144,7 @@ func (l *NodeCommand) setupSQLSubscribers() {
 	l.withdrawalSubSQL = sqlsubscribers.NewWithdrawal(l.withdrawalsStoreSQL, l.Log)
 	l.proposalsSubSQL = sqlsubscribers.NewProposal(l.proposalStoreSQL, l.Log)
 	l.votesSubSQL = sqlsubscribers.NewVote(l.voteStoreSQL, l.Log)
-	l.marginLevelsSubSQL = sqlsubscribers.NewMarginLevels(l.marginLevelsStoreSQL, l.Log)
+	l.marginLevelsSubSQL = sqlsubscribers.NewMarginLevels(l.marginLevelsStoreSQL, l.accountStoreSQL, l.Log)
 	l.riskFactorSubSQL = sqlsubscribers.NewRiskFactor(l.riskFactorStoreSQL, l.Log)
 	l.netParamSubSQL = sqlsubscribers.NewNetworkParameter(l.netParamStoreSQL, l.Log)
 	l.checkpointSubSQL = sqlsubscribers.NewCheckpoint(l.checkpointStoreSQL, l.Log)
@@ -304,6 +305,7 @@ func (l *NodeCommand) preRun(_ []string) (err error) {
 		l.sqlBroker = broker.NewSqlStoreBroker(l.Log, l.conf.Broker, l.chainInfoStore, eventSource,
 			l.transactionalConnectionSource,
 			l.timeSubSQL,
+			l.accountSubSQL,
 			l.assetSubSQL,
 			l.partySubSQL,
 			l.transferResponseSubSQL,
