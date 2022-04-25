@@ -16,6 +16,7 @@
 - [526](https://github.com/vegaprotocol/data-node/issues/526) - Add market id and reward type to reward and market to transfer
 
 ### 🐛 Fixes
+- [524](https://github.com/vegaprotocol/data-node/issues/524) - Fix for incorrect balances
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -
 
 
