@@ -18,7 +18,6 @@ import (
 	"code.vegaprotocol.io/data-node/sqlstore"
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"code.vegaprotocol.io/protos/vega"
-	pbtypes "code.vegaprotocol.io/protos/vega"
 	"google.golang.org/grpc/codes"
 )
 
@@ -38,6 +37,7 @@ type tradingDataServiceV2 struct {
 	tradeStore               *sqlstore.Trades
 	multiSigSignerEventStore *sqlstore.ERC20MultiSigSignerEvent
 	notaryStore              *sqlstore.Notary
+	assetStore               *sqlstore.Assets
 	candleServiceV2          *candlesv2.Svc
 }
 
@@ -410,22 +410,23 @@ func (t *tradingDataServiceV2) GetERC20MultiSigSignerRemovedBundles(ctx context.
 	}, nil
 }
 
-func (t *tradingDataService) GetERC20AssetBundle(ctx context.Context, req *v2.GetERC20AssetBundleRequest) (*v2.GetERC20AssetBundleResponse, error) {
+func (t *tradingDataServiceV2) GetERC20AssetBundle(ctx context.Context, req *v2.GetERC20AssetBundleRequest) (*v2.GetERC20AssetBundleResponse, error) {
 	if len(req.AssetId) <= 0 {
 		return nil, ErrMissingAssetID
 	}
 
 	// first here we gonna get the proposal by its ID,
-	asset, err := t.AssetService.GetByID(req.AssetId)
+	asset, err := t.assetStore.GetByID(ctx, req.AssetId)
 	if err != nil {
 		return nil, apiError(codes.NotFound, err)
 	}
 
 	// then we get the signature and pack them altogether
-	signatures, err := t.NotaryService.GetByID(req.AssetId)
+	signatures, err := t.notaryStore.GetByResourceID(ctx, req.AssetId)
 	if err != nil {
-		return nil, apiError(codes.NotFound, err)
+		return nil, apiError(codes.Internal, err)
 	}
+
 	// now we pack them
 	pack := "0x"
 	for _, v := range signatures {
@@ -433,11 +434,9 @@ func (t *tradingDataService) GetERC20AssetBundle(ctx context.Context, req *v2.Ge
 	}
 
 	var address string
-
-	switch src := asset.Details.Source.(type) {
-	case *pbtypes.AssetDetails_Erc20:
-		address = src.Erc20.ContractAddress
-	default:
+	if asset.ERC20Contract != "" {
+		address = asset.ERC20Contract
+	} else {
 		return nil, fmt.Errorf("invalid asset source")
 	}
 
@@ -448,7 +447,7 @@ func (t *tradingDataService) GetERC20AssetBundle(ctx context.Context, req *v2.Ge
 	return &v2.GetERC20AssetBundleResponse{
 		AssetSource: address,
 		Nonce:       req.AssetId,
-		VegaAssetId: asset.Id,
+		VegaAssetId: asset.ID.String(),
 		Signatures:  pack,
 	}, nil
 }
