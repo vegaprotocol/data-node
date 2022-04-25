@@ -25,6 +25,10 @@ func (r *transferResolver) Timestamp(ctx context.Context, obj *eventspb.Transfer
 	return vegatime.Format(vegatime.UnixNano(obj.Timestamp)), nil
 }
 
+func (r *transferResolver) MarketID(ctx context.Context, obj *eventspb.Transfer) (string, error) {
+	return obj.Market, nil
+}
+
 func (r *transferResolver) Kind(ctx context.Context, obj *eventspb.Transfer) (TransferKind, error) {
 	switch obj.GetKind().(type) {
 	case *eventspb.Transfer_OneOff:

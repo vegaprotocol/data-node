@@ -329,11 +329,12 @@ and md.vega_time = mx.vega_time
 CREATE TABLE rewards(
   party_id         BYTEA NOT NULL REFERENCES parties(id),
   asset_id         BYTEA NOT NULL REFERENCES assets(id),
+  market_id        BYTEA NOT NULL,
   epoch_id         BIGINT NOT NULL,
   amount           NUMERIC(32, 0),
   percent_of_total FLOAT,
-  vega_time        TIMESTAMP WITH TIME ZONE NOT NULL
-);
+  vega_time        TIMESTAMP WITH TIME ZONE NOT NULL,
+  reward_type      BYTEA NOT NULL
 
 CREATE TABLE delegations(
   party_id         BYTEA NOT NULL, -- REFERENCES parties(id), TODO once parties table is populated
@@ -547,6 +548,7 @@ create table if not exists transfers (
          from_account_id INT NOT NULL REFERENCES accounts(id),
          to_account_id INT NOT NULL REFERENCES accounts(id),
          asset_id bytea not null,
+         market_id bytea not null,
          amount        NUMERIC(32, 0)           NOT NULL,
          reference       TEXT,
          status           transfer_status NOT NULL,

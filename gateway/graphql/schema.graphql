@@ -489,6 +489,9 @@ type Transfer {
   "The asset"
   asset: Asset
 
+  "The market identifier for the transfer is any"
+  marketID: String!
+
   "The amount sent"
   amount: String!
 
@@ -2851,10 +2854,14 @@ type LiquidityProvision {
 
 "Reward information for a single party"
 type Reward {
-  "The asset for which this reward is associated"
+  "The asset this reward is paid in"
   asset: Asset!
+  "The market for which this reward is paid if any"
+  marketID: String!
   "Party receiving the reward"
   party: Party!
+  "The type of reward"
+  rewardType: String!
   "Epoch for which this reward was distributed"
   epoch: Epoch!
   "Amount received for this reward"
