@@ -52,10 +52,10 @@ code.vegaprotocol.io/quant v0.2.5 h1:8h+TTHdz1LCO4oGXt8mbowXszd8CQP1MHlJOkthUp1E
 code.vegaprotocol.io/quant v0.2.5/go.mod h1:HEzOoPKj8OIP49r9AZYeo5281M5ygeGWxopwvt8k6Es=
 code.vegaprotocol.io/shared v0.0.0-20220321185018-3b5684b00533 h1:IxTWvyF0i0AgUAS+FTgQKIpbsS6Ki/Y9Ug0GSlgChJw=
 code.vegaprotocol.io/shared v0.0.0-20220321185018-3b5684b00533/go.mod h1:pNHKwqRDkotUN0s6jErl7Eb2EpZa2HAf03lyPMTCUT0=
-code.vegaprotocol.io/vega v0.0.0-20220425112200-4e55cf7ca2d1 h1:69dT8pEkm+msNHfG6kDc6XgG3qGAaX1nx4N8mjw+bJI=
-code.vegaprotocol.io/vega v0.0.0-20220425112200-4e55cf7ca2d1/go.mod h1:BRl2RvTWxuy8OY9hch6rtsZq6AYDr9X/2EKkKulXYIQ=
-code.vegaprotocol.io/vegawallet v0.14.2-pre1.0.20220425101114-27abe36c47fb h1:U6E8PFXTqCe3C5Cz4LL7SSjWJr1/7WyK6BiQRBiXlVQ=
-code.vegaprotocol.io/vegawallet v0.14.2-pre1.0.20220425101114-27abe36c47fb/go.mod h1:eU61trZHRI1qZ688JTRC785q8Ekekjg+ThTIi0lT6/4=
+code.vegaprotocol.io/vega v0.0.0-20220425172507-c0e5a9f71db9 h1:bOSOHuHpL8JE96bj4mDfezGQZmF9WUtHaAsUxvFlGe4=
+code.vegaprotocol.io/vega v0.0.0-20220425172507-c0e5a9f71db9/go.mod h1:C/Cx47sVcHoiavAd2HbkStBgQZj3ghCW0X1Wg3sTI6Y=
+code.vegaprotocol.io/vegawallet v0.14.2-pre1.0.20220425142700-ee9cd43c568d h1:JQDggR0fQaqHCLOYGjTb0Z0KnxQcEO5UPwLGpxtAah0=
+code.vegaprotocol.io/vegawallet v0.14.2-pre1.0.20220425142700-ee9cd43c568d/go.mod h1:lnGodDC7kZPwqutZ+KxeIBf2lBHuptfqgfqZWlqVDj8=
 collectd.org v0.3.0/go.mod h1:A/8DzQBkF6abtvrT2j/AU/4tiBgJWYyh0y/oB/4MlWE=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 gioui.org v0.0.0-20210308172011-57750fc8a0a6/go.mod h1:RSH6KIUZ0p2xy5zHDxgAM4zumjgTw83q2ge/PI+yyw8=
