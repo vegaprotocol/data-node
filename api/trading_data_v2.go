@@ -448,7 +448,7 @@ func (t *tradingDataService) GetERC20AssetBundle(ctx context.Context, req *v2.Ge
 	return &v2.GetERC20AssetBundleResponse{
 		AssetSource: address,
 		Nonce:       req.AssetId,
-		VegaAssetID: asset.Id,
+		VegaAssetId: asset.Id,
 		Signatures:  pack,
 	}, nil
 }
