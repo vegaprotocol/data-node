@@ -2,6 +2,7 @@ package entities
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"code.vegaprotocol.io/protos/vega"
@@ -88,7 +89,7 @@ func LiquidityProvisionFromProto(lpProto *vega.LiquidityProvision, vegaTime time
 		Fee:              fee,
 		Sells:            sells,
 		Buys:             buys,
-		Version:          lpProto.Version,
+		Version:          fmt.Sprintf("%d", lpProto.Version),
 		Status:           LiquidityProvisionStatus(lpProto.Status),
 		Reference:        lpProto.Reference,
 		VegaTime:         vegaTime,
@@ -106,6 +107,7 @@ func (lp *LiquidityProvision) ToProto() *vega.LiquidityProvision {
 		buys = append(buys, buy.LiquidityOrderReference)
 	}
 
+	v, _ := strconv.ParseUint(lp.Version, 10, 64)
 	return &vega.LiquidityProvision{
 		Id:               lp.ID.String(),
 		PartyId:          lp.PartyID.String(),
@@ -116,7 +118,7 @@ func (lp *LiquidityProvision) ToProto() *vega.LiquidityProvision {
 		Fee:              lp.Fee.String(),
 		Sells:            sells,
 		Buys:             buys,
-		Version:          lp.Version,
+		Version:          v,
 		Status:           vega.LiquidityProvision_Status(lp.Status),
 		Reference:        lp.Reference,
 	}
