@@ -19,6 +19,7 @@
 
 ### 🐛 Fixes
 - [524](https://github.com/vegaprotocol/data-node/issues/524) - Fix for incorrect balances
+- [520](https://github.com/vegaprotocol/data-node/issues/520) - Fix event race where a ranking event can come in before the new node event
 - [519](https://github.com/vegaprotocol/data-node/issues/519) - Fix market depth update subscriptions streaming events for all markets.
 - [](https://github.com/vegaprotocol/data-node/issues/xxx) -
 
