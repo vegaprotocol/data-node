@@ -5,7 +5,6 @@ schema {
   subscription: Subscription
 }
 
-
 "Create an order linked to an index rather than a price"
 type PeggedOrder {
   "Index to link this order to"
@@ -258,11 +257,27 @@ type Query {
   "One or more instruments that are trading on the VEGA network"
   markets("ID of the market" id: ID): [Market!]
 
+  marketsPaged(
+    id: ID
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): MarketConnection!
+
   "An instrument that is trading on the VEGA network"
   market("Optional ID of a market" id: ID!): Market
 
   "One or more entities that are trading on the VEGA network"
   parties("Optional ID of a party" id: ID): [Party!]
+
+  partiesPaged(
+    id: ID
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): PartyConnection!
 
   "An entity that is trading on the VEGA network"
   party("ID of a party" id: ID!): Party
@@ -423,32 +438,32 @@ type Query {
   statistics: Statistics!
 
   historicBalances(
-    filter: AccountFilter,
-    groupBy: [AccountField])
-  : [AggregatedBalance!]!
+    filter: AccountFilter
+    groupBy: [AccountField]
+  ): [AggregatedBalance!]!
 
   "Current network limits"
   networkLimits: NetworkLimits
 
   "get market data history for a specific market. If no dates are given, the latest snapshot will be returned. If only the start date is provided all history from the given date will be provided, and if only the end date is provided, all history from the start upto and including the end date will be provided."
   getMarketDataHistoryByID(
-    id: String!,
+    id: String!
     """
     Optional start date time for the historic data query.
     If both the start and end date is not provided, only the latest snapshot will be returned.
     If only the start date is provided, all market data for the market from the start date forward will be returned.
     """
-    start: Int,
+    start: Int
     """
     Optional end date time for the historic data query.
     If both the start and end date is not provided, only the latest snapshot will be returned.
     If only the end date is provided, all market data for the market up to and including the end date will be returned.
     """
-    end: Int,
+    end: Int
     "Pagination skip"
-    skip: Int,
+    skip: Int
     "Pagination first element"
-    first: Int,
+    first: Int
     "Pagination last element"
     last: Int): [MarketData]
 }
@@ -572,9 +587,9 @@ type Epoch {
 
   delegations(
     # Optional party id to filter on
-    partyId: String,
+    partyId: String
     # Optional node id to filter on
-    nodeId: String,
+    nodeId: String
     "Pagination skip"
     skip: Int
     "Pagination first element"
@@ -873,7 +888,6 @@ type Statistics {
 
   "Current chain id"
   chainId: String!
-
 }
 
 "A mode where Vega tries to execute orders as soon as they are received"
@@ -889,7 +903,6 @@ type DiscreteTrading {
   "Size of an increment in price in terms of the quote currency"
   tickSize: String!
 }
-
 
 "Parameters for the log normal risk model"
 type LogNormalModelParams {
@@ -1252,7 +1265,6 @@ type Market {
   "An instance of or reference to a tradable instrument."
   tradableInstrument: TradableInstrument!
 
-
   """
   decimalPlaces indicates the number of decimal places that an integer must be shifted by in order to get a correct
   number denominated in the currency of the Market. (uint64)
@@ -1501,7 +1513,7 @@ type Party {
   ): [LiquidityProvision!]
 
   # All delegations for a party to a given node if node is specified, or all delegations if not
-  delegations (
+  delegations(
     "Optional node"
     nodeId: String
     "Pagination skip"
@@ -2968,4 +2980,274 @@ type NetworkLimits {
   proposeMarketEnabledFrom: Timestamp!
   "The date/timestamp in unix nanoseconds at which asset proposals will be enabled (0 indicates not set)"
   proposeAssetEnabledFrom: Timestamp!
+}
+
+"""
+Pagination constructs to support cursor based pagination in the API
+"""
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String!
+  endCursor: String!
+}
+
+type TradeEdge {
+  node: Trade!
+  cursor: String!
+}
+
+type TradeConnection {
+  "The total number of trades in this connection"
+  totalCount: Int!
+  "The trade in this connection"
+  edges: [TradeEdge]!
+  "The pagination information"
+  pageInfo: PageInfo!
+}
+
+"Represents a party on Vega, could be an ethereum wallet address in the future using a cursor pagination model"
+type PaginatedParty {
+  "Party identifier"
+  id: ID!
+
+  "Orders relating to a party"
+  orders(
+    "Pagination skip"
+    skip: Int
+    "Pagination first element"
+    first: Int
+    "Pagination last element"
+    last: Int
+  ): [Order!]
+
+  "Trades relating to a party (specifically where party is either buyer OR seller)"
+  trades(
+    "ID of the market we want to get trades for"
+    marketId: ID
+    "Number of elements to retrieve after the cursor"
+    first: Int
+    "Cursor of the element to retrieve data after"
+    after: String
+    "Number of element to retrieve data before"
+    last: Int
+    "Cursor of the element to retrieve data before"
+    before: String
+  ): TradeConnection!
+
+  "Collateral accounts relating to a party"
+  accounts(
+    "Market ID - specify what market accounts for the party to return"
+    marketId: ID
+    "Asset (USD, EUR etc)"
+    asset: String
+    "Filter accounts by type (General account, margin account, etc...)"
+    type: AccountType
+  ): [Account!]
+
+  "Trading positions relating to a party"
+  positions: [Position!]
+
+  "marginLevels"
+  margins(
+    "market id off the margin to get, nil if all markets"
+    marketId: ID
+  ): [MarginLevels!]
+
+  proposals(
+    "Select only proposals in the specified state. Leave out to get all proposals"
+    inState: ProposalState
+  ): [Proposal]
+
+  votes: [ProposalVote]
+
+  "The list of all withdrawals initiated by the party"
+  withdrawals: [Withdrawal!]
+
+  "The list of all deposits for a party by the party"
+  deposits: [Deposit!]
+
+  "The list of the liquidity provision commitment from this party"
+  liquidityProvisions(
+    "An optional market id"
+    market: String
+    "An optional reference"
+    reference: String
+  ): [LiquidityProvision!]
+
+  # All delegations for a party to a given node if node is specified, or all delegations if not
+  delegations(
+    "Optional node"
+    nodeId: String
+    "Pagination skip"
+    skip: Int
+    "Pagination first element"
+    first: Int
+    "Pagination last element"
+    last: Int
+  ): [Delegation!]
+
+  "The staking information for this Party"
+  stake: PartyStake!
+
+  "return individual reward information"
+  rewards(
+    "An optional asset"
+    asset: String
+    "Pagination skip element"
+    skip: Int
+    "Pagination first element"
+    first: Int
+    "Pagination last element"
+    last: Int
+  ): [Reward]
+
+  "return net reward information"
+  rewardSummaries("An optional asset" asset: String): [RewardSummary]
+}
+
+type PartyEdge {
+  node: PaginatedParty!
+  cursor: String!
+}
+
+type PartyConnection {
+  "The total number of parties in this connection"
+  totalCount: Int!
+  "The parties in this connection"
+  edges: [PartyEdge]!
+  "The pagination information"
+  pageInfo: PageInfo!
+}
+
+"Represents a product & associated parameters that can be traded on Vega, has an associated OrderBook and Trade history"
+type PaginatedMarket {
+  "Market ID"
+  id: ID!
+
+  "Market full name"
+  name: String!
+
+  "Fees related data"
+  fees: Fees!
+
+  "An instance of or reference to a tradable instrument."
+  tradableInstrument: TradableInstrument!
+
+  """
+  decimalPlaces indicates the number of decimal places that an integer must be shifted by in order to get a correct
+  number denominated in the currency of the Market. (uint64)
+
+  Examples:
+  Currency     Balance  decimalPlaces  Real Balance
+  GBP              100              0       GBP 100
+  GBP              100              2       GBP   1.00
+  GBP              100              4       GBP   0.01
+  GBP                1              4       GBP   0.0001   (  0.01p  )
+
+  GBX (pence)      100              0       GBP   1.00     (100p     )
+  GBX (pence)      100              2       GBP   0.01     (  1p     )
+  GBX (pence)      100              4       GBP   0.0001   (  0.01p  )
+  GBX (pence)        1              4       GBP   0.000001 (  0.0001p)
+  """
+  decimalPlaces: Int!
+
+  """
+  positionDecimalPlaces indicated the number of decimal places that an integer must be shifted in order to get a correct size (uint64).
+  i.e. 0 means there are no fractional orders for the market, and order sizes are always whole sizes.
+  2 means sizes given as 10^2 * desired size, e.g. a desired size of 1.23 is represented as 123 in this market.
+  """
+  positionDecimalPlaces: Int!
+
+  """
+  Auction duration specifies how long the opening auction will run (minimum
+  duration and optionally a minimum traded volume).
+  """
+  openingAuction: AuctionDuration!
+
+  "Price monitoring settings for the market"
+  priceMonitoringSettings: PriceMonitoringSettings!
+
+  "Liquidity monitoring parameters for the market"
+  liquidityMonitoringParameters: LiquidityMonitoringParameters!
+
+  "Current mode of execution of the market"
+  tradingMode: MarketTradingMode!
+
+  "Current state of the market"
+  state: MarketState!
+
+  "The proposal which initiated this market"
+  proposal: Proposal
+
+  "Orders on a market"
+  orders(
+    "Pagination skip"
+    skip: Int
+    "Pagination first element"
+    first: Int
+    "Pagination last element"
+    last: Int
+  ): [Order!]
+
+  "Get account for a party or market"
+  accounts(
+    "Id of the party to get the margin account for"
+    partyId: ID
+  ): [Account!]
+
+  "Trades on a market"
+  trades(
+    "Number of elements to retrieve after the cursor"
+    first: Int
+    "Cursor of the element to retrieve data after"
+    after: String
+    "Number of element to retrieve data before"
+    last: Int
+    "Cursor of the element to retrieve data before"
+    before: String
+  ): TradeConnection!
+
+  "Current depth on the order book for this market"
+  depth(
+    "Maximum market order book depth (returns whole order book if omitted)"
+    maxDepth: Int
+  ): MarketDepth!
+
+  "Candles on a market, for the 'last' n candles, at 'interval' seconds as specified by params"
+  candles(
+    "RFC3339Nano encoded time from when to get candles"
+    since: String!
+    "Interval of the candles"
+    interval: Interval!
+  ): [Candle]
+
+  "marketData for the given market"
+  data: MarketData
+
+  "The list of the liquidity provision commitment for this market"
+  liquidityProvisions(
+    "An optional party id"
+    party: String
+  ): [LiquidityProvision!]
+
+  "timestamps for state changes in the market"
+  marketTimestamps: MarketTimestamps!
+
+  "risk factors for the market"
+  riskFactors: RiskFactor
+}
+
+type MarketEdge {
+  node: PaginatedMarket!
+  cursor: String!
+}
+
+type MarketConnection {
+  "The total number of markets in this connection"
+  totalCount: Int!
+  "The markets in this connection"
+  edges: [MarketEdge]!
+  "The pagination information"
+  pageInfo: PageInfo!
 }

@@ -11,11 +11,10 @@ import (
 
 	"code.vegaprotocol.io/data-node/candlesv2"
 
-	"code.vegaprotocol.io/data-node/logging"
-	"code.vegaprotocol.io/data-node/vegatime"
-
 	"code.vegaprotocol.io/data-node/entities"
+	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/sqlstore"
+	"code.vegaprotocol.io/data-node/vegatime"
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"code.vegaprotocol.io/protos/vega"
 	"google.golang.org/grpc/codes"
@@ -38,6 +37,8 @@ type tradingDataServiceV2 struct {
 	multiSigSignerEventStore *sqlstore.ERC20MultiSigSignerEvent
 	notaryStore              *sqlstore.Notary
 	candleServiceV2          *candlesv2.Svc
+	marketsStore             *sqlstore.Markets
+	partiesStore             *sqlstore.Parties
 }
 
 func (t *tradingDataServiceV2) QueryBalanceHistory(ctx context.Context, req *v2.QueryBalanceHistoryRequest) (*v2.QueryBalanceHistoryResponse, error) {
@@ -435,4 +436,151 @@ func (t *tradingDataServiceV2) GetERC20MultiSigSignerRemovedBundles(ctx context.
 	return &v2.GetERC20MultiSigSignerRemovedBundlesResponse{
 		Bundles: bundles,
 	}, nil
+}
+
+// Get trades by market using a cursor based pagination model
+func (t *tradingDataServiceV2) TradesByMarket(ctx context.Context, in *v2.TradesByMarketRequest) (*v2.TradesByMarketResponse, error) {
+	market := in.GetMarketId()
+	if len(market) == 0 {
+		return nil, apiError(codes.InvalidArgument, fmt.Errorf("marketId must be supplied"))
+	}
+
+	cursor, err := entities.CursorFromProto(in.GetCursor())
+	if err != nil {
+		return nil, apiError(codes.InvalidArgument, err)
+	}
+
+	trades, pageInfo, err := t.tradeStore.GetByMarketWithCursor(ctx, market, cursor)
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+
+	tradesConnection := &v2.TradeConnection{
+		TotalCount: 0,
+		Edges:      makeTradeEdges(trades),
+		PageInfo:   pageInfo.ToProto(),
+	}
+
+	resp := &v2.TradesByMarketResponse{
+		Trades: tradesConnection,
+	}
+
+	return resp, nil
+}
+
+// Get trades by party using a cursor based pagination model
+func (t *tradingDataServiceV2) TradesByParty(ctx context.Context, in *v2.TradesByPartyRequest) (*v2.TradesByPartyResponse, error) {
+	party := in.GetPartyId()
+	if len(party) == 0 {
+		return nil, apiError(codes.InvalidArgument, fmt.Errorf("partyId must be supplied"))
+	}
+	var market *string
+	if len(in.GetMarketId()) > 0 {
+		market = &in.MarketId
+	}
+
+	cursor, err := entities.CursorFromProto(in.GetCursor())
+	if err != nil {
+		return nil, apiError(codes.InvalidArgument, err)
+	}
+
+	trades, pageInfo, err := t.tradeStore.GetByPartyWithCursor(ctx, party, market, cursor)
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+
+	tradesConnection := &v2.TradeConnection{
+		TotalCount: 0, // TODO: implement total count
+		Edges:      makeTradeEdges(trades),
+		PageInfo:   pageInfo.ToProto(),
+	}
+
+	resp := &v2.TradesByPartyResponse{
+		Trades: tradesConnection,
+	}
+
+	return resp, nil
+}
+
+func makeTradeEdges(trades []entities.Trade) []*v2.TradeEdge {
+	edges := make([]*v2.TradeEdge, len(trades))
+	for i, t := range trades {
+		edges[i] = &v2.TradeEdge{
+			Node:   t.ToProto(),
+			Cursor: t.SyntheticTime.String(),
+		}
+	}
+	return edges
+}
+
+// Get all markets using a cursor based pagination model
+func (t *tradingDataServiceV2) Markets(ctx context.Context, in *v2.MarketsRequest) (*v2.MarketsResponse, error) {
+	cursor, err := entities.CursorFromProto(in.GetCursor())
+	if err != nil {
+		return nil, apiError(codes.InvalidArgument, err)
+	}
+	markets, pageInfo, err := t.marketsStore.GetAllPaged(ctx, in.MarketId, cursor)
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+
+	marketsConnection := &v2.MarketConnection{
+		TotalCount: 0, // TODO: implement total count
+		Edges:      makeMarketEdges(markets),
+		PageInfo:   pageInfo.ToProto(),
+	}
+
+	resp := &v2.MarketsResponse{
+		Markets: marketsConnection,
+	}
+
+	return resp, nil
+}
+
+func makeMarketEdges(markets []entities.Market) []*v2.MarketEdge {
+	edges := make([]*v2.MarketEdge, len(markets))
+	for i, m := range markets {
+		marketProto, err := m.ToProto()
+		if err != nil {
+			continue
+		}
+		edges[i] = &v2.MarketEdge{
+			Node:   marketProto,
+			Cursor: fmt.Sprintf("%d", m.VegaTime.UnixNano()),
+		}
+	}
+	return edges
+}
+
+// Get Parties using a cursor based pagination model
+func (t *tradingDataServiceV2) Parties(ctx context.Context, in *v2.PartiesRequest) (*v2.PartiesResponse, error) {
+	cursor, err := entities.CursorFromProto(in.GetCursor())
+	if err != nil {
+		return nil, apiError(codes.InvalidArgument, err)
+	}
+	parties, pageInfo, err := t.partiesStore.GetAllPaged(ctx, in.PartyId, cursor)
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+	partyConnection := &v2.PartyConnection{
+		TotalCount: 0, // TODO: implement total count
+		Edges:      makePartyEdges(parties),
+		PageInfo:   pageInfo.ToProto(),
+	}
+
+	resp := &v2.PartiesResponse{
+		Party: partyConnection,
+	}
+	return resp, nil
+}
+
+func makePartyEdges(parties []entities.Party) []*v2.PartyEdge {
+	edges := make([]*v2.PartyEdge, len(parties))
+	for i, p := range parties {
+		edges[i] = &v2.PartyEdge{
+			Node:   p.ToProto(),
+			Cursor: p.VegaTime.String(),
+		}
+	}
+	return edges
 }

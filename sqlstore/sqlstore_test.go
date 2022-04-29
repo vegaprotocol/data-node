@@ -29,7 +29,7 @@ var (
 	maxPort               = 40000
 	testDBPort       int
 
-	tableNames            = [...]string{"ledger", "accounts", "parties", "assets", "blocks", "node_signatures", "erc20_multisig_signer_events"}
+	tableNames            = [...]string{"ledger", "accounts", "parties", "assets", "blocks", "node_signatures", "erc20_multisig_signer_events", "margin_levels"}
 	postgresServerTimeout = time.Second * 10
 )
 

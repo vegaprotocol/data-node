@@ -138,7 +138,6 @@ func testDuplicateMarginLevelInSameBlock(t *testing.T) {
 }
 
 func getMarginLevelProto() *vega.MarginLevels {
-
 	return &vega.MarginLevels{
 		MaintenanceMargin:      "1000",
 		SearchLevel:            "1000",

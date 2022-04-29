@@ -70,7 +70,6 @@ func NewResolverRoot(
 	tradingDataClient TradingDataServiceClient,
 	tradingDataClientV2 TradingDataServiceClientV2,
 ) *VegaResolverRoot {
-
 	return &VegaResolverRoot{
 		log:                 log,
 		Config:              config,
@@ -121,6 +120,10 @@ func (r *VegaResolverRoot) Market() MarketResolver {
 	return (*myMarketResolver)(r)
 }
 
+func (r *VegaResolverRoot) PaginatedMarket() PaginatedMarketResolver {
+	return (*myPaginatedMarketResolver)(r)
+}
+
 // Order returns the order resolver
 func (r *VegaResolverRoot) Order() OrderResolver {
 	return (*myOrderResolver)(r)
@@ -139,6 +142,10 @@ func (r *VegaResolverRoot) Position() PositionResolver {
 // Party returns the parties resolver
 func (r *VegaResolverRoot) Party() PartyResolver {
 	return (*myPartyResolver)(r)
+}
+
+func (r *VegaResolverRoot) PaginatedParty() PaginatedPartyResolver {
+	return (*myPaginatedPartyResolver)(r)
 }
 
 // Subscription returns the subscriptions resolver
@@ -434,7 +441,6 @@ type myQueryResolver VegaResolverRoot
 func (r *myQueryResolver) Transfers(
 	ctx context.Context, pubkey string, isFrom *bool, isTo *bool,
 ) ([]*eventspb.Transfer, error) {
-
 	from := false
 	to := false
 
@@ -451,7 +457,6 @@ func (r *myQueryResolver) Transfers(
 		IsFrom: from,
 		IsTo:   to,
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -553,7 +558,8 @@ func (r *myQueryResolver) Deposit(ctx context.Context, did string) (*types.Depos
 }
 
 func (r *myQueryResolver) EstimateOrder(ctx context.Context, market, party string, price *string, size string, side Side,
-	timeInForce OrderTimeInForce, expiration *string, ty OrderType) (*OrderEstimate, error) {
+	timeInForce OrderTimeInForce, expiration *string, ty OrderType,
+) (*OrderEstimate, error) {
 	order := &types.Order{}
 
 	var err error
@@ -703,8 +709,8 @@ func (r *myQueryResolver) OrderByID(ctx context.Context, orderID string, version
 }
 
 func (r *myQueryResolver) OrderVersions(
-	ctx context.Context, orderID string, skip, first, last *int) ([]*types.Order, error) {
-
+	ctx context.Context, orderID string, skip, first, last *int,
+) ([]*types.Order, error) {
 	p := makePagination(skip, first, last)
 	reqest := &protoapi.OrderVersionsByIDRequest{
 		OrderId:    orderID,
@@ -1018,7 +1024,6 @@ func (r *myPartyResolver) Rewards(
 	asset *string,
 	skip, first, last *int,
 ) ([]*types.Reward, error) {
-
 	var assetID string
 	if asset != nil {
 		assetID = *asset
@@ -1038,8 +1043,8 @@ func (r *myPartyResolver) Rewards(
 func (r *myPartyResolver) RewardSummaries(
 	ctx context.Context,
 	party *types.Party,
-	asset *string) ([]*types.RewardSummary, error) {
-
+	asset *string,
+) ([]*types.RewardSummary, error) {
 	var assetID string
 	if asset != nil {
 		assetID = *asset
@@ -1100,8 +1105,8 @@ func (r *myPartyResolver) LiquidityProvisions(
 }
 
 func (r *myPartyResolver) Margins(ctx context.Context,
-	party *types.Party, marketID *string) ([]*types.MarginLevels, error) {
-
+	party *types.Party, marketID *string,
+) ([]*types.MarginLevels, error) {
 	req := protoapi.MarginLevelsRequest{
 		PartyId: party.Id,
 	}
@@ -1120,8 +1125,8 @@ func (r *myPartyResolver) Margins(ctx context.Context,
 }
 
 func (r *myPartyResolver) Orders(ctx context.Context, party *types.Party,
-	skip, first, last *int) ([]*types.Order, error) {
-
+	skip, first, last *int,
+) ([]*types.Order, error) {
 	p := makePagination(skip, first, last)
 	req := protoapi.OrdersByPartyRequest{
 		PartyId:    party.Id,
@@ -1141,8 +1146,8 @@ func (r *myPartyResolver) Orders(ctx context.Context, party *types.Party,
 }
 
 func (r *myPartyResolver) Trades(ctx context.Context, party *types.Party,
-	market *string, skip, first, last *int) ([]*types.Trade, error) {
-
+	market *string, skip, first, last *int,
+) ([]*types.Trade, error) {
 	var mkt string
 	if market != nil {
 		mkt = *market
@@ -1186,7 +1191,8 @@ func (r *myPartyResolver) Positions(ctx context.Context, party *types.Party) ([]
 }
 
 func (r *myPartyResolver) Accounts(ctx context.Context, party *types.Party,
-	marketID *string, asset *string, accType *types.AccountType) ([]*types.Account, error) {
+	marketID *string, asset *string, accType *types.AccountType,
+) ([]*types.Account, error) {
 	if party == nil {
 		return nil, errors.New("a party must be specified when querying accounts")
 	}
@@ -1294,7 +1300,6 @@ func (r *myPartyResolver) Delegations(
 	nodeID *string,
 	skip, first, last *int,
 ) ([]*types.Delegation, error) {
-
 	req := &protoapi.DelegationsRequest{
 		Party:      obj.Id,
 		Pagination: makePagination(skip, first, last),
@@ -2643,7 +2648,6 @@ func (r *myQueryResolver) GetMarketDataHistoryByID(ctx context.Context, id strin
 
 func (r *myQueryResolver) getMarketData(ctx context.Context, req *v2.GetMarketDataHistoryByIDRequest) ([]*types.MarketData, error) {
 	resp, err := r.tradingDataClientV2.GetMarketDataHistoryByID(ctx, req)
-
 	if err != nil {
 		return nil, err
 	}
@@ -2695,4 +2699,59 @@ func (r *myQueryResolver) getMarketDataHistoryToDateByID(ctx context.Context, id
 	}
 
 	return r.getMarketData(ctx, &req)
+}
+
+func (r *myQueryResolver) MarketsPaged(ctx context.Context, id *string, first *int, after *string, last *int, before *string) (*v2.MarketConnection, error) {
+	var marketID string
+
+	if id != nil {
+		marketID = *id
+	}
+
+	resp, err := r.tradingDataClientV2.Markets(ctx, &v2.MarketsRequest{
+		MarketId: marketID,
+		Cursor:   makeCursor(first, last, after, before),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Markets, nil
+}
+
+func (r *myQueryResolver) PartiesPaged(ctx context.Context, id *string, first *int, after *string, last *int, before *string) (*v2.PartyConnection, error) {
+	var partyID string
+	if id != nil {
+		partyID = *id
+	}
+	resp, err := r.tradingDataClientV2.Parties(ctx, &v2.PartiesRequest{
+		PartyId: partyID,
+		Cursor:  makeCursor(first, last, after, before),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Party, nil
+}
+
+func makeCursor(first, last *int, before, after *string) *v2.Cursor {
+	var firstLimit, lastLimit *int32
+
+	if first != nil {
+		v := int32(*first)
+		firstLimit = &v
+	}
+
+	if last != nil {
+		v := int32(*last)
+		lastLimit = &v
+	}
+
+	return &v2.Cursor{
+		First:  firstLimit,
+		Last:   lastLimit,
+		Before: before,
+		After:  after,
+	}
 }
