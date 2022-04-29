@@ -25,7 +25,6 @@ func TestMarginLevels(t *testing.T) {
 	t.Run("GetMarginLevelsByID should return the latest state of margin levels for all parties if only market ID is provided", testGetMarginLevelsByMarketID)
 	t.Run("GetMarginLevelsByID should return the latest state of margin levels for the given party/market ID", testGetMarginLevelsByID)
 	t.Run("GetMarginLevelsByID should return use conflated data where raw data is not available", testMarginLevelsDataRetention)
-
 }
 
 type testBlockSource struct {
@@ -213,7 +212,6 @@ func getMarginLevelProto() *vega.MarginLevels {
 }
 
 func getMarginLevelWithMaintenanceProto(maintenanceMargin, partyId, marketId string, timestamp int64) *vega.MarginLevels {
-
 	return &vega.MarginLevels{
 		MaintenanceMargin:      maintenanceMargin,
 		SearchLevel:            "1000",

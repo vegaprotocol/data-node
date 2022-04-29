@@ -100,3 +100,42 @@ order by id, vega_time desc
 
 	return markets, err
 }
+
+func (m *Markets) GetAllPaged(ctx context.Context, marketID string, cursor entities.Cursor) ([]entities.Market, entities.PageInfo, error) {
+	if marketID != "" {
+		market, err := m.GetByID(ctx, marketID)
+		if err != nil {
+			return nil, entities.PageInfo{}, err
+		}
+
+		cursor := fmt.Sprintf("%d", market.VegaTime.UnixNano())
+		return []entities.Market{market}, entities.PageInfo{
+			HasNextPage:     false,
+			HasPreviousPage: false,
+			StartCursor:     cursor,
+			EndCursor:       cursor,
+		}, nil
+	}
+
+	markets := make([]entities.Market, 0)
+	args := make([]interface{}, 0)
+
+	query := fmt.Sprintf(`select %s
+		from markets_current`, sqlMarketsColumns)
+
+	var pagedMarkets []entities.Market
+	var pageInfo entities.PageInfo
+	var err error
+	cursor, err = cursorOffsetToTimestamp(cursor)
+	if err != nil {
+		return nil, entities.PageInfo{}, err
+	}
+
+	query, args = orderAndPaginateWithCursor(query, cursor, "vega_time", args...)
+	if err := pgxscan.Select(ctx, m.Connection, &markets, query, args...); err != nil {
+		return pagedMarkets, pageInfo, err
+	}
+
+	pagedMarkets, pageInfo = entities.PageEntities(markets, cursor)
+	return pagedMarkets, pageInfo, nil
+}

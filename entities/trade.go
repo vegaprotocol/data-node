@@ -67,6 +67,10 @@ func (t *Trade) ToProto() *vega.Trade {
 	}
 }
 
+func (t Trade) Cursor() string {
+	return fmt.Sprintf("%d", t.SyntheticTime.UnixNano())
+}
+
 func TradeFromProto(t *vega.Trade, vegaTime time.Time, sequenceNumber uint64) (*Trade, error) {
 	syntheticTime := vegaTime.Add(time.Duration(sequenceNumber) * time.Microsecond)
 

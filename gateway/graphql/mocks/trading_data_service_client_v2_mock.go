@@ -156,6 +156,26 @@ func (mr *MockTradingDataServiceClientV2MockRecorder) GetNetworkLimits(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNetworkLimits", reflect.TypeOf((*MockTradingDataServiceClientV2)(nil).GetNetworkLimits), varargs...)
 }
 
+// Markets mocks base method.
+func (m *MockTradingDataServiceClientV2) Markets(arg0 context.Context, arg1 *v2.MarketsRequest, arg2 ...grpc.CallOption) (*v2.MarketsResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Markets", varargs...)
+	ret0, _ := ret[0].(*v2.MarketsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Markets indicates an expected call of Markets.
+func (mr *MockTradingDataServiceClientV2MockRecorder) Markets(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Markets", reflect.TypeOf((*MockTradingDataServiceClientV2)(nil).Markets), varargs...)
+}
+
 // OrderVersionsByID mocks base method.
 func (m *MockTradingDataServiceClientV2) OrderVersionsByID(arg0 context.Context, arg1 *v2.OrderVersionsByIDRequest, arg2 ...grpc.CallOption) (*v2.OrderVersionsByIDResponse, error) {
 	m.ctrl.T.Helper()
@@ -196,6 +216,26 @@ func (mr *MockTradingDataServiceClientV2MockRecorder) OrdersByMarket(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OrdersByMarket", reflect.TypeOf((*MockTradingDataServiceClientV2)(nil).OrdersByMarket), varargs...)
 }
 
+// Parties mocks base method.
+func (m *MockTradingDataServiceClientV2) Parties(arg0 context.Context, arg1 *v2.PartiesRequest, arg2 ...grpc.CallOption) (*v2.PartiesResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Parties", varargs...)
+	ret0, _ := ret[0].(*v2.PartiesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Parties indicates an expected call of Parties.
+func (mr *MockTradingDataServiceClientV2MockRecorder) Parties(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Parties", reflect.TypeOf((*MockTradingDataServiceClientV2)(nil).Parties), varargs...)
+}
+
 // QueryBalanceHistory mocks base method.
 func (m *MockTradingDataServiceClientV2) QueryBalanceHistory(arg0 context.Context, arg1 *v2.QueryBalanceHistoryRequest, arg2 ...grpc.CallOption) (*v2.QueryBalanceHistoryResponse, error) {
 	m.ctrl.T.Helper()
@@ -234,4 +274,44 @@ func (mr *MockTradingDataServiceClientV2MockRecorder) SubscribeToCandleData(arg0
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeToCandleData", reflect.TypeOf((*MockTradingDataServiceClientV2)(nil).SubscribeToCandleData), varargs...)
+}
+
+// TradesByMarket mocks base method.
+func (m *MockTradingDataServiceClientV2) TradesByMarket(arg0 context.Context, arg1 *v2.TradesByMarketRequest, arg2 ...grpc.CallOption) (*v2.TradesByMarketResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "TradesByMarket", varargs...)
+	ret0, _ := ret[0].(*v2.TradesByMarketResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TradesByMarket indicates an expected call of TradesByMarket.
+func (mr *MockTradingDataServiceClientV2MockRecorder) TradesByMarket(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TradesByMarket", reflect.TypeOf((*MockTradingDataServiceClientV2)(nil).TradesByMarket), varargs...)
+}
+
+// TradesByParty mocks base method.
+func (m *MockTradingDataServiceClientV2) TradesByParty(arg0 context.Context, arg1 *v2.TradesByPartyRequest, arg2 ...grpc.CallOption) (*v2.TradesByPartyResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "TradesByParty", varargs...)
+	ret0, _ := ret[0].(*v2.TradesByPartyResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TradesByParty indicates an expected call of TradesByParty.
+func (mr *MockTradingDataServiceClientV2MockRecorder) TradesByParty(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TradesByParty", reflect.TypeOf((*MockTradingDataServiceClientV2)(nil).TradesByParty), varargs...)
 }
