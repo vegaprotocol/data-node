@@ -15,6 +15,11 @@
 - [](https://github.com/vegaprotocol/data-node/pull/xxx) -
 
 
+## 0.50.3
+
+### 🐛 Fixes
+- [551](https://github.com/vegaprotocol/data-node/issues/551) - Shut down cleanly on `SIGINT` or `SIGTERM`
+
 ## 0.50.0
 
 ### 🛠  Improvements
