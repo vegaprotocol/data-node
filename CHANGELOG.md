@@ -3,23 +3,28 @@
 ## Unreleased (0.51.0)
 
 ### 🚨 Breaking changes
-- [](https://github.com/vegaprotocol/data-node/pull/xxx) -
-
+- [518](https://github.com/vegaprotocol/data-node/issues/518) - Free-form properties are moved to rationale.
+- 
 ### 🗑️  Deprecation
-- [](https://github.com/vegaprotocol/data-node/pull/xxx) -
+- [](https://github.com/vegaprotocol/data-node/issues/xxx) -
 
 ### 🛠  Improvements
 - [491](https://github.com/vegaprotocol/data-node/issues/491) - Expose bundle for asset
 - [414](https://github.com/vegaprotocol/data-node/issues/414) - Migrate market depth to retrieve data from `Postgres`
-- [495](https://github.com/vegaprotocol/data-node/pull/495) - Remove deprecated `PositionState` event handling, general fixes to `SettlePosition` event handling
+- [495](https://github.com/vegaprotocol/data-node/issues/495) - Remove deprecated `PositionState` event handling, general fixes to `SettlePosition` event handling
 - [498](https://github.com/vegaprotocol/data-node/issues/498) - Transaction event broker
-- [521](https://github.com/vegaprotocol/data-node/issues/521) - Refactor margin levels to use account id 
-
-- [](https://github.com/vegaprotocol/data-node/pull/xxx) -
+- [521](https://github.com/vegaprotocol/data-node/issues/521) - Refactor margin levels to use account id
+- [518](https://github.com/vegaprotocol/data-node/issues/518) - Add rationale to proposals
+- [526](https://github.com/vegaprotocol/data-node/issues/526) - Add market id and reward type to reward and market to transfer
+- [540](https://github.com/vegaprotocol/data-node/issues/540) - CI: trigger Devnet deployment on merges to develop branch
+- [546](https://github.com/vegaprotocol/data-node/issues/546) - Data retention for margin levels 
 
 ### 🐛 Fixes
 - [524](https://github.com/vegaprotocol/data-node/issues/524) - Fix for incorrect balances
-- [](https://github.com/vegaprotocol/data-node/pull/xxx) -
+- [519](https://github.com/vegaprotocol/data-node/issues/519) - Fix market depth update subscriptions streaming events for all markets.
+- [551](https://github.com/vegaprotocol/data-node/issues/551) - Shut down cleanly on `SIGINT` or `SIGTERM`
+
+- [](https://github.com/vegaprotocol/data-node/issues/xxx) -
 
 
 ## 0.50.0

@@ -164,12 +164,6 @@ pipeline {
 
         stage('Run linters') {
             parallel {
-                stage('check print') {
-                    options { retry(3) }
-                    steps {
-                        sh 'make print_check'
-                    }
-                }
                 stage('shellcheck') {
                     options { retry(3) }
                     steps {
@@ -274,7 +268,7 @@ pipeline {
                                     vegatools: params.VEGATOOLS_BRANCH,
                                     systemTests: params.SYSTEM_TESTS_BRANCH,
                                     protos: params.PROTOS_BRANCH,
-                                    ignoreFailure: true // Will be changed when stable
+                                    ignoreFailure: !isPRBuild()
 
                             }
                         }
@@ -358,19 +352,17 @@ pipeline {
                         }
                     }
                 }
-
-                stage('[TODO] deploy to Devnet') {
-                    when {
-                        branch 'develop'
-                    }
-                    steps {
-                        echo 'Deploying to Devnet....'
-                        echo 'Run basic tests on Devnet network ...'
-                    }
-                }
             }
         }
 
+        stage('Deploy to Devnet') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                devnetDeploy wait: false
+            }
+        }
     }
     post {
         success {

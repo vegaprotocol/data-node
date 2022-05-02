@@ -78,6 +78,12 @@ func (t *tradingDataDelegator) PositionsByParty(ctx context.Context, request *pr
 		positions[0], err = t.positionStore.GetByMarketAndParty(ctx,
 			entities.NewMarketID(request.MarketId),
 			entities.NewPartyID(request.PartyId))
+
+		// Don't error if there's no position for this party/market
+		if errors.Is(err, sqlstore.ErrPositionNotFound) {
+			err = nil
+			positions = []entities.Position{}
+		}
 	}
 
 	if err != nil {
@@ -1519,6 +1525,8 @@ func (t *tradingDataDelegator) ERC20WithdrawalApproval(ctx context.Context, req 
 		Nonce:         w.Ref,
 		TargetAddress: w.Ext.GetErc20().ReceiverAddress,
 		Signatures:    pack,
+		// timestamps is unix nano, contract needs unix. So load if first, and cut nanos
+		Creation: w.CreatedTimestamp.Unix(),
 	}, nil
 }
 
