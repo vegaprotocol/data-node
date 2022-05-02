@@ -415,10 +415,18 @@ func (t *tradingDataServiceV2) GetERC20AssetBundle(ctx context.Context, req *v2.
 		return nil, ErrMissingAssetID
 	}
 
+	if t.assetStore == nil {
+		return nil, errors.New("sql asset store not available")
+	}
+
 	// first here we gonna get the proposal by its ID,
 	asset, err := t.assetStore.GetByID(ctx, req.AssetId)
 	if err != nil {
 		return nil, apiError(codes.NotFound, err)
+	}
+
+	if t.notaryStore == nil {
+		return nil, errors.New("sql notary store not available")
 	}
 
 	// then we get the signature and pack them altogether
