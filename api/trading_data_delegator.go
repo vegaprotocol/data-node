@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"code.vegaprotocol.io/data-node/candlesv2"
+	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/risk"
 	"code.vegaprotocol.io/data-node/vegatime"
 	commandspb "code.vegaprotocol.io/protos/vega/commands/v1"
@@ -1185,7 +1186,7 @@ func (t *tradingDataDelegator) MarketsData(ctx context.Context, _ *protoapi.Mark
 func (t *tradingDataDelegator) MarketByID(ctx context.Context, req *protoapi.MarketByIDRequest) (*protoapi.MarketByIDResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("MarketByID_SQL")()
 
-	mkt, err := validateMarketSQL(ctx, req.MarketId, t.marketsStore)
+	mkt, err := t.validateMarketSQL(ctx, req.MarketId, t.marketsStore)
 	if err != nil {
 		return nil, err // validateMarket already returns an API error, no need to additionally wrap
 	}
@@ -1195,11 +1196,12 @@ func (t *tradingDataDelegator) MarketByID(ctx context.Context, req *protoapi.Mar
 	}, nil
 }
 
-func validateMarketSQL(ctx context.Context, marketID string, marketsStore *sqlstore.Markets) (*vega.Market, error) {
+func (t *tradingDataDelegator) validateMarketSQL(ctx context.Context, marketID string, marketsStore *sqlstore.Markets) (*vega.Market, error) {
 	if len(marketID) == 0 {
 		return nil, apiError(codes.InvalidArgument, ErrEmptyMissingMarketID)
 	}
 
+	t.log.Info("validateMarketSQL", logging.String("id", marketID))
 	market, err := marketsStore.GetByID(ctx, marketID)
 	if err != nil {
 		// We return nil for error as we do not want
@@ -1207,7 +1209,13 @@ func validateMarketSQL(ctx context.Context, marketID string, marketsStore *sqlst
 		// but just a nil value.
 		return nil, nil
 	}
-
+	t.log.Info("converting to protos", logging.String("id", marketID))
+	if market.Fees.Factors == nil {
+		t.log.Info("ON NO NIL FACTORS", logging.String("id", marketID))
+	} else {
+		t.log.Info("non nil factors", logging.String("id", marketID))
+	}
+	fmt.Println(market)
 	mkt, err := market.ToProto()
 	if err != nil {
 		return nil, nil

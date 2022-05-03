@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"code.vegaprotocol.io/data-node/entities"
+	"code.vegaprotocol.io/data-node/logging"
 	"github.com/georgysavva/scany/pgxscan"
 )
 
@@ -31,6 +32,12 @@ func NewMarkets(connectionSource *ConnectionSource) *Markets {
 func (m *Markets) Upsert(ctx context.Context, market *entities.Market) error {
 	m.cacheLock.Lock()
 	defer m.cacheLock.Unlock()
+	m.log.Info("adding market", logging.String("id", market.ID.String()))
+	if market.Fees.Factors == nil {
+		m.log.Info("insert ON NO NIL FACTORS", logging.String("id", market.ID.String()))
+	} else {
+		m.log.Info("insert non nil factors", logging.String("id", market.ID.String()))
+	}
 
 	query := fmt.Sprintf(`insert into markets(%s) 
 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
@@ -62,10 +69,16 @@ set
 func (m *Markets) GetByID(ctx context.Context, marketID string) (entities.Market, error) {
 	m.cacheLock.Lock()
 	defer m.cacheLock.Unlock()
-
+	m.log.Info("calling SQLstore GetById", logging.String("id", marketID))
 	var market entities.Market
 
 	if market, ok := m.cache[marketID]; ok {
+		m.log.Info("found in cache", logging.String("id", marketID))
+		if market.Fees.Factors == nil {
+			m.log.Info("cache ON NO NIL FACTORS", logging.String("id", market.ID.String()))
+		} else {
+			m.log.Info("cache non nil factors", logging.String("id", market.ID.String()))
+		}
 		return market, nil
 	}
 
@@ -75,11 +88,10 @@ where id = $1
 order by id, vega_time desc
 `, sqlMarketsColumns)
 	err := pgxscan.Get(ctx, m.Connection, &market, query, entities.NewMarketID(marketID))
-
 	if err != nil {
 		m.cache[marketID] = market
 	}
-
+	m.log.Info("found in DB", logging.String("id", marketID))
 	return market, err
 }
 
