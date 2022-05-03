@@ -16,11 +16,15 @@
 - [518](https://github.com/vegaprotocol/data-node/issues/518) - Add rationale to proposals
 - [526](https://github.com/vegaprotocol/data-node/issues/526) - Add market id and reward type to reward and market to transfer
 - [540](https://github.com/vegaprotocol/data-node/issues/540) - CI: trigger Devnet deployment on merges to develop branch
+- [546](https://github.com/vegaprotocol/data-node/issues/546) - Data retention for margin levels 
 - [470](https://github.com/vegaprotocol/data-node/issues/470) - Implement pagination for `Data-Node V2 APIs`
 
 ### 🐛 Fixes
 - [524](https://github.com/vegaprotocol/data-node/issues/524) - Fix for incorrect balances
+- [520](https://github.com/vegaprotocol/data-node/issues/520) - Fix event race where a ranking event can come in before the new node event
 - [519](https://github.com/vegaprotocol/data-node/issues/519) - Fix market depth update subscriptions streaming events for all markets.
+- [551](https://github.com/vegaprotocol/data-node/issues/551) - Shut down cleanly on `SIGINT` or `SIGTERM`
+
 - [](https://github.com/vegaprotocol/data-node/issues/xxx) -
 
 

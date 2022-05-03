@@ -217,7 +217,7 @@ models:
     model: code.vegaprotocol.io/protos/vega.Epoch
   EpochTimestamps:
     model: code.vegaprotocol.io/protos/vega.EpochTimestamps
-  RewardPerAssetDetail: # TODO: Depricated, remove once front end has caught up
+  RewardPerAssetDetail:  # TODO: Depricated, remove once front end has caught up
     model: code.vegaprotocol.io/protos/vega.RewardSummary
   Reward:
     model: code.vegaprotocol.io/protos/vega.Reward
