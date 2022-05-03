@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"time"
 
 	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/metrics"
+	"code.vegaprotocol.io/data-node/sqlsubscribers"
 	"code.vegaprotocol.io/vega/events"
 )
 
@@ -79,6 +81,10 @@ func (b *sqlStoreBroker) receiveBlock(ctx context.Context, receiveCh <-chan even
 	blockCtx, cancel := context.WithTimeout(context.Background(), b.config.BlockProcessingTimeout.Duration)
 	defer cancel()
 
+	blockStart := time.Now()
+	eventCount := 0
+	typeToCount := map[events.Type]int{}
+
 	blockCtx, err := b.transactionManager.WithTransaction(blockCtx)
 	if err != nil {
 		return fmt.Errorf("failed to add transaction to context:%w", err)
@@ -97,7 +103,7 @@ func (b *sqlStoreBroker) receiveBlock(ctx context.Context, receiveCh <-chan even
 		case <-ctx.Done():
 			return ctx.Err()
 		case e := <-receiveCh:
-			nextBlock, err := b.handleEvent(blockCtx, e)
+			nextBlock, err := b.handleEvent(blockCtx, e, typeToCount, &eventCount)
 			if err != nil {
 				return err
 			}
@@ -106,16 +112,31 @@ func (b *sqlStoreBroker) receiveBlock(ctx context.Context, receiveCh <-chan even
 				if err != nil {
 					return fmt.Errorf("failed to commit transactional context:%w", err)
 				}
+
+				timeUpdate := e.(sqlsubscribers.TimeUpdateEvent)
+
+				now := time.Now()
+				typeCount := ""
+				for t, c := range typeToCount {
+					typeCount += fmt.Sprintf(",EVENT%s=%d", t.String(), c)
+				}
+
+				fmt.Printf("Time=%s,Block=%d,VegaTime=%s,BlockProcessingTime:%s,BlockEventCount=%d%s\n", now, e.BlockNr(),
+					timeUpdate.Time(), now.Sub(blockStart), eventCount, typeCount)
+
 				return nil
 			}
 		}
 	}
 }
 
-func (b *sqlStoreBroker) handleEvent(ctx context.Context, e events.Event) (bool, error) {
+func (b *sqlStoreBroker) handleEvent(ctx context.Context, e events.Event, typeToCount map[events.Type]int, eventCount *int) (bool, error) {
 	if err := checkChainID(b.chainInfo, e.ChainID()); err != nil {
 		return false, err
 	}
+
+	*eventCount++
+	typeToCount[e.Type()] = typeToCount[e.Type()] + 1
 
 	metrics.EventCounterInc(e.Type().String())
 

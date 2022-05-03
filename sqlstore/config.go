@@ -53,7 +53,7 @@ func NewDefaultConfig() Config {
 			Username:        "vega",
 			Password:        "vega",
 			Database:        "vega",
-			UseTransactions: true,
+			UseTransactions: false,
 		},
 		WipeOnStartup:    true,
 		Level:            encoding.LogLevel{Level: logging.InfoLevel},
