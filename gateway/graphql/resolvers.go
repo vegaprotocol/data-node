@@ -70,7 +70,6 @@ func NewResolverRoot(
 	tradingDataClient TradingDataServiceClient,
 	tradingDataClientV2 TradingDataServiceClientV2,
 ) *VegaResolverRoot {
-
 	return &VegaResolverRoot{
 		log:                 log,
 		Config:              config,
@@ -121,6 +120,10 @@ func (r *VegaResolverRoot) Market() MarketResolver {
 	return (*myMarketResolver)(r)
 }
 
+func (r *VegaResolverRoot) PaginatedMarket() PaginatedMarketResolver {
+	return (*myPaginatedMarketResolver)(r)
+}
+
 // Order returns the order resolver
 func (r *VegaResolverRoot) Order() OrderResolver {
 	return (*myOrderResolver)(r)
@@ -139,6 +142,10 @@ func (r *VegaResolverRoot) Position() PositionResolver {
 // Party returns the parties resolver
 func (r *VegaResolverRoot) Party() PartyResolver {
 	return (*myPartyResolver)(r)
+}
+
+func (r *VegaResolverRoot) PaginatedParty() PaginatedPartyResolver {
+	return (*myPaginatedPartyResolver)(r)
 }
 
 // Subscription returns the subscriptions resolver
@@ -434,7 +441,6 @@ type myQueryResolver VegaResolverRoot
 func (r *myQueryResolver) Transfers(
 	ctx context.Context, pubkey string, isFrom *bool, isTo *bool,
 ) ([]*eventspb.Transfer, error) {
-
 	from := false
 	to := false
 
@@ -451,7 +457,6 @@ func (r *myQueryResolver) Transfers(
 		IsFrom: from,
 		IsTo:   to,
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -553,7 +558,8 @@ func (r *myQueryResolver) Deposit(ctx context.Context, did string) (*types.Depos
 }
 
 func (r *myQueryResolver) EstimateOrder(ctx context.Context, market, party string, price *string, size string, side Side,
-	timeInForce OrderTimeInForce, expiration *string, ty OrderType) (*OrderEstimate, error) {
+	timeInForce OrderTimeInForce, expiration *string, ty OrderType,
+) (*OrderEstimate, error) {
 	order := &types.Order{}
 
 	var err error
@@ -703,8 +709,8 @@ func (r *myQueryResolver) OrderByID(ctx context.Context, orderID string, version
 }
 
 func (r *myQueryResolver) OrderVersions(
-	ctx context.Context, orderID string, skip, first, last *int) ([]*types.Order, error) {
-
+	ctx context.Context, orderID string, skip, first, last *int,
+) ([]*types.Order, error) {
 	p := makePagination(skip, first, last)
 	reqest := &protoapi.OrderVersionsByIDRequest{
 		OrderId:    orderID,
@@ -917,11 +923,11 @@ func (r *myQueryResolver) HistoricBalances(ctx context.Context, filter *v2.Accou
 		}
 		gb[i] = *g
 	}
-	req := &v2.QueryBalanceHistoryRequest{}
+	req := &v2.GetBalanceHistoryRequest{}
 	req.GroupBy = gb
 	req.Filter = filter
 
-	resp, err := r.tradingDataClientV2.QueryBalanceHistory(ctx, req)
+	resp, err := r.tradingDataClientV2.GetBalanceHistory(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -979,7 +985,7 @@ func makePagination(skip, first, last *int) *protoapi.Pagination {
 	}
 }
 
-func makeApiV2Pagination(skip, first, last *int) *v2.Pagination {
+func makeApiV2Pagination(skip, first, last *int) *v2.OffsetPagination {
 	var (
 		offset, limit uint64
 		descending    bool
@@ -993,7 +999,7 @@ func makeApiV2Pagination(skip, first, last *int) *v2.Pagination {
 	} else if first != nil {
 		limit = uint64(*first)
 	}
-	return &v2.Pagination{
+	return &v2.OffsetPagination{
 		Skip:       offset,
 		Limit:      limit,
 		Descending: descending,
@@ -1018,7 +1024,6 @@ func (r *myPartyResolver) Rewards(
 	asset *string,
 	skip, first, last *int,
 ) ([]*types.Reward, error) {
-
 	var assetID string
 	if asset != nil {
 		assetID = *asset
@@ -1038,8 +1043,8 @@ func (r *myPartyResolver) Rewards(
 func (r *myPartyResolver) RewardSummaries(
 	ctx context.Context,
 	party *types.Party,
-	asset *string) ([]*types.RewardSummary, error) {
-
+	asset *string,
+) ([]*types.RewardSummary, error) {
 	var assetID string
 	if asset != nil {
 		assetID = *asset
@@ -1100,8 +1105,8 @@ func (r *myPartyResolver) LiquidityProvisions(
 }
 
 func (r *myPartyResolver) Margins(ctx context.Context,
-	party *types.Party, marketID *string) ([]*types.MarginLevels, error) {
-
+	party *types.Party, marketID *string,
+) ([]*types.MarginLevels, error) {
 	req := protoapi.MarginLevelsRequest{
 		PartyId: party.Id,
 	}
@@ -1120,8 +1125,8 @@ func (r *myPartyResolver) Margins(ctx context.Context,
 }
 
 func (r *myPartyResolver) Orders(ctx context.Context, party *types.Party,
-	skip, first, last *int) ([]*types.Order, error) {
-
+	skip, first, last *int,
+) ([]*types.Order, error) {
 	p := makePagination(skip, first, last)
 	req := protoapi.OrdersByPartyRequest{
 		PartyId:    party.Id,
@@ -1141,8 +1146,8 @@ func (r *myPartyResolver) Orders(ctx context.Context, party *types.Party,
 }
 
 func (r *myPartyResolver) Trades(ctx context.Context, party *types.Party,
-	market *string, skip, first, last *int) ([]*types.Trade, error) {
-
+	market *string, skip, first, last *int,
+) ([]*types.Trade, error) {
 	var mkt string
 	if market != nil {
 		mkt = *market
@@ -1168,6 +1173,26 @@ func (r *myPartyResolver) Trades(ctx context.Context, party *types.Party,
 	return []*types.Trade{}, nil
 }
 
+func (r *myPartyResolver) TradesPaged(ctx context.Context, party *types.Party, market *string, pagination *v2.Pagination) (*v2.TradeConnection, error) {
+	var mkt string
+	if market != nil {
+		mkt = *market
+	}
+
+	req := v2.GetTradesByPartyRequest{
+		PartyId:    party.Id,
+		MarketId:   mkt,
+		Pagination: pagination,
+	}
+
+	res, err := r.tradingDataClientV2.GetTradesByParty(ctx, &req)
+	if err != nil {
+		r.log.Error("tradingData client", logging.Error(err))
+		return nil, customErrorFromStatus(err)
+	}
+	return res.Trades, nil
+}
+
 func (r *myPartyResolver) Positions(ctx context.Context, party *types.Party) ([]*types.Position, error) {
 	if party == nil {
 		return nil, errors.New("nil party")
@@ -1186,7 +1211,8 @@ func (r *myPartyResolver) Positions(ctx context.Context, party *types.Party) ([]
 }
 
 func (r *myPartyResolver) Accounts(ctx context.Context, party *types.Party,
-	marketID *string, asset *string, accType *types.AccountType) ([]*types.Account, error) {
+	marketID *string, asset *string, accType *types.AccountType,
+) ([]*types.Account, error) {
 	if party == nil {
 		return nil, errors.New("a party must be specified when querying accounts")
 	}
@@ -1294,7 +1320,6 @@ func (r *myPartyResolver) Delegations(
 	nodeID *string,
 	skip, first, last *int,
 ) ([]*types.Delegation, error) {
-
 	req := &protoapi.DelegationsRequest{
 		Party:      obj.Id,
 		Pagination: makePagination(skip, first, last),
@@ -2643,7 +2668,6 @@ func (r *myQueryResolver) GetMarketDataHistoryByID(ctx context.Context, id strin
 
 func (r *myQueryResolver) getMarketData(ctx context.Context, req *v2.GetMarketDataHistoryByIDRequest) ([]*types.MarketData, error) {
 	resp, err := r.tradingDataClientV2.GetMarketDataHistoryByID(ctx, req)
-
 	if err != nil {
 		return nil, err
 	}
@@ -2659,7 +2683,7 @@ func (r *myQueryResolver) getMarketDataByID(ctx context.Context, id string) ([]*
 	return r.getMarketData(ctx, &req)
 }
 
-func (r *myQueryResolver) getMarketDataHistoryByID(ctx context.Context, id string, start, end int64, pagination *v2.Pagination) ([]*types.MarketData, error) {
+func (r *myQueryResolver) getMarketDataHistoryByID(ctx context.Context, id string, start, end int64, pagination *v2.OffsetPagination) ([]*types.MarketData, error) {
 	startTime := time.Unix(start, 0).UnixNano()
 	endTime := time.Unix(end, 0).UnixNano()
 
@@ -2673,7 +2697,7 @@ func (r *myQueryResolver) getMarketDataHistoryByID(ctx context.Context, id strin
 	return r.getMarketData(ctx, &req)
 }
 
-func (r *myQueryResolver) getMarketDataHistoryFromDateByID(ctx context.Context, id string, start int64, pagination *v2.Pagination) ([]*types.MarketData, error) {
+func (r *myQueryResolver) getMarketDataHistoryFromDateByID(ctx context.Context, id string, start int64, pagination *v2.OffsetPagination) ([]*types.MarketData, error) {
 	startTime := time.Unix(start, 0).UnixNano()
 
 	req := v2.GetMarketDataHistoryByIDRequest{
@@ -2685,7 +2709,7 @@ func (r *myQueryResolver) getMarketDataHistoryFromDateByID(ctx context.Context, 
 	return r.getMarketData(ctx, &req)
 }
 
-func (r *myQueryResolver) getMarketDataHistoryToDateByID(ctx context.Context, id string, end int64, pagination *v2.Pagination) ([]*types.MarketData, error) {
+func (r *myQueryResolver) getMarketDataHistoryToDateByID(ctx context.Context, id string, end int64, pagination *v2.OffsetPagination) ([]*types.MarketData, error) {
 	endTime := time.Unix(end, 0).UnixNano()
 
 	req := v2.GetMarketDataHistoryByIDRequest{
@@ -2695,4 +2719,38 @@ func (r *myQueryResolver) getMarketDataHistoryToDateByID(ctx context.Context, id
 	}
 
 	return r.getMarketData(ctx, &req)
+}
+
+func (r *myQueryResolver) MarketsPaged(ctx context.Context, id *string, pagination *v2.Pagination) (*v2.MarketConnection, error) {
+	var marketID string
+
+	if id != nil {
+		marketID = *id
+	}
+
+	resp, err := r.tradingDataClientV2.GetMarkets(ctx, &v2.GetMarketsRequest{
+		MarketId:   marketID,
+		Pagination: pagination,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Markets, nil
+}
+
+func (r *myQueryResolver) PartiesPaged(ctx context.Context, id *string, pagination *v2.Pagination) (*v2.PartyConnection, error) {
+	var partyID string
+	if id != nil {
+		partyID = *id
+	}
+	resp, err := r.tradingDataClientV2.GetParties(ctx, &v2.GetPartiesRequest{
+		PartyId:    partyID,
+		Pagination: pagination,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Party, nil
 }

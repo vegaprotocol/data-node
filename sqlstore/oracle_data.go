@@ -35,7 +35,7 @@ func (od *OracleData) Add(ctx context.Context, data *entities.OracleData) error 
 	return nil
 }
 
-func (od *OracleData) GetOracleDataBySpecID(ctx context.Context, id string, pagination entities.Pagination) ([]entities.OracleData, error) {
+func (od *OracleData) GetOracleDataBySpecID(ctx context.Context, id string, pagination entities.OffsetPagination) ([]entities.OracleData, error) {
 	specID := entities.NewSpecID(id)
 	var bindVars []interface{}
 
