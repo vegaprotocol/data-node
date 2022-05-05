@@ -108,8 +108,8 @@ func (m Market) ToProto() (*vega.Market, error) {
 	}, nil
 }
 
-func (m Market) Cursor() string {
-	return fmt.Sprintf("%d", m.VegaTime.UnixNano())
+func (m Market) Cursor() *Cursor {
+	return NewCursor(m.VegaTime.Format(time.RFC3339Nano))
 }
 
 type MarketTimestamps struct {

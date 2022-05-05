@@ -72,6 +72,8 @@ models:
         resolver: true
       trades:
         resolver: true
+      pagedTrades:
+        resolver: true
       depth:
         resolver: true
       data:
@@ -109,6 +111,8 @@ models:
       orders:
         resolver: true
       trades:
+        resolver: true
+      tradesPaged:
         resolver: true
       positions:
         resolver: true
@@ -276,3 +280,5 @@ models:
     model: code.vegaprotocol.io/protos/data-node/api/v2.PartyConnection
   PartyEdge:
     model: code.vegaprotocol.io/protos/data-node/api/v2.PartyEdge
+  Pagination:
+    model: code.vegaprotocol.io/protos/data-node/api/v2.Pagination

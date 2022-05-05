@@ -78,7 +78,7 @@ func (ps *Parties) GetAll(ctx context.Context) ([]entities.Party, error) {
 	return parties, err
 }
 
-func (ps *Parties) GetAllPaged(ctx context.Context, partyID string, cursor entities.Cursor) ([]entities.Party, entities.PageInfo, error) {
+func (ps *Parties) GetAllPaged(ctx context.Context, partyID string, pagination entities.Pagination) ([]entities.Party, entities.PageInfo, error) {
 	if partyID != "" {
 		party, err := ps.GetByID(ctx, partyID)
 		if err != nil {
@@ -88,8 +88,8 @@ func (ps *Parties) GetAllPaged(ctx context.Context, partyID string, cursor entit
 		return []entities.Party{party}, entities.PageInfo{
 			HasNextPage:     false,
 			HasPreviousPage: false,
-			StartCursor:     fmt.Sprintf("%d", party.VegaTime.UnixNano()),
-			EndCursor:       fmt.Sprintf("%d", party.VegaTime.UnixNano()),
+			StartCursor:     party.Cursor().Encode(),
+			EndCursor:       party.Cursor().Encode(),
 		}, nil
 	}
 
@@ -103,18 +103,12 @@ func (ps *Parties) GetAllPaged(ctx context.Context, partyID string, cursor entit
 
 	var pagedParties []entities.Party
 	var pageInfo entities.PageInfo
-	var err error
 
-	cursor, err = cursorOffsetToTimestamp(cursor)
-	if err != nil {
-		return nil, entities.PageInfo{}, err
-	}
-
-	query, args = orderAndPaginateWithCursor(query, cursor, "vega_time", args...)
+	query, args = orderAndPaginateWithCursor(query, pagination, "vega_time", args...)
 	if err := pgxscan.Select(ctx, ps.Connection, &parties, query, args...); err != nil {
 		return pagedParties, pageInfo, err
 	}
 
-	pagedParties, pageInfo = entities.PageEntities(parties, cursor)
+	pagedParties, pageInfo = entities.PageEntities(parties, pagination)
 	return pagedParties, pageInfo, nil
 }

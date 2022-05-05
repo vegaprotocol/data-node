@@ -418,6 +418,7 @@ type ComplexityRoot struct {
 		State                         func(childComplexity int) int
 		TradableInstrument            func(childComplexity int) int
 		Trades                        func(childComplexity int, skip *int, first *int, last *int) int
+		TradesPaged                   func(childComplexity int, pagination *v2.Pagination) int
 		TradingMode                   func(childComplexity int) int
 	}
 
@@ -663,7 +664,7 @@ type ComplexityRoot struct {
 		RiskFactors                   func(childComplexity int) int
 		State                         func(childComplexity int) int
 		TradableInstrument            func(childComplexity int) int
-		Trades                        func(childComplexity int, first *int, after *string, last *int, before *string) int
+		TradesPaged                   func(childComplexity int, pagination *v2.Pagination) int
 		TradingMode                   func(childComplexity int) int
 	}
 
@@ -680,7 +681,7 @@ type ComplexityRoot struct {
 		RewardSummaries     func(childComplexity int, asset *string) int
 		Rewards             func(childComplexity int, asset *string, skip *int, first *int, last *int) int
 		Stake               func(childComplexity int) int
-		Trades              func(childComplexity int, marketID *string, first *int, after *string, last *int, before *string) int
+		TradesPaged         func(childComplexity int, marketID *string, pagination *v2.Pagination) int
 		Votes               func(childComplexity int) int
 		Withdrawals         func(childComplexity int) int
 	}
@@ -700,6 +701,7 @@ type ComplexityRoot struct {
 		Rewards             func(childComplexity int, asset *string, skip *int, first *int, last *int) int
 		Stake               func(childComplexity int) int
 		Trades              func(childComplexity int, marketID *string, skip *int, first *int, last *int) int
+		TradesPaged         func(childComplexity int, marketID *string, pagination *v2.Pagination) int
 		Votes               func(childComplexity int) int
 		Withdrawals         func(childComplexity int) int
 	}
@@ -836,7 +838,7 @@ type ComplexityRoot struct {
 		LastBlockHeight            func(childComplexity int) int
 		Market                     func(childComplexity int, id string) int
 		Markets                    func(childComplexity int, id *string) int
-		MarketsPaged               func(childComplexity int, id *string, first *int, after *string, last *int, before *string) int
+		MarketsPaged               func(childComplexity int, id *string, pagination *v2.Pagination) int
 		NetworkLimits              func(childComplexity int) int
 		NetworkParameters          func(childComplexity int) int
 		NetworkParametersProposals func(childComplexity int, inState *ProposalState) int
@@ -854,7 +856,7 @@ type ComplexityRoot struct {
 		OrderByReference           func(childComplexity int, reference string) int
 		OrderVersions              func(childComplexity int, orderID string, skip *int, first *int, last *int) int
 		Parties                    func(childComplexity int, id *string) int
-		PartiesPaged               func(childComplexity int, id *string, first *int, after *string, last *int, before *string) int
+		PartiesPaged               func(childComplexity int, id *string, pagination *v2.Pagination) int
 		Party                      func(childComplexity int, id string) int
 		Proposal                   func(childComplexity int, id *string, reference *string) int
 		Proposals                  func(childComplexity int, inState *ProposalState) int
@@ -1257,6 +1259,7 @@ type MarketResolver interface {
 	Orders(ctx context.Context, obj *vega.Market, skip *int, first *int, last *int) ([]*vega.Order, error)
 	Accounts(ctx context.Context, obj *vega.Market, partyID *string) ([]*vega.Account, error)
 	Trades(ctx context.Context, obj *vega.Market, skip *int, first *int, last *int) ([]*vega.Trade, error)
+	TradesPaged(ctx context.Context, obj *vega.Market, pagination *v2.Pagination) (*v2.TradeConnection, error)
 	Depth(ctx context.Context, obj *vega.Market, maxDepth *int) (*vega.MarketDepth, error)
 	Candles(ctx context.Context, obj *vega.Market, since string, interval Interval) ([]*vega.Candle, error)
 	Data(ctx context.Context, obj *vega.Market) (*vega.MarketData, error)
@@ -1378,7 +1381,7 @@ type PaginatedMarketResolver interface {
 	Proposal(ctx context.Context, obj *vega.Market) (*vega.GovernanceData, error)
 	Orders(ctx context.Context, obj *vega.Market, skip *int, first *int, last *int) ([]*vega.Order, error)
 	Accounts(ctx context.Context, obj *vega.Market, partyID *string) ([]*vega.Account, error)
-	Trades(ctx context.Context, obj *vega.Market, first *int, after *string, last *int, before *string) (*v2.TradeConnection, error)
+	TradesPaged(ctx context.Context, obj *vega.Market, pagination *v2.Pagination) (*v2.TradeConnection, error)
 	Depth(ctx context.Context, obj *vega.Market, maxDepth *int) (*vega.MarketDepth, error)
 	Candles(ctx context.Context, obj *vega.Market, since string, interval Interval) ([]*vega.Candle, error)
 	Data(ctx context.Context, obj *vega.Market) (*vega.MarketData, error)
@@ -1388,7 +1391,7 @@ type PaginatedMarketResolver interface {
 }
 type PaginatedPartyResolver interface {
 	Orders(ctx context.Context, obj *vega.Party, skip *int, first *int, last *int) ([]*vega.Order, error)
-	Trades(ctx context.Context, obj *vega.Party, marketID *string, first *int, after *string, last *int, before *string) (*v2.TradeConnection, error)
+	TradesPaged(ctx context.Context, obj *vega.Party, marketID *string, pagination *v2.Pagination) (*v2.TradeConnection, error)
 	Accounts(ctx context.Context, obj *vega.Party, marketID *string, asset *string, typeArg *vega.AccountType) ([]*vega.Account, error)
 	Positions(ctx context.Context, obj *vega.Party) ([]*vega.Position, error)
 	Margins(ctx context.Context, obj *vega.Party, marketID *string) ([]*vega.MarginLevels, error)
@@ -1405,6 +1408,7 @@ type PaginatedPartyResolver interface {
 type PartyResolver interface {
 	Orders(ctx context.Context, obj *vega.Party, skip *int, first *int, last *int) ([]*vega.Order, error)
 	Trades(ctx context.Context, obj *vega.Party, marketID *string, skip *int, first *int, last *int) ([]*vega.Trade, error)
+	TradesPaged(ctx context.Context, obj *vega.Party, marketID *string, pagination *v2.Pagination) (*v2.TradeConnection, error)
 	Accounts(ctx context.Context, obj *vega.Party, marketID *string, asset *string, typeArg *vega.AccountType) ([]*vega.Account, error)
 	Positions(ctx context.Context, obj *vega.Party) ([]*vega.Position, error)
 	Margins(ctx context.Context, obj *vega.Party, marketID *string) ([]*vega.MarginLevels, error)
@@ -1459,10 +1463,10 @@ type ProposalTermsResolver interface {
 }
 type QueryResolver interface {
 	Markets(ctx context.Context, id *string) ([]*vega.Market, error)
-	MarketsPaged(ctx context.Context, id *string, first *int, after *string, last *int, before *string) (*v2.MarketConnection, error)
+	MarketsPaged(ctx context.Context, id *string, pagination *v2.Pagination) (*v2.MarketConnection, error)
 	Market(ctx context.Context, id string) (*vega.Market, error)
 	Parties(ctx context.Context, id *string) ([]*vega.Party, error)
-	PartiesPaged(ctx context.Context, id *string, first *int, after *string, last *int, before *string) (*v2.PartyConnection, error)
+	PartiesPaged(ctx context.Context, id *string, pagination *v2.Pagination) (*v2.PartyConnection, error)
 	Party(ctx context.Context, id string) (*vega.Party, error)
 	LastBlockHeight(ctx context.Context) (string, error)
 	OracleSpecs(ctx context.Context) ([]*v11.OracleSpec, error)
@@ -2952,6 +2956,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Market.Trades(childComplexity, args["skip"].(*int), args["first"].(*int), args["last"].(*int)), true
 
+	case "Market.tradesPaged":
+		if e.complexity.Market.TradesPaged == nil {
+			break
+		}
+
+		args, err := ec.field_Market_tradesPaged_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Market.TradesPaged(childComplexity, args["pagination"].(*v2.Pagination)), true
+
 	case "Market.tradingMode":
 		if e.complexity.Market.TradingMode == nil {
 			break
@@ -4130,17 +4146,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PaginatedMarket.TradableInstrument(childComplexity), true
 
-	case "PaginatedMarket.trades":
-		if e.complexity.PaginatedMarket.Trades == nil {
+	case "PaginatedMarket.tradesPaged":
+		if e.complexity.PaginatedMarket.TradesPaged == nil {
 			break
 		}
 
-		args, err := ec.field_PaginatedMarket_trades_args(context.TODO(), rawArgs)
+		args, err := ec.field_PaginatedMarket_tradesPaged_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.PaginatedMarket.Trades(childComplexity, args["first"].(*int), args["after"].(*string), args["last"].(*int), args["before"].(*string)), true
+		return e.complexity.PaginatedMarket.TradesPaged(childComplexity, args["pagination"].(*v2.Pagination)), true
 
 	case "PaginatedMarket.tradingMode":
 		if e.complexity.PaginatedMarket.TradingMode == nil {
@@ -4273,17 +4289,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PaginatedParty.Stake(childComplexity), true
 
-	case "PaginatedParty.trades":
-		if e.complexity.PaginatedParty.Trades == nil {
+	case "PaginatedParty.tradesPaged":
+		if e.complexity.PaginatedParty.TradesPaged == nil {
 			break
 		}
 
-		args, err := ec.field_PaginatedParty_trades_args(context.TODO(), rawArgs)
+		args, err := ec.field_PaginatedParty_tradesPaged_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.PaginatedParty.Trades(childComplexity, args["marketId"].(*string), args["first"].(*int), args["after"].(*string), args["last"].(*int), args["before"].(*string)), true
+		return e.complexity.PaginatedParty.TradesPaged(childComplexity, args["marketId"].(*string), args["pagination"].(*v2.Pagination)), true
 
 	case "PaginatedParty.votes":
 		if e.complexity.PaginatedParty.Votes == nil {
@@ -4441,6 +4457,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Party.Trades(childComplexity, args["marketId"].(*string), args["skip"].(*int), args["first"].(*int), args["last"].(*int)), true
+
+	case "Party.tradesPaged":
+		if e.complexity.Party.TradesPaged == nil {
+			break
+		}
+
+		args, err := ec.field_Party_tradesPaged_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Party.TradesPaged(childComplexity, args["marketId"].(*string), args["pagination"].(*v2.Pagination)), true
 
 	case "Party.votes":
 		if e.complexity.Party.Votes == nil {
@@ -5034,7 +5062,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.MarketsPaged(childComplexity, args["id"].(*string), args["first"].(*int), args["after"].(*string), args["last"].(*int), args["before"].(*string)), true
+		return e.complexity.Query.MarketsPaged(childComplexity, args["id"].(*string), args["pagination"].(*v2.Pagination)), true
 
 	case "Query.networkLimits":
 		if e.complexity.Query.NetworkLimits == nil {
@@ -5225,7 +5253,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.PartiesPaged(childComplexity, args["id"].(*string), args["first"].(*int), args["after"].(*string), args["last"].(*int), args["before"].(*string)), true
+		return e.complexity.Query.PartiesPaged(childComplexity, args["id"].(*string), args["pagination"].(*v2.Pagination)), true
 
 	case "Query.party":
 		if e.complexity.Query.Party == nil {
@@ -6941,10 +6969,7 @@ type Query {
 
   marketsPaged(
     id: ID
-    first: Int
-    after: String
-    last: Int
-    before: String
+    pagination: Pagination
   ): MarketConnection!
 
   "An instrument that is trading on the VEGA network"
@@ -6955,10 +6980,7 @@ type Query {
 
   partiesPaged(
     id: ID
-    first: Int
-    after: String
-    last: Int
-    before: String
+    pagination: Pagination
   ): PartyConnection!
 
   "An entity that is trading on the VEGA network"
@@ -7298,8 +7320,7 @@ type Epoch {
     "Pagination first element"
     first: Int
     "Pagination last element"
-    last: Int
-  ): [Delegation!]!
+    last: Int): [Delegation!]!
 }
 
 type NodeData {
@@ -7386,15 +7407,13 @@ type Node {
   status: NodeStatus!
 
   # All delegation for a node by a given party if specified, or all delegations.
-  delegations(
-    partyId: String
+  delegations(partyId: String,
     "Pagination skip"
     skip: Int
     "Pagination first element"
     first: Int
     "Pagination last element"
-    last: Int
-  ): [Delegation!]
+    last: Int): [Delegation!]
 
   "Reward scores for the current epoch for the validator"
   rewardScore: RewardScore
@@ -8041,7 +8060,9 @@ type Market {
     first: Int
     "Pagination last element"
     last: Int
-  ): [Trade!]
+  ): [Trade!] @deprecated(reason: "Use tradesPaged for cursor based pagination instead")
+
+  tradesPaged(pagination: Pagination): TradeConnection!
 
   "Current depth on the order book for this market"
   depth(
@@ -8176,7 +8197,9 @@ type Party {
     first: Int
     "Pagination last element"
     last: Int
-  ): [Trade!]
+  ): [Trade!] @deprecated(reason: "Use tradesPaged for cursor based pagination instead")
+
+  tradesPaged(marketId: ID, pagination: Pagination): TradeConnection!
 
   "Collateral accounts relating to a party"
   accounts(
@@ -9691,6 +9714,13 @@ type NetworkLimits {
 """
 Pagination constructs to support cursor based pagination in the API
 """
+input Pagination {
+  first: Int
+  after: String
+  last: Int
+  before: String
+}
+
 type PageInfo {
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
@@ -9707,7 +9737,7 @@ type TradeConnection {
   "The total number of trades in this connection"
   totalCount: Int!
   "The trade in this connection"
-  edges: [TradeEdge]!
+  edges: [TradeEdge!]!
   "The pagination information"
   pageInfo: PageInfo!
 }
@@ -9728,17 +9758,10 @@ type PaginatedParty {
   ): [Order!]
 
   "Trades relating to a party (specifically where party is either buyer OR seller)"
-  trades(
+  tradesPaged(
     "ID of the market we want to get trades for"
     marketId: ID
-    "Number of elements to retrieve after the cursor"
-    first: Int
-    "Cursor of the element to retrieve data after"
-    after: String
-    "Number of element to retrieve data before"
-    last: Int
-    "Cursor of the element to retrieve data before"
-    before: String
+    pagination: Pagination
   ): TradeConnection!
 
   "Collateral accounts relating to a party"
@@ -9821,7 +9844,7 @@ type PartyConnection {
   "The total number of parties in this connection"
   totalCount: Int!
   "The parties in this connection"
-  edges: [PartyEdge]!
+  edges: [PartyEdge!]!
   "The pagination information"
   pageInfo: PageInfo!
 }
@@ -9903,15 +9926,9 @@ type PaginatedMarket {
   ): [Account!]
 
   "Trades on a market"
-  trades(
-    "Number of elements to retrieve after the cursor"
-    first: Int
-    "Cursor of the element to retrieve data after"
-    after: String
-    "Number of element to retrieve data before"
-    last: Int
-    "Cursor of the element to retrieve data before"
-    before: String
+  tradesPaged(
+    "Cursor based page information to retrieve"
+    pagination: Pagination
   ): TradeConnection!
 
   "Current depth on the order book for this market"
@@ -9953,7 +9970,7 @@ type MarketConnection {
   "The total number of markets in this connection"
   totalCount: Int!
   "The markets in this connection"
-  edges: [MarketEdge]!
+  edges: [MarketEdge!]!
   "The pagination information"
   pageInfo: PageInfo!
 }
@@ -10115,6 +10132,21 @@ func (ec *executionContext) field_Market_orders_args(ctx context.Context, rawArg
 		}
 	}
 	args["last"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Market_tradesPaged_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *v2.Pagination
+	if tmp, ok := rawArgs["pagination"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+		arg0, err = ec.unmarshalOPagination2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPagination(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["pagination"] = arg0
 	return args, nil
 }
 
@@ -10295,45 +10327,18 @@ func (ec *executionContext) field_PaginatedMarket_orders_args(ctx context.Contex
 	return args, nil
 }
 
-func (ec *executionContext) field_PaginatedMarket_trades_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_PaginatedMarket_tradesPaged_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+	var arg0 *v2.Pagination
+	if tmp, ok := rawArgs["pagination"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+		arg0, err = ec.unmarshalOPagination2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPagination(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["first"] = arg0
-	var arg1 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
-		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg1
-	var arg2 *int
-	if tmp, ok := rawArgs["last"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
-		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["last"] = arg2
-	var arg3 *string
-	if tmp, ok := rawArgs["before"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
-		arg3, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["before"] = arg3
+	args["pagination"] = arg0
 	return args, nil
 }
 
@@ -10556,7 +10561,7 @@ func (ec *executionContext) field_PaginatedParty_rewards_args(ctx context.Contex
 	return args, nil
 }
 
-func (ec *executionContext) field_PaginatedParty_trades_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_PaginatedParty_tradesPaged_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *string
@@ -10568,42 +10573,15 @@ func (ec *executionContext) field_PaginatedParty_trades_args(ctx context.Context
 		}
 	}
 	args["marketId"] = arg0
-	var arg1 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+	var arg1 *v2.Pagination
+	if tmp, ok := rawArgs["pagination"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+		arg1, err = ec.unmarshalOPagination2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPagination(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["first"] = arg1
-	var arg2 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
-		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg2
-	var arg3 *int
-	if tmp, ok := rawArgs["last"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
-		arg3, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["last"] = arg3
-	var arg4 *string
-	if tmp, ok := rawArgs["before"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
-		arg4, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["before"] = arg4
+	args["pagination"] = arg1
 	return args, nil
 }
 
@@ -10823,6 +10801,30 @@ func (ec *executionContext) field_Party_rewards_args(ctx context.Context, rawArg
 		}
 	}
 	args["last"] = arg3
+	return args, nil
+}
+
+func (ec *executionContext) field_Party_tradesPaged_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["marketId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("marketId"))
+		arg0, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["marketId"] = arg0
+	var arg1 *v2.Pagination
+	if tmp, ok := rawArgs["pagination"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+		arg1, err = ec.unmarshalOPagination2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPagination(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["pagination"] = arg1
 	return args, nil
 }
 
@@ -11147,42 +11149,15 @@ func (ec *executionContext) field_Query_marketsPaged_args(ctx context.Context, r
 		}
 	}
 	args["id"] = arg0
-	var arg1 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+	var arg1 *v2.Pagination
+	if tmp, ok := rawArgs["pagination"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+		arg1, err = ec.unmarshalOPagination2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPagination(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["first"] = arg1
-	var arg2 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
-		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg2
-	var arg3 *int
-	if tmp, ok := rawArgs["last"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
-		arg3, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["last"] = arg3
-	var arg4 *string
-	if tmp, ok := rawArgs["before"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
-		arg4, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["before"] = arg4
+	args["pagination"] = arg1
 	return args, nil
 }
 
@@ -11414,42 +11389,15 @@ func (ec *executionContext) field_Query_partiesPaged_args(ctx context.Context, r
 		}
 	}
 	args["id"] = arg0
-	var arg1 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+	var arg1 *v2.Pagination
+	if tmp, ok := rawArgs["pagination"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+		arg1, err = ec.unmarshalOPagination2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPagination(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["first"] = arg1
-	var arg2 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
-		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg2
-	var arg3 *int
-	if tmp, ok := rawArgs["last"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
-		arg3, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["last"] = arg3
-	var arg4 *string
-	if tmp, ok := rawArgs["before"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
-		arg4, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["before"] = arg4
+	args["pagination"] = arg1
 	return args, nil
 }
 
@@ -18099,6 +18047,48 @@ func (ec *executionContext) _Market_trades(ctx context.Context, field graphql.Co
 	return ec.marshalOTrade2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐTradeᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Market_tradesPaged(ctx context.Context, field graphql.CollectedField, obj *vega.Market) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Market",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Market_tradesPaged_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Market().TradesPaged(rctx, obj, args["pagination"].(*v2.Pagination))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*v2.TradeConnection)
+	fc.Result = res
+	return ec.marshalNTradeConnection2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐTradeConnection(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Market_depth(ctx context.Context, field graphql.CollectedField, obj *vega.Market) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -18385,7 +18375,7 @@ func (ec *executionContext) _MarketConnection_edges(ctx context.Context, field g
 	}
 	res := resTmp.([]*v2.MarketEdge)
 	fc.Result = res
-	return ec.marshalNMarketEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐMarketEdge(ctx, field.Selections, res)
+	return ec.marshalNMarketEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐMarketEdgeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _MarketConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *v2.MarketConnection) (ret graphql.Marshaler) {
@@ -23725,7 +23715,7 @@ func (ec *executionContext) _PaginatedMarket_accounts(ctx context.Context, field
 	return ec.marshalOAccount2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐAccountᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _PaginatedMarket_trades(ctx context.Context, field graphql.CollectedField, obj *vega.Market) (ret graphql.Marshaler) {
+func (ec *executionContext) _PaginatedMarket_tradesPaged(ctx context.Context, field graphql.CollectedField, obj *vega.Market) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -23742,7 +23732,7 @@ func (ec *executionContext) _PaginatedMarket_trades(ctx context.Context, field g
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_PaginatedMarket_trades_args(ctx, rawArgs)
+	args, err := ec.field_PaginatedMarket_tradesPaged_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -23750,7 +23740,7 @@ func (ec *executionContext) _PaginatedMarket_trades(ctx context.Context, field g
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.PaginatedMarket().Trades(rctx, obj, args["first"].(*int), args["after"].(*string), args["last"].(*int), args["before"].(*string))
+		return ec.resolvers.PaginatedMarket().TradesPaged(rctx, obj, args["pagination"].(*v2.Pagination))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24060,7 +24050,7 @@ func (ec *executionContext) _PaginatedParty_orders(ctx context.Context, field gr
 	return ec.marshalOOrder2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐOrderᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _PaginatedParty_trades(ctx context.Context, field graphql.CollectedField, obj *vega.Party) (ret graphql.Marshaler) {
+func (ec *executionContext) _PaginatedParty_tradesPaged(ctx context.Context, field graphql.CollectedField, obj *vega.Party) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -24077,7 +24067,7 @@ func (ec *executionContext) _PaginatedParty_trades(ctx context.Context, field gr
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_PaginatedParty_trades_args(ctx, rawArgs)
+	args, err := ec.field_PaginatedParty_tradesPaged_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -24085,7 +24075,7 @@ func (ec *executionContext) _PaginatedParty_trades(ctx context.Context, field gr
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.PaginatedParty().Trades(rctx, obj, args["marketId"].(*string), args["first"].(*int), args["after"].(*string), args["last"].(*int), args["before"].(*string))
+		return ec.resolvers.PaginatedParty().TradesPaged(rctx, obj, args["marketId"].(*string), args["pagination"].(*v2.Pagination))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24651,6 +24641,48 @@ func (ec *executionContext) _Party_trades(ctx context.Context, field graphql.Col
 	return ec.marshalOTrade2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐTradeᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Party_tradesPaged(ctx context.Context, field graphql.CollectedField, obj *vega.Party) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Party",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Party_tradesPaged_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Party().TradesPaged(rctx, obj, args["marketId"].(*string), args["pagination"].(*v2.Pagination))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*v2.TradeConnection)
+	fc.Result = res
+	return ec.marshalNTradeConnection2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐTradeConnection(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Party_accounts(ctx context.Context, field graphql.CollectedField, obj *vega.Party) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -25186,7 +25218,7 @@ func (ec *executionContext) _PartyConnection_edges(ctx context.Context, field gr
 	}
 	res := resTmp.([]*v2.PartyEdge)
 	fc.Result = res
-	return ec.marshalNPartyEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPartyEdge(ctx, field.Selections, res)
+	return ec.marshalNPartyEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPartyEdgeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PartyConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *v2.PartyConnection) (ret graphql.Marshaler) {
@@ -27317,7 +27349,7 @@ func (ec *executionContext) _Query_marketsPaged(ctx context.Context, field graph
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().MarketsPaged(rctx, args["id"].(*string), args["first"].(*int), args["after"].(*string), args["last"].(*int), args["before"].(*string))
+		return ec.resolvers.Query().MarketsPaged(rctx, args["id"].(*string), args["pagination"].(*v2.Pagination))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -27437,7 +27469,7 @@ func (ec *executionContext) _Query_partiesPaged(ctx context.Context, field graph
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().PartiesPaged(rctx, args["id"].(*string), args["first"].(*int), args["after"].(*string), args["last"].(*int), args["before"].(*string))
+		return ec.resolvers.Query().PartiesPaged(rctx, args["id"].(*string), args["pagination"].(*v2.Pagination))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -33116,7 +33148,7 @@ func (ec *executionContext) _TradeConnection_edges(ctx context.Context, field gr
 	}
 	res := resTmp.([]*v2.TradeEdge)
 	fc.Result = res
-	return ec.marshalNTradeEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐTradeEdge(ctx, field.Selections, res)
+	return ec.marshalNTradeEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐTradeEdgeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TradeConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *v2.TradeConnection) (ret graphql.Marshaler) {
@@ -36276,6 +36308,53 @@ func (ec *executionContext) unmarshalInputAccountFilter(ctx context.Context, obj
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("accountTypes"))
 			it.AccountTypes, err = ec.unmarshalOAccountType2ᚕcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐAccountTypeᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputPagination(ctx context.Context, obj interface{}) (v2.Pagination, error) {
+	var it v2.Pagination
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "first":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+			it.First, err = ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "after":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+			it.After, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "last":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
+			it.Last, err = ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "before":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
+			it.Before, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -39833,6 +39912,26 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 				return innerFunc(ctx)
 
 			})
+		case "tradesPaged":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Market_tradesPaged(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "depth":
 			field := field
 
@@ -42664,7 +42763,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 				return innerFunc(ctx)
 
 			})
-		case "trades":
+		case "tradesPaged":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -42673,7 +42772,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._PaginatedMarket_trades(ctx, field, obj)
+				res = ec._PaginatedMarket_tradesPaged(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -42830,7 +42929,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 				return innerFunc(ctx)
 
 			})
-		case "trades":
+		case "tradesPaged":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -42839,7 +42938,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._PaginatedParty_trades(ctx, field, obj)
+				res = ec._PaginatedParty_tradesPaged(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -43115,6 +43214,26 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 					}
 				}()
 				res = ec._Party_trades(ctx, field, obj)
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "tradesPaged":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Party_tradesPaged(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -49678,7 +49797,7 @@ func (ec *executionContext) marshalNMarketDepthUpdate2ᚖcodeᚗvegaprotocolᚗi
 	return ec._MarketDepthUpdate(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNMarketEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐMarketEdge(ctx context.Context, sel ast.SelectionSet, v []*v2.MarketEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNMarketEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐMarketEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*v2.MarketEdge) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -49702,7 +49821,7 @@ func (ec *executionContext) marshalNMarketEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOMarketEdge2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐMarketEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalNMarketEdge2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐMarketEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -49713,7 +49832,23 @@ func (ec *executionContext) marshalNMarketEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋ
 	}
 	wg.Wait()
 
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
+}
+
+func (ec *executionContext) marshalNMarketEdge2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐMarketEdge(ctx context.Context, sel ast.SelectionSet, v *v2.MarketEdge) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._MarketEdge(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNMarketState2codeᚗvegaprotocolᚗioᚋdataᚑnodeᚋgatewayᚋgraphqlᚐMarketState(ctx context.Context, v interface{}) (MarketState, error) {
@@ -50048,7 +50183,7 @@ func (ec *executionContext) marshalNPartyConnection2ᚖcodeᚗvegaprotocolᚗio�
 	return ec._PartyConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNPartyEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPartyEdge(ctx context.Context, sel ast.SelectionSet, v []*v2.PartyEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNPartyEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPartyEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*v2.PartyEdge) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -50072,7 +50207,7 @@ func (ec *executionContext) marshalNPartyEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋp
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOPartyEdge2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPartyEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalNPartyEdge2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPartyEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -50083,7 +50218,23 @@ func (ec *executionContext) marshalNPartyEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋp
 	}
 	wg.Wait()
 
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
+}
+
+func (ec *executionContext) marshalNPartyEdge2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPartyEdge(ctx context.Context, sel ast.SelectionSet, v *v2.PartyEdge) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._PartyEdge(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNPartyStake2codeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv1ᚐPartyStakeResponse(ctx context.Context, sel ast.SelectionSet, v v12.PartyStakeResponse) graphql.Marshaler {
@@ -50504,7 +50655,7 @@ func (ec *executionContext) marshalNTradeConnection2ᚖcodeᚗvegaprotocolᚗio�
 	return ec._TradeConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNTradeEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐTradeEdge(ctx context.Context, sel ast.SelectionSet, v []*v2.TradeEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNTradeEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐTradeEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*v2.TradeEdge) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -50528,7 +50679,7 @@ func (ec *executionContext) marshalNTradeEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋp
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOTradeEdge2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐTradeEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalNTradeEdge2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐTradeEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -50539,7 +50690,23 @@ func (ec *executionContext) marshalNTradeEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋp
 	}
 	wg.Wait()
 
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
+}
+
+func (ec *executionContext) marshalNTradeEdge2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐTradeEdge(ctx context.Context, sel ast.SelectionSet, v *v2.TradeEdge) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._TradeEdge(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNTradeFee2codeᚗvegaprotocolᚗioᚋdataᚑnodeᚋgatewayᚋgraphqlᚐTradeFee(ctx context.Context, sel ast.SelectionSet, v TradeFee) graphql.Marshaler {
@@ -51716,6 +51883,22 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return res
 }
 
+func (ec *executionContext) unmarshalOInt2ᚖint32(ctx context.Context, v interface{}) (*int32, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalInt32(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2ᚖint32(ctx context.Context, sel ast.SelectionSet, v *int32) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalInt32(*v)
+	return res
+}
+
 func (ec *executionContext) marshalOKeyRotation2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv1ᚐKeyRotationᚄ(ctx context.Context, sel ast.SelectionSet, v []*v12.KeyRotation) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -52168,13 +52351,6 @@ func (ec *executionContext) marshalOMarketData2ᚖcodeᚗvegaprotocolᚗioᚋpro
 	return ec._MarketData(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOMarketEdge2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐMarketEdge(ctx context.Context, sel ast.SelectionSet, v *v2.MarketEdge) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._MarketEdge(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalONetworkLimits2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐNetworkLimits(ctx context.Context, sel ast.SelectionSet, v *vega.NetworkLimits) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -52547,6 +52723,14 @@ func (ec *executionContext) marshalOOrderType2ᚖcodeᚗvegaprotocolᚗioᚋdata
 	return v
 }
 
+func (ec *executionContext) unmarshalOPagination2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPagination(ctx context.Context, v interface{}) (*v2.Pagination, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputPagination(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalOParty2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐPartyᚄ(ctx context.Context, sel ast.SelectionSet, v []*vega.Party) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -52599,13 +52783,6 @@ func (ec *executionContext) marshalOParty2ᚖcodeᚗvegaprotocolᚗioᚋprotos�
 		return graphql.Null
 	}
 	return ec._Party(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOPartyEdge2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPartyEdge(ctx context.Context, sel ast.SelectionSet, v *v2.PartyEdge) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._PartyEdge(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOPeggedOrder2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐPeggedOrder(ctx context.Context, sel ast.SelectionSet, v *vega.PeggedOrder) graphql.Marshaler {
@@ -53392,13 +53569,6 @@ func (ec *executionContext) marshalOTrade2ᚖcodeᚗvegaprotocolᚗioᚋprotos�
 		return graphql.Null
 	}
 	return ec._Trade(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOTradeEdge2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐTradeEdge(ctx context.Context, sel ast.SelectionSet, v *v2.TradeEdge) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._TradeEdge(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOTradeSettlement2ᚕᚖcodeᚗvegaprotocolᚗioᚋdataᚑnodeᚋgatewayᚋgraphqlᚐTradeSettlementᚄ(ctx context.Context, sel ast.SelectionSet, v []*TradeSettlement) graphql.Marshaler {

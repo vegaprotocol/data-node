@@ -2,10 +2,10 @@ package entities
 
 type PagedEntity interface {
 	Market | Party | Trade
-	Cursor() string
+	Cursor() *Cursor
 }
 
-func PageEntities[T PagedEntity](items []T, cursor Cursor) ([]T, PageInfo) {
+func PageEntities[T PagedEntity](items []T, pagination Pagination) ([]T, PageInfo) {
 	var pagedItems []T
 	var limit int
 	var pageInfo PageInfo
@@ -14,15 +14,15 @@ func PageEntities[T PagedEntity](items []T, cursor Cursor) ([]T, PageInfo) {
 		return pagedItems, pageInfo
 	}
 
-	if cursor.Forward != nil && cursor.Forward.Limit != nil {
-		limit = int(*cursor.Forward.Limit)
+	if pagination.HasForward() && pagination.Forward.Limit != nil {
+		limit = int(*pagination.Forward.Limit)
 		switch len(items) {
 		case limit + 2:
 			pagedItems = items[1 : limit+1]
 			pageInfo.HasNextPage = true
 			pageInfo.HasPreviousPage = true
 		case limit + 1:
-			if cursor.Forward.Cursor == nil {
+			if !pagination.Forward.HasCursor() {
 				pagedItems = items[0:limit]
 				pageInfo.HasNextPage = true
 				pageInfo.HasPreviousPage = false
@@ -32,19 +32,26 @@ func PageEntities[T PagedEntity](items []T, cursor Cursor) ([]T, PageInfo) {
 				pageInfo.HasPreviousPage = true
 			}
 		default:
-			pagedItems = items
-			pageInfo.HasNextPage = false
-			pageInfo.HasPreviousPage = false
+			// if the pagination for the first item is the same as the after pagination, then we have a previous page, and we shouldn't include it
+			if pagination.HasForward() && pagination.Forward.HasCursor() && pagination.Forward.Cursor.Value() == items[0].Cursor().Value() {
+				pagedItems = items[1:]
+				pageInfo.HasNextPage = false
+				pageInfo.HasPreviousPage = true
+			} else {
+				pagedItems = items
+				pageInfo.HasNextPage = false
+				pageInfo.HasPreviousPage = false
+			}
 		}
-	} else if cursor.Backward != nil && cursor.Backward.Limit != nil {
-		limit = int(*cursor.Backward.Limit)
+	} else if pagination.HasBackward() && pagination.Backward.Limit != nil {
+		limit = int(*pagination.Backward.Limit)
 		switch len(items) {
 		case limit + 2:
 			pagedItems = reverseSlice(items[1 : limit+1])
 			pageInfo.HasNextPage = true
 			pageInfo.HasPreviousPage = true
 		case limit + 1:
-			if cursor.Backward.Cursor == nil {
+			if !pagination.Backward.HasCursor() {
 				pagedItems = reverseSlice(items[0:limit])
 				pageInfo.HasNextPage = false
 				pageInfo.HasPreviousPage = true
@@ -55,8 +62,14 @@ func PageEntities[T PagedEntity](items []T, cursor Cursor) ([]T, PageInfo) {
 			}
 		default:
 			pagedItems = reverseSlice(items)
-			pageInfo.HasNextPage = false
-			pageInfo.HasPreviousPage = false
+			if pagination.HasBackward() && pagination.Backward.HasCursor() && pagination.Backward.Cursor.Value() == pagedItems[0].Cursor().Value() {
+				pagedItems = pagedItems[1:]
+				pageInfo.HasNextPage = true
+				pageInfo.HasPreviousPage = false
+			} else {
+				pageInfo.HasNextPage = false
+				pageInfo.HasPreviousPage = false
+			}
 		}
 	} else {
 		pagedItems = items
@@ -64,8 +77,10 @@ func PageEntities[T PagedEntity](items []T, cursor Cursor) ([]T, PageInfo) {
 		pageInfo.HasPreviousPage = false
 	}
 
-	pageInfo.StartCursor = pagedItems[0].Cursor()
-	pageInfo.EndCursor = pagedItems[len(pagedItems)-1].Cursor()
+	if len(pagedItems) > 0 {
+		pageInfo.StartCursor = pagedItems[0].Cursor().Encode()
+		pageInfo.EndCursor = pagedItems[len(pagedItems)-1].Cursor().Encode()
+	}
 
 	return pagedItems, pageInfo
 }

@@ -923,11 +923,11 @@ func (r *myQueryResolver) HistoricBalances(ctx context.Context, filter *v2.Accou
 		}
 		gb[i] = *g
 	}
-	req := &v2.QueryBalanceHistoryRequest{}
+	req := &v2.GetBalanceHistoryRequest{}
 	req.GroupBy = gb
 	req.Filter = filter
 
-	resp, err := r.tradingDataClientV2.QueryBalanceHistory(ctx, req)
+	resp, err := r.tradingDataClientV2.GetBalanceHistory(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -985,7 +985,7 @@ func makePagination(skip, first, last *int) *protoapi.Pagination {
 	}
 }
 
-func makeApiV2Pagination(skip, first, last *int) *v2.Pagination {
+func makeApiV2Pagination(skip, first, last *int) *v2.OffsetPagination {
 	var (
 		offset, limit uint64
 		descending    bool
@@ -999,7 +999,7 @@ func makeApiV2Pagination(skip, first, last *int) *v2.Pagination {
 	} else if first != nil {
 		limit = uint64(*first)
 	}
-	return &v2.Pagination{
+	return &v2.OffsetPagination{
 		Skip:       offset,
 		Limit:      limit,
 		Descending: descending,
@@ -1171,6 +1171,26 @@ func (r *myPartyResolver) Trades(ctx context.Context, party *types.Party,
 	}
 	// mandatory return field in schema
 	return []*types.Trade{}, nil
+}
+
+func (r *myPartyResolver) TradesPaged(ctx context.Context, party *types.Party, market *string, pagination *v2.Pagination) (*v2.TradeConnection, error) {
+	var mkt string
+	if market != nil {
+		mkt = *market
+	}
+
+	req := v2.GetTradesByPartyRequest{
+		PartyId:    party.Id,
+		MarketId:   mkt,
+		Pagination: pagination,
+	}
+
+	res, err := r.tradingDataClientV2.GetTradesByParty(ctx, &req)
+	if err != nil {
+		r.log.Error("tradingData client", logging.Error(err))
+		return nil, customErrorFromStatus(err)
+	}
+	return res.Trades, nil
 }
 
 func (r *myPartyResolver) Positions(ctx context.Context, party *types.Party) ([]*types.Position, error) {
@@ -2663,7 +2683,7 @@ func (r *myQueryResolver) getMarketDataByID(ctx context.Context, id string) ([]*
 	return r.getMarketData(ctx, &req)
 }
 
-func (r *myQueryResolver) getMarketDataHistoryByID(ctx context.Context, id string, start, end int64, pagination *v2.Pagination) ([]*types.MarketData, error) {
+func (r *myQueryResolver) getMarketDataHistoryByID(ctx context.Context, id string, start, end int64, pagination *v2.OffsetPagination) ([]*types.MarketData, error) {
 	startTime := time.Unix(start, 0).UnixNano()
 	endTime := time.Unix(end, 0).UnixNano()
 
@@ -2677,7 +2697,7 @@ func (r *myQueryResolver) getMarketDataHistoryByID(ctx context.Context, id strin
 	return r.getMarketData(ctx, &req)
 }
 
-func (r *myQueryResolver) getMarketDataHistoryFromDateByID(ctx context.Context, id string, start int64, pagination *v2.Pagination) ([]*types.MarketData, error) {
+func (r *myQueryResolver) getMarketDataHistoryFromDateByID(ctx context.Context, id string, start int64, pagination *v2.OffsetPagination) ([]*types.MarketData, error) {
 	startTime := time.Unix(start, 0).UnixNano()
 
 	req := v2.GetMarketDataHistoryByIDRequest{
@@ -2689,7 +2709,7 @@ func (r *myQueryResolver) getMarketDataHistoryFromDateByID(ctx context.Context, 
 	return r.getMarketData(ctx, &req)
 }
 
-func (r *myQueryResolver) getMarketDataHistoryToDateByID(ctx context.Context, id string, end int64, pagination *v2.Pagination) ([]*types.MarketData, error) {
+func (r *myQueryResolver) getMarketDataHistoryToDateByID(ctx context.Context, id string, end int64, pagination *v2.OffsetPagination) ([]*types.MarketData, error) {
 	endTime := time.Unix(end, 0).UnixNano()
 
 	req := v2.GetMarketDataHistoryByIDRequest{
@@ -2701,16 +2721,16 @@ func (r *myQueryResolver) getMarketDataHistoryToDateByID(ctx context.Context, id
 	return r.getMarketData(ctx, &req)
 }
 
-func (r *myQueryResolver) MarketsPaged(ctx context.Context, id *string, first *int, after *string, last *int, before *string) (*v2.MarketConnection, error) {
+func (r *myQueryResolver) MarketsPaged(ctx context.Context, id *string, pagination *v2.Pagination) (*v2.MarketConnection, error) {
 	var marketID string
 
 	if id != nil {
 		marketID = *id
 	}
 
-	resp, err := r.tradingDataClientV2.Markets(ctx, &v2.MarketsRequest{
-		MarketId: marketID,
-		Cursor:   makeCursor(first, last, after, before),
+	resp, err := r.tradingDataClientV2.GetMarkets(ctx, &v2.GetMarketsRequest{
+		MarketId:   marketID,
+		Pagination: pagination,
 	})
 	if err != nil {
 		return nil, err
@@ -2719,39 +2739,18 @@ func (r *myQueryResolver) MarketsPaged(ctx context.Context, id *string, first *i
 	return resp.Markets, nil
 }
 
-func (r *myQueryResolver) PartiesPaged(ctx context.Context, id *string, first *int, after *string, last *int, before *string) (*v2.PartyConnection, error) {
+func (r *myQueryResolver) PartiesPaged(ctx context.Context, id *string, pagination *v2.Pagination) (*v2.PartyConnection, error) {
 	var partyID string
 	if id != nil {
 		partyID = *id
 	}
-	resp, err := r.tradingDataClientV2.Parties(ctx, &v2.PartiesRequest{
-		PartyId: partyID,
-		Cursor:  makeCursor(first, last, after, before),
+	resp, err := r.tradingDataClientV2.GetParties(ctx, &v2.GetPartiesRequest{
+		PartyId:    partyID,
+		Pagination: pagination,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return resp.Party, nil
-}
-
-func makeCursor(first, last *int, before, after *string) *v2.Cursor {
-	var firstLimit, lastLimit *int32
-
-	if first != nil {
-		v := int32(*first)
-		firstLimit = &v
-	}
-
-	if last != nil {
-		v := int32(*last)
-		lastLimit = &v
-	}
-
-	return &v2.Cursor{
-		First:  firstLimit,
-		Last:   lastLimit,
-		Before: before,
-		After:  after,
-	}
 }

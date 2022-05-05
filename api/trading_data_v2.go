@@ -20,7 +20,7 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-var defaultPaginationV2 = entities.Pagination{
+var defaultPaginationV2 = entities.OffsetPagination{
 	Skip:       0,
 	Limit:      1000,
 	Descending: true,
@@ -42,7 +42,7 @@ type tradingDataServiceV2 struct {
 	partiesStore             *sqlstore.Parties
 }
 
-func (t *tradingDataServiceV2) QueryBalanceHistory(ctx context.Context, req *v2.QueryBalanceHistoryRequest) (*v2.QueryBalanceHistoryResponse, error) {
+func (t *tradingDataServiceV2) QueryBalanceHistory(ctx context.Context, req *v2.GetBalanceHistoryRequest) (*v2.GetBalanceHistoryResponse, error) {
 	if t.balanceStore == nil {
 		return nil, fmt.Errorf("sql balance store not available")
 	}
@@ -72,17 +72,17 @@ func (t *tradingDataServiceV2) QueryBalanceHistory(ctx context.Context, req *v2.
 		pbBalances[i] = &pbBalance
 	}
 
-	return &v2.QueryBalanceHistoryResponse{Balances: pbBalances}, nil
+	return &v2.GetBalanceHistoryResponse{Balances: pbBalances}, nil
 }
 
-func (t *tradingDataServiceV2) OrdersByMarket(ctx context.Context, req *v2.OrdersByMarketRequest) (*v2.OrdersByMarketResponse, error) {
+func (t *tradingDataServiceV2) OrdersByMarket(ctx context.Context, req *v2.GetOrdersByMarketRequest) (*v2.GetOrdersByMarketResponse, error) {
 	if t.orderStore == nil {
 		return nil, errors.New("sql order store not available")
 	}
 
 	p := defaultPaginationV2
 	if req.Pagination != nil {
-		p = entities.PaginationFromProto(req.Pagination)
+		p = entities.OffsetPaginationFromProto(req.Pagination)
 	}
 
 	orders, err := t.orderStore.GetByMarket(ctx, req.MarketId, p)
@@ -95,7 +95,7 @@ func (t *tradingDataServiceV2) OrdersByMarket(ctx context.Context, req *v2.Order
 		pbOrders[i] = order.ToProto()
 	}
 
-	return &v2.OrdersByMarketResponse{
+	return &v2.GetOrdersByMarketResponse{
 		Orders: pbOrders,
 	}, nil
 }
@@ -131,7 +131,7 @@ func (t *tradingDataServiceV2) GetMarketDataHistoryByID(ctx context.Context, req
 
 	pagination := defaultPaginationV2
 	if req.Pagination != nil {
-		pagination = entities.PaginationFromProto(req.Pagination)
+		pagination = entities.OffsetPaginationFromProto(req.Pagination)
 	}
 
 	if req.StartTimestamp != nil && req.EndTimestamp != nil {
@@ -157,7 +157,7 @@ func parseMarketDataResults(results []entities.MarketData) (*v2.GetMarketDataHis
 	return &response, nil
 }
 
-func (t *tradingDataServiceV2) getMarketDataHistoryByID(ctx context.Context, id string, start, end time.Time, pagination entities.Pagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
+func (t *tradingDataServiceV2) getMarketDataHistoryByID(ctx context.Context, id string, start, end time.Time, pagination entities.OffsetPagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
 	results, err := t.marketDataStore.GetBetweenDatesByID(ctx, id, start, end, pagination)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
@@ -175,7 +175,7 @@ func (t *tradingDataServiceV2) getMarketDataByID(ctx context.Context, id string)
 	return parseMarketDataResults([]entities.MarketData{results})
 }
 
-func (t *tradingDataServiceV2) getMarketDataHistoryFromDateByID(ctx context.Context, id string, start time.Time, pagination entities.Pagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
+func (t *tradingDataServiceV2) getMarketDataHistoryFromDateByID(ctx context.Context, id string, start time.Time, pagination entities.OffsetPagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
 	results, err := t.marketDataStore.GetFromDateByID(ctx, id, start, pagination)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
@@ -184,7 +184,7 @@ func (t *tradingDataServiceV2) getMarketDataHistoryFromDateByID(ctx context.Cont
 	return parseMarketDataResults(results)
 }
 
-func (t *tradingDataServiceV2) getMarketDataHistoryToDateByID(ctx context.Context, id string, end time.Time, pagination entities.Pagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
+func (t *tradingDataServiceV2) getMarketDataHistoryToDateByID(ctx context.Context, id string, end time.Time, pagination entities.OffsetPagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
 	results, err := t.marketDataStore.GetToDateByID(ctx, id, end, pagination)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
@@ -217,7 +217,7 @@ func (t *tradingDataServiceV2) GetCandleData(ctx context.Context, req *v2.GetCan
 
 	pagination := defaultPaginationV2
 	if req.Pagination != nil {
-		pagination = entities.PaginationFromProto(req.Pagination)
+		pagination = entities.OffsetPaginationFromProto(req.Pagination)
 	}
 
 	candles, err := t.candleServiceV2.GetCandleDataForTimeSpan(ctx, req.CandleId, &from, &to, pagination)
@@ -326,7 +326,7 @@ func (t *tradingDataServiceV2) GetERC20MultiSigSignerAddedBundles(ctx context.Co
 
 	p := defaultPaginationV2
 	if req.Pagination != nil {
-		p = entities.PaginationFromProto(req.Pagination)
+		p = entities.OffsetPaginationFromProto(req.Pagination)
 	}
 
 	res, err := t.multiSigSignerEventStore.GetAddedEvents(ctx, nodeID, epochID, p)
@@ -398,7 +398,7 @@ func (t *tradingDataServiceV2) GetERC20MultiSigSignerRemovedBundles(ctx context.
 
 	p := defaultPaginationV2
 	if req.Pagination != nil {
-		p = entities.PaginationFromProto(req.Pagination)
+		p = entities.OffsetPaginationFromProto(req.Pagination)
 	}
 
 	res, err := t.multiSigSignerEventStore.GetRemovedEvents(ctx, nodeID, strings.TrimPrefix(submitter, "0x"), epochID, p)
@@ -490,13 +490,13 @@ func (t *tradingDataServiceV2) GetERC20AssetBundle(ctx context.Context, req *v2.
 }
 
 // Get trades by market using a cursor based pagination model
-func (t *tradingDataServiceV2) TradesByMarket(ctx context.Context, in *v2.TradesByMarketRequest) (*v2.TradesByMarketResponse, error) {
+func (t *tradingDataServiceV2) GetTradesByMarket(ctx context.Context, in *v2.GetTradesByMarketRequest) (*v2.GetTradesByMarketResponse, error) {
 	market := in.GetMarketId()
 	if len(market) == 0 {
 		return nil, apiError(codes.InvalidArgument, fmt.Errorf("marketId must be supplied"))
 	}
 
-	cursor, err := entities.CursorFromProto(in.GetCursor())
+	cursor, err := entities.PaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
@@ -512,7 +512,7 @@ func (t *tradingDataServiceV2) TradesByMarket(ctx context.Context, in *v2.Trades
 		PageInfo:   pageInfo.ToProto(),
 	}
 
-	resp := &v2.TradesByMarketResponse{
+	resp := &v2.GetTradesByMarketResponse{
 		Trades: tradesConnection,
 	}
 
@@ -520,7 +520,7 @@ func (t *tradingDataServiceV2) TradesByMarket(ctx context.Context, in *v2.Trades
 }
 
 // Get trades by party using a cursor based pagination model
-func (t *tradingDataServiceV2) TradesByParty(ctx context.Context, in *v2.TradesByPartyRequest) (*v2.TradesByPartyResponse, error) {
+func (t *tradingDataServiceV2) GetTradesByParty(ctx context.Context, in *v2.GetTradesByPartyRequest) (*v2.GetTradesByPartyResponse, error) {
 	party := in.GetPartyId()
 	if len(party) == 0 {
 		return nil, apiError(codes.InvalidArgument, fmt.Errorf("partyId must be supplied"))
@@ -530,7 +530,7 @@ func (t *tradingDataServiceV2) TradesByParty(ctx context.Context, in *v2.TradesB
 		market = &in.MarketId
 	}
 
-	cursor, err := entities.CursorFromProto(in.GetCursor())
+	cursor, err := entities.PaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
@@ -546,7 +546,7 @@ func (t *tradingDataServiceV2) TradesByParty(ctx context.Context, in *v2.TradesB
 		PageInfo:   pageInfo.ToProto(),
 	}
 
-	resp := &v2.TradesByPartyResponse{
+	resp := &v2.GetTradesByPartyResponse{
 		Trades: tradesConnection,
 	}
 
@@ -558,15 +558,15 @@ func makeTradeEdges(trades []entities.Trade) []*v2.TradeEdge {
 	for i, t := range trades {
 		edges[i] = &v2.TradeEdge{
 			Node:   t.ToProto(),
-			Cursor: t.SyntheticTime.String(),
+			Cursor: t.Cursor().Encode(),
 		}
 	}
 	return edges
 }
 
 // Get all markets using a cursor based pagination model
-func (t *tradingDataServiceV2) Markets(ctx context.Context, in *v2.MarketsRequest) (*v2.MarketsResponse, error) {
-	cursor, err := entities.CursorFromProto(in.GetCursor())
+func (t *tradingDataServiceV2) GetMarkets(ctx context.Context, in *v2.GetMarketsRequest) (*v2.GetMarketsResponse, error) {
+	cursor, err := entities.PaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
@@ -581,7 +581,7 @@ func (t *tradingDataServiceV2) Markets(ctx context.Context, in *v2.MarketsReques
 		PageInfo:   pageInfo.ToProto(),
 	}
 
-	resp := &v2.MarketsResponse{
+	resp := &v2.GetMarketsResponse{
 		Markets: marketsConnection,
 	}
 
@@ -597,15 +597,15 @@ func makeMarketEdges(markets []entities.Market) []*v2.MarketEdge {
 		}
 		edges[i] = &v2.MarketEdge{
 			Node:   marketProto,
-			Cursor: fmt.Sprintf("%d", m.VegaTime.UnixNano()),
+			Cursor: m.Cursor().Encode(),
 		}
 	}
 	return edges
 }
 
 // Get Parties using a cursor based pagination model
-func (t *tradingDataServiceV2) Parties(ctx context.Context, in *v2.PartiesRequest) (*v2.PartiesResponse, error) {
-	cursor, err := entities.CursorFromProto(in.GetCursor())
+func (t *tradingDataServiceV2) GetParties(ctx context.Context, in *v2.GetPartiesRequest) (*v2.GetPartiesResponse, error) {
+	cursor, err := entities.PaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
@@ -619,7 +619,7 @@ func (t *tradingDataServiceV2) Parties(ctx context.Context, in *v2.PartiesReques
 		PageInfo:   pageInfo.ToProto(),
 	}
 
-	resp := &v2.PartiesResponse{
+	resp := &v2.GetPartiesResponse{
 		Party: partyConnection,
 	}
 	return resp, nil
@@ -630,7 +630,7 @@ func makePartyEdges(parties []entities.Party) []*v2.PartyEdge {
 	for i, p := range parties {
 		edges[i] = &v2.PartyEdge{
 			Node:   p.ToProto(),
-			Cursor: p.VegaTime.String(),
+			Cursor: p.Cursor().Encode(),
 		}
 	}
 	return edges

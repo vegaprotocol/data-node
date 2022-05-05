@@ -86,7 +86,7 @@ order by id, vega_time desc
 	return market, err
 }
 
-func (m *Markets) GetAll(ctx context.Context, pagination entities.Pagination) ([]entities.Market, error) {
+func (m *Markets) GetAll(ctx context.Context, pagination entities.OffsetPagination) ([]entities.Market, error) {
 	var markets []entities.Market
 	query := fmt.Sprintf(`select distinct on (id) %s
 from markets
@@ -101,19 +101,18 @@ order by id, vega_time desc
 	return markets, err
 }
 
-func (m *Markets) GetAllPaged(ctx context.Context, marketID string, cursor entities.Cursor) ([]entities.Market, entities.PageInfo, error) {
+func (m *Markets) GetAllPaged(ctx context.Context, marketID string, pagination entities.Pagination) ([]entities.Market, entities.PageInfo, error) {
 	if marketID != "" {
 		market, err := m.GetByID(ctx, marketID)
 		if err != nil {
 			return nil, entities.PageInfo{}, err
 		}
 
-		cursor := fmt.Sprintf("%d", market.VegaTime.UnixNano())
 		return []entities.Market{market}, entities.PageInfo{
 			HasNextPage:     false,
 			HasPreviousPage: false,
-			StartCursor:     cursor,
-			EndCursor:       cursor,
+			StartCursor:     market.Cursor().Encode(),
+			EndCursor:       market.Cursor().Encode(),
 		}, nil
 	}
 
@@ -125,17 +124,12 @@ func (m *Markets) GetAllPaged(ctx context.Context, marketID string, cursor entit
 
 	var pagedMarkets []entities.Market
 	var pageInfo entities.PageInfo
-	var err error
-	cursor, err = cursorOffsetToTimestamp(cursor)
-	if err != nil {
-		return nil, entities.PageInfo{}, err
-	}
 
-	query, args = orderAndPaginateWithCursor(query, cursor, "vega_time", args...)
+	query, args = orderAndPaginateWithCursor(query, pagination, "vega_time", args...)
 	if err := pgxscan.Select(ctx, m.Connection, &markets, query, args...); err != nil {
 		return pagedMarkets, pageInfo, err
 	}
 
-	pagedMarkets, pageInfo = entities.PageEntities(markets, cursor)
+	pagedMarkets, pageInfo = entities.PageEntities(markets, pagination)
 	return pagedMarkets, pageInfo, nil
 }

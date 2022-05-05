@@ -2,7 +2,6 @@ package sqlstore_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -327,7 +326,7 @@ func testCursorPaginationReturnsTheSpecifiedMarket(t *testing.T) {
 	defer cancel()
 	blockTimes := make(map[string]time.Time)
 	populateTestMarkets(ctx, t, bs, md, blockTimes)
-	cursor, err := entities.CursorFromProto(&v2.Cursor{
+	cursor, err := entities.PaginationFromProto(&v2.Pagination{
 		First:  nil,
 		After:  nil,
 		Last:   nil,
@@ -342,8 +341,8 @@ func testCursorPaginationReturnsTheSpecifiedMarket(t *testing.T) {
 	assert.Equal(t, "c612300d", markets[0].ID.String())
 	assert.Equal(t, "GGG", markets[0].InstrumentID)
 
-	wantStartCursor := fmt.Sprintf("%d", blockTimes["c612300d"].UnixNano())
-	wantEndCursor := fmt.Sprintf("%d", blockTimes["c612300d"].UnixNano())
+	wantStartCursor := entities.NewCursor(blockTimes["c612300d"].Format(time.RFC3339Nano)).Encode()
+	wantEndCursor := entities.NewCursor(blockTimes["c612300d"].Format(time.RFC3339Nano)).Encode()
 	assert.False(t, pageInfo.HasNextPage)
 	assert.False(t, pageInfo.HasPreviousPage)
 	assert.Equal(t, wantStartCursor, pageInfo.StartCursor)
@@ -356,7 +355,7 @@ func testCursorPaginationReturnsAllMarkets(t *testing.T) {
 	defer cancel()
 	blockTimes := make(map[string]time.Time)
 	populateTestMarkets(ctx, t, bs, md, blockTimes)
-	cursor, err := entities.CursorFromProto(&v2.Cursor{
+	cursor, err := entities.PaginationFromProto(&v2.Pagination{
 		First:  nil,
 		After:  nil,
 		Last:   nil,
@@ -373,8 +372,8 @@ func testCursorPaginationReturnsAllMarkets(t *testing.T) {
 	assert.Equal(t, "AAA", markets[0].InstrumentID)
 	assert.Equal(t, "JJJ", markets[9].InstrumentID)
 
-	wantStartCursor := fmt.Sprintf("%d", blockTimes["02a16077"].UnixNano())
-	wantEndCursor := fmt.Sprintf("%d", blockTimes["fb1528a5"].UnixNano())
+	wantStartCursor := entities.NewCursor(blockTimes["02a16077"].Format(time.RFC3339Nano)).Encode()
+	wantEndCursor := entities.NewCursor(blockTimes["fb1528a5"].Format(time.RFC3339Nano)).Encode()
 	assert.False(t, pageInfo.HasNextPage)
 	assert.False(t, pageInfo.HasPreviousPage)
 	assert.Equal(t, wantStartCursor, pageInfo.StartCursor)
@@ -388,7 +387,7 @@ func testCursorPaginationReturnsFirstPage(t *testing.T) {
 	blockTimes := make(map[string]time.Time)
 	populateTestMarkets(ctx, t, bs, md, blockTimes)
 	first := int32(3)
-	cursor, err := entities.CursorFromProto(&v2.Cursor{
+	cursor, err := entities.PaginationFromProto(&v2.Pagination{
 		First:  &first,
 		After:  nil,
 		Last:   nil,
@@ -406,8 +405,8 @@ func testCursorPaginationReturnsFirstPage(t *testing.T) {
 	assert.Equal(t, "AAA", markets[0].InstrumentID)
 	assert.Equal(t, "CCC", markets[2].InstrumentID)
 
-	wantStartCursor := fmt.Sprintf("%d", blockTimes["02a16077"].UnixNano())
-	wantEndCursor := fmt.Sprintf("%d", blockTimes["65be62cd"].UnixNano())
+	wantStartCursor := entities.NewCursor(blockTimes["02a16077"].Format(time.RFC3339Nano)).Encode()
+	wantEndCursor := entities.NewCursor(blockTimes["65be62cd"].Format(time.RFC3339Nano)).Encode()
 	assert.True(t, pageInfo.HasNextPage)
 	assert.False(t, pageInfo.HasPreviousPage)
 	assert.Equal(t, wantStartCursor, pageInfo.StartCursor)
@@ -421,7 +420,7 @@ func testCursorPaginationReturnsLastPage(t *testing.T) {
 	blockTimes := make(map[string]time.Time)
 	populateTestMarkets(ctx, t, bs, md, blockTimes)
 	last := int32(3)
-	cursor, err := entities.CursorFromProto(&v2.Cursor{
+	cursor, err := entities.PaginationFromProto(&v2.Pagination{
 		First:  nil,
 		After:  nil,
 		Last:   &last,
@@ -439,8 +438,8 @@ func testCursorPaginationReturnsLastPage(t *testing.T) {
 	assert.Equal(t, "HHH", markets[0].InstrumentID)
 	assert.Equal(t, "JJJ", markets[2].InstrumentID)
 
-	wantStartCursor := fmt.Sprintf("%d", blockTimes["c8744329"].UnixNano())
-	wantEndCursor := fmt.Sprintf("%d", blockTimes["fb1528a5"].UnixNano())
+	wantStartCursor := entities.NewCursor(blockTimes["c8744329"].Format(time.RFC3339Nano)).Encode()
+	wantEndCursor := entities.NewCursor(blockTimes["fb1528a5"].Format(time.RFC3339Nano)).Encode()
 	assert.False(t, pageInfo.HasNextPage)
 	assert.True(t, pageInfo.HasPreviousPage)
 	assert.Equal(t, wantStartCursor, pageInfo.StartCursor)
@@ -454,8 +453,8 @@ func testCursorPaginationReturnsPageTraversingForward(t *testing.T) {
 	blockTimes := make(map[string]time.Time)
 	populateTestMarkets(ctx, t, bs, md, blockTimes)
 	first := int32(3)
-	after := fmt.Sprintf("%d", blockTimes["65be62cd"].UnixNano())
-	cursor, err := entities.CursorFromProto(&v2.Cursor{
+	after := entities.NewCursor(blockTimes["65be62cd"].Format(time.RFC3339Nano)).Encode()
+	cursor, err := entities.PaginationFromProto(&v2.Pagination{
 		First:  &first,
 		After:  &after,
 		Last:   nil,
@@ -473,8 +472,8 @@ func testCursorPaginationReturnsPageTraversingForward(t *testing.T) {
 	assert.Equal(t, "DDD", markets[0].InstrumentID)
 	assert.Equal(t, "FFF", markets[2].InstrumentID)
 
-	wantStartCursor := fmt.Sprintf("%d", blockTimes["7a797e0e"].UnixNano())
-	wantEndCursor := fmt.Sprintf("%d", blockTimes["b7c84b8e"].UnixNano())
+	wantStartCursor := entities.NewCursor(blockTimes["7a797e0e"].Format(time.RFC3339Nano)).Encode()
+	wantEndCursor := entities.NewCursor(blockTimes["b7c84b8e"].Format(time.RFC3339Nano)).Encode()
 	assert.True(t, pageInfo.HasNextPage)
 	assert.True(t, pageInfo.HasPreviousPage)
 	assert.Equal(t, wantStartCursor, pageInfo.StartCursor)
@@ -488,8 +487,8 @@ func testCursorPaginationReturnsPageTraversingBackward(t *testing.T) {
 	blockTimes := make(map[string]time.Time)
 	populateTestMarkets(ctx, t, bs, md, blockTimes)
 	last := int32(3)
-	before := fmt.Sprintf("%d", blockTimes["c8744329"].UnixNano())
-	cursor, err := entities.CursorFromProto(&v2.Cursor{
+	before := entities.NewCursor(blockTimes["c8744329"].Format(time.RFC3339Nano)).Encode()
+	cursor, err := entities.PaginationFromProto(&v2.Pagination{
 		First:  nil,
 		After:  nil,
 		Last:   &last,
@@ -507,8 +506,8 @@ func testCursorPaginationReturnsPageTraversingBackward(t *testing.T) {
 	assert.Equal(t, "EEE", markets[0].InstrumentID)
 	assert.Equal(t, "GGG", markets[2].InstrumentID)
 
-	wantStartCursor := fmt.Sprintf("%d", blockTimes["7bb2356e"].UnixNano())
-	wantEndCursor := fmt.Sprintf("%d", blockTimes["c612300d"].UnixNano())
+	wantStartCursor := entities.NewCursor(blockTimes["7bb2356e"].Format(time.RFC3339Nano)).Encode()
+	wantEndCursor := entities.NewCursor(blockTimes["c612300d"].Format(time.RFC3339Nano)).Encode()
 	assert.True(t, pageInfo.HasNextPage)
 	assert.True(t, pageInfo.HasPreviousPage)
 	assert.Equal(t, wantStartCursor, pageInfo.StartCursor)

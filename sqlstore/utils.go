@@ -1,11 +1,9 @@
 package sqlstore
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"code.vegaprotocol.io/data-node/entities"
 )
@@ -24,7 +22,7 @@ func nextBindVar(args *[]interface{}, value interface{}) string {
 
 // orderAndPaginateQuery is a helper function to simplify adding ordering and pagination statements to the end of a query
 // with the appropriate binding variables amd returns the query string and list of arguments to pass to the query execution handler
-func orderAndPaginateQuery(query string, orderColumns []string, pagination entities.Pagination, args ...interface{}) (string, []interface{}) {
+func orderAndPaginateQuery(query string, orderColumns []string, pagination entities.OffsetPagination, args ...interface{}) (string, []interface{}) {
 	ordering := "ASC"
 
 	if pagination.Descending {
@@ -59,7 +57,7 @@ func orderAndPaginateQuery(query string, orderColumns []string, pagination entit
 	return query, args
 }
 
-func orderAndPaginateWithCursor(query string, cursor entities.Cursor, cursorColumn string,
+func orderAndPaginateWithCursor(query string, cursor entities.Pagination, cursorColumn string,
 	args ...interface{}) (string, []interface{},
 ) {
 	var limit int32
@@ -67,22 +65,22 @@ func orderAndPaginateWithCursor(query string, cursor entities.Cursor, cursorColu
 
 	whereOrAnd := "WHERE"
 
-	if strings.Contains(query, "WHERE") {
+	if strings.Contains(strings.ToUpper(query), "WHERE") {
 		whereOrAnd = "AND"
 	}
 
-	if cursor.Forward != nil && cursor.Forward.Limit != nil {
+	if cursor.HasForward() && cursor.Forward.Limit != nil {
 		order = "ASC"
 		limit = *cursor.Forward.Limit + 1
-		if cursor.Forward.Cursor != nil {
-			query = fmt.Sprintf("%s %s %s >= %s", query, whereOrAnd, cursorColumn, nextBindVar(&args, cursor.Forward.Cursor))
+		if cursor.Forward.HasCursor() {
+			query = fmt.Sprintf("%s %s %s >= %s", query, whereOrAnd, cursorColumn, nextBindVar(&args, cursor.Forward.Cursor.Value()))
 			limit = *cursor.Forward.Limit + 2 // +2 to make sure we get the previous and next cursor
 		}
-	} else if cursor.Backward != nil && cursor.Backward.Limit != nil {
+	} else if cursor.HasBackward() && cursor.Backward.Limit != nil {
 		order = "DESC"
 		limit = *cursor.Backward.Limit + 1
-		if cursor.Backward.Cursor != nil {
-			query = fmt.Sprintf("%s %s %s <= %s", query, whereOrAnd, cursorColumn, nextBindVar(&args, cursor.Backward.Cursor))
+		if cursor.Backward.HasCursor() {
+			query = fmt.Sprintf("%s %s %s <= %s", query, whereOrAnd, cursorColumn, nextBindVar(&args, cursor.Backward.Cursor.Value()))
 			limit = *cursor.Backward.Limit + 2 // +2 to make sure we get the previous and next cursor
 		}
 	} else {
@@ -98,28 +96,31 @@ func orderAndPaginateWithCursor(query string, cursor entities.Cursor, cursorColu
 	return query, args
 }
 
-func cursorOffsetToTimestamp(cursor entities.Cursor) (entities.Cursor, error) {
-	if cursor.Forward != nil && cursor.Forward.Cursor != nil {
-		cursorString, err := extractTimestampFromCursor(*cursor.Forward.Cursor)
-		if err != nil {
-			return cursor, errors.New("invalid cursor")
-		}
-		cursor.Forward.Cursor = &cursorString
-	} else if cursor.Backward != nil && cursor.Backward.Cursor != nil {
-		cursorString, err := extractTimestampFromCursor(*cursor.Backward.Cursor)
-		if err != nil {
-			return cursor, errors.New("invalid cursor")
-		}
-		cursor.Backward.Cursor = &cursorString
-	}
-	return cursor, nil
-}
+//func paginationCursorOffsetToTimestamp(pagination entities.Pagination) (entities.Pagination, error) {
+//	if pagination.HasForward() && pagination.Forward.HasCursor() {
+//		cursorString, err := extractTimestampFromCursor(pagination.Forward.Cursor)
+//		if err != nil {
+//			return pagination, errors.New("invalid pagination")
+//		}
+//		pagination.Forward.Cursor = entities.NewCursor(cursorString)
+//	} else if pagination.HasBackward() && pagination.Backward.HasCursor() {
+//		cursorString, err := extractTimestampFromCursor(pagination.Backward.Cursor)
+//		if err != nil {
+//			return pagination, errors.New("invalid pagination")
+//		}
+//		pagination.Backward.Cursor = entities.NewCursor(cursorString)
+//	}
+//	return pagination, nil
+//}
 
-func extractTimestampFromCursor(cursor string) (string, error) {
-	nanos, err := strconv.ParseInt(cursor, 10, 64)
-	if err != nil {
-		return "", err
-	}
-	t := time.Unix(0, nanos)
-	return t.Format(time.RFC3339Nano), nil
-}
+//func extractTimestampFromCursor(cursor *entities.Cursor) (string, error) {
+//	if cursor == nil {
+//		return "", nil
+//	}
+//	nanos, err := strconv.ParseInt(cursor.Value(), 10, 64)
+//	if err != nil {
+//		return "", err
+//	}
+//	t := time.Unix(0, nanos)
+//	return t.Format(time.RFC3339Nano), nil
+//}

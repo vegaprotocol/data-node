@@ -65,31 +65,12 @@ func (r *myPaginatedMarketResolver) Orders(ctx context.Context, market *types.Ma
 	return res.Orders, nil
 }
 
-func (r *myPaginatedMarketResolver) Trades(ctx context.Context, market *types.Market,
-	first *int, after *string, last *int, before *string) (*v2.TradeConnection, error,
-) {
-	var firstLimit, lastLimit *int32
-
-	if first != nil {
-		v := int32(*first)
-		firstLimit = &v
+func (r *myPaginatedMarketResolver) TradesPaged(ctx context.Context, market *types.Market, pagination *v2.Pagination) (*v2.TradeConnection, error) {
+	req := v2.GetTradesByMarketRequest{
+		MarketId:   market.Id,
+		Pagination: pagination,
 	}
-
-	if last != nil {
-		v := int32(*last)
-		lastLimit = &v
-	}
-
-	req := v2.TradesByMarketRequest{
-		MarketId: market.Id,
-		Cursor: &v2.Cursor{
-			First:  firstLimit,
-			After:  after,
-			Last:   lastLimit,
-			Before: before,
-		},
-	}
-	res, err := r.tradingDataClientV2.TradesByMarket(ctx, &req)
+	res, err := r.tradingDataClientV2.GetTradesByMarket(ctx, &req)
 	if err != nil {
 		r.log.Error("tradingData client", logging.Error(err))
 		return nil, customErrorFromStatus(err)
@@ -388,38 +369,20 @@ func (r *myPaginatedPartyResolver) Orders(ctx context.Context, party *types.Part
 	return []*types.Order{}, nil
 }
 
-func (r *myPaginatedPartyResolver) Trades(ctx context.Context, party *types.Party, market *string,
-	first *int, after *string, last *int, before *string,
+func (r *myPaginatedPartyResolver) TradesPaged(ctx context.Context, party *types.Party, market *string, pagination *v2.Pagination,
 ) (*v2.TradeConnection, error) {
 	var mkt string
 	if market != nil {
 		mkt = *market
 	}
 
-	var firstLimit, lastLimit *int32
-
-	if first != nil {
-		v := int32(*first)
-		firstLimit = &v
+	req := v2.GetTradesByPartyRequest{
+		PartyId:    party.Id,
+		MarketId:   mkt,
+		Pagination: pagination,
 	}
 
-	if last != nil {
-		v := int32(*last)
-		lastLimit = &v
-	}
-
-	req := v2.TradesByPartyRequest{
-		PartyId:  party.Id,
-		MarketId: mkt,
-		Cursor: &v2.Cursor{
-			First:  firstLimit,
-			After:  after,
-			Last:   lastLimit,
-			Before: before,
-		},
-	}
-
-	res, err := r.tradingDataClientV2.TradesByParty(ctx, &req)
+	res, err := r.tradingDataClientV2.GetTradesByParty(ctx, &req)
 	if err != nil {
 		r.log.Error("tradingData client", logging.Error(err))
 		return nil, customErrorFromStatus(err)

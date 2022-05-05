@@ -1,7 +1,6 @@
 package entities
 
 import (
-	"fmt"
 	"time"
 
 	"code.vegaprotocol.io/vega/types"
@@ -26,6 +25,6 @@ func (p *Party) ToProto() *types.Party {
 	return &types.Party{Id: p.ID.String()}
 }
 
-func (p Party) Cursor() string {
-	return fmt.Sprintf("%d", p.VegaTime.UnixNano())
+func (p Party) Cursor() *Cursor {
+	return NewCursor(p.VegaTime.Format(time.RFC3339Nano))
 }

@@ -96,7 +96,7 @@ func testMarginLevelsDataRetention(t *testing.T) {
 	_, err = conn.Exec(context.Background(), "delete from margin_levels")
 	assert.NoError(t, err)
 
-	levels, err := ml.GetMarginLevelsByID(context.Background(), "", "deadbeef", entities.Pagination{})
+	levels, err := ml.GetMarginLevelsByID(context.Background(), "", "deadbeef", entities.OffsetPagination{})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(levels))
 
@@ -106,7 +106,7 @@ func testMarginLevelsDataRetention(t *testing.T) {
 
 	marginLevels = addMarginLevels(t, 150, blockSource, accountStore, ml)
 
-	levels, err = ml.GetMarginLevelsByID(context.Background(), "", "deadbeef", entities.Pagination{})
+	levels, err = ml.GetMarginLevelsByID(context.Background(), "", "deadbeef", entities.OffsetPagination{})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(levels))
 
@@ -290,7 +290,7 @@ func testGetMarginLevelsByPartyID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 4, rowCount)
 
-	got, err := ml.GetMarginLevelsByID(ctx, "DEADBEEF", "", entities.Pagination{})
+	got, err := ml.GetMarginLevelsByID(ctx, "DEADBEEF", "", entities.OffsetPagination{})
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(got))
 
@@ -376,7 +376,7 @@ func testGetMarginLevelsByMarketID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 4, rowCount)
 
-	got, err := ml.GetMarginLevelsByID(ctx, "", "DEADBEEF", entities.Pagination{})
+	got, err := ml.GetMarginLevelsByID(ctx, "", "DEADBEEF", entities.OffsetPagination{})
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(got))
 
@@ -462,7 +462,7 @@ func testGetMarginLevelsByID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 4, rowCount)
 
-	got, err := ml.GetMarginLevelsByID(ctx, "DEADBEEF", "DEADBEEF", entities.Pagination{})
+	got, err := ml.GetMarginLevelsByID(ctx, "DEADBEEF", "DEADBEEF", entities.OffsetPagination{})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(got))
 
