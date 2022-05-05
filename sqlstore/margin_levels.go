@@ -19,6 +19,9 @@ type MarginLevels struct {
 	marginLevels  []*entities.MarginLevels
 	batcher       MapBatcher[entities.MarginLevelsKey, entities.MarginLevels]
 	accountSource AccountSource
+
+	currentMarginLevels map[int64]entities.MarginLevels
+	updatedMarginLevels map[int64]entities.MarginLevels
 }
 
 const (
@@ -31,16 +34,36 @@ func NewMarginLevels(connectionSource *ConnectionSource) *MarginLevels {
 		batcher: NewMapBatcher[entities.MarginLevelsKey, entities.MarginLevels](
 			"margin_levels",
 			entities.MarginLevelsColumns),
+		currentMarginLevels: map[int64]entities.MarginLevels{},
+		updatedMarginLevels: map[int64]entities.MarginLevels{},
 	}
 }
 
 func (ml *MarginLevels) Add(marginLevel entities.MarginLevels) error {
-	ml.batcher.Add(marginLevel)
+	ml.updatedMarginLevels[marginLevel.AccountID] = marginLevel
 	return nil
 }
 
 func (ml *MarginLevels) Flush(ctx context.Context) error {
 	defer metrics.StartSQLQuery("MarginLevels", "Flush")()
+	for id, level := range ml.updatedMarginLevels {
+		if currentLevel, exists := ml.currentMarginLevels[id]; exists {
+			currentLevel.VegaTime = level.VegaTime
+			currentLevel.Timestamp = level.Timestamp
+			if !currentLevel.Equals(level) {
+				ml.currentMarginLevels[id] = level
+				ml.batcher.Add(level)
+			} else {
+				fmt.Printf("SAME MARGIN:%d\n", id)
+			}
+		} else {
+			ml.currentMarginLevels[id] = level
+			ml.batcher.Add(level)
+		}
+	}
+
+	ml.updatedMarginLevels = map[int64]entities.MarginLevels{}
+
 	return ml.batcher.Flush(ctx, ml.pool)
 }
 

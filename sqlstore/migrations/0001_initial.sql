@@ -455,7 +455,7 @@ CREATE VIEW votes_current AS (
 );
 
 create table if not exists margin_levels (
-    account_id INT  NOT NULL REFERENCES accounts(id),
+    account_id INT  NOT NULL,
     timestamp timestamp with time zone not null,
     maintenance_margin numeric(32, 0),
     search_level numeric(32, 0),

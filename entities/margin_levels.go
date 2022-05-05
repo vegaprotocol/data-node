@@ -19,6 +19,17 @@ type MarginLevels struct {
 	VegaTime               time.Time
 }
 
+func (ml MarginLevels) Equals(other MarginLevels) bool {
+	return !(ml.AccountID != other.AccountID ||
+		ml.Timestamp != other.Timestamp ||
+		ml.VegaTime != other.VegaTime ||
+		!ml.MaintenanceMargin.Equals(other.MaintenanceMargin) ||
+		!ml.SearchLevel.Equals(other.SearchLevel) ||
+		!ml.InitialMargin.Equals(other.InitialMargin) ||
+		!ml.CollateralReleaseLevel.Equals(other.CollateralReleaseLevel))
+
+}
+
 func MarginLevelsFromProto(ctx context.Context, margin *vega.MarginLevels, accountSource AccountSource, vegaTime time.Time) (MarginLevels, error) {
 	var (
 		maintenanceMargin, searchLevel, initialMargin, collateralReleaseLevel decimal.Decimal
@@ -90,8 +101,8 @@ type MarginLevelsKey struct {
 	VegaTime  time.Time
 }
 
-func (o MarginLevels) Key() MarginLevelsKey {
-	return MarginLevelsKey{o.AccountID, o.VegaTime}
+func (ml MarginLevels) Key() MarginLevelsKey {
+	return MarginLevelsKey{ml.AccountID, ml.VegaTime}
 }
 
 func (ml MarginLevels) ToRow() []interface{} {
