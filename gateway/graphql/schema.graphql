@@ -432,9 +432,9 @@ type Query {
   statistics: Statistics!
 
   historicBalances(
-    filter: AccountFilter
-    groupBy: [AccountField]
-  ): [AggregatedBalance!]!
+    filter: AccountFilter,
+    groupBy: [AccountField])
+  : [AggregatedBalance!]!
 
   "Current network limits"
   networkLimits: NetworkLimits
@@ -534,14 +534,14 @@ type RecurringTransfer {
 }
 
 enum DispatchMetric {
-  
+
   MarketTradingValue
-  
+
   MakerFeesReceived
 
   TakerFeesPaid
 
-  LPFeesReceived 
+  LPFeesReceived
 }
 
 type DispatchStrategy {

@@ -95,32 +95,3 @@ func orderAndPaginateWithCursor(query string, cursor entities.Pagination, cursor
 
 	return query, args
 }
-
-//func paginationCursorOffsetToTimestamp(pagination entities.Pagination) (entities.Pagination, error) {
-//	if pagination.HasForward() && pagination.Forward.HasCursor() {
-//		cursorString, err := extractTimestampFromCursor(pagination.Forward.Cursor)
-//		if err != nil {
-//			return pagination, errors.New("invalid pagination")
-//		}
-//		pagination.Forward.Cursor = entities.NewCursor(cursorString)
-//	} else if pagination.HasBackward() && pagination.Backward.HasCursor() {
-//		cursorString, err := extractTimestampFromCursor(pagination.Backward.Cursor)
-//		if err != nil {
-//			return pagination, errors.New("invalid pagination")
-//		}
-//		pagination.Backward.Cursor = entities.NewCursor(cursorString)
-//	}
-//	return pagination, nil
-//}
-
-//func extractTimestampFromCursor(cursor *entities.Cursor) (string, error) {
-//	if cursor == nil {
-//		return "", nil
-//	}
-//	nanos, err := strconv.ParseInt(cursor.Value(), 10, 64)
-//	if err != nil {
-//		return "", err
-//	}
-//	t := time.Unix(0, nanos)
-//	return t.Format(time.RFC3339Nano), nil
-//}

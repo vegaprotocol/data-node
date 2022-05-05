@@ -2,6 +2,7 @@ package sqlstore_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
