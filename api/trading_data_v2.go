@@ -42,7 +42,7 @@ type tradingDataServiceV2 struct {
 	partiesStore             *sqlstore.Parties
 }
 
-func (t *tradingDataServiceV2) QueryBalanceHistory(ctx context.Context, req *v2.GetBalanceHistoryRequest) (*v2.GetBalanceHistoryResponse, error) {
+func (t *tradingDataServiceV2) GetBalanceHistory(ctx context.Context, req *v2.GetBalanceHistoryRequest) (*v2.GetBalanceHistoryResponse, error) {
 	if t.balanceStore == nil {
 		return nil, fmt.Errorf("sql balance store not available")
 	}
@@ -75,7 +75,7 @@ func (t *tradingDataServiceV2) QueryBalanceHistory(ctx context.Context, req *v2.
 	return &v2.GetBalanceHistoryResponse{Balances: pbBalances}, nil
 }
 
-func (t *tradingDataServiceV2) OrdersByMarket(ctx context.Context, req *v2.GetOrdersByMarketRequest) (*v2.GetOrdersByMarketResponse, error) {
+func (t *tradingDataServiceV2) GetOrdersByMarket(ctx context.Context, req *v2.GetOrdersByMarketRequest) (*v2.GetOrdersByMarketResponse, error) {
 	if t.orderStore == nil {
 		return nil, errors.New("sql order store not available")
 	}
