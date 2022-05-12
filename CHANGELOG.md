@@ -10,6 +10,7 @@
 
 ### 🛠  Improvements
 - [590](https://github.com/vegaprotocol/data-node/pull/590) - Implement pagination for `Data-Node V2 APIs` for Trades, Parties and Markets
+- [560](https://github.com/vegaprotocol/data-node/issues/560) - Implement pagination for `Data-Node V2 APIs` for Orders
 - [](https://github.com/vegaprotocol/data-node/issues/xxx) -
 
 ### 🐛 Fixes
@@ -38,6 +39,7 @@
 - [591](https://github.com/vegaprotocol/data-node/issues/591) - Optimise liquidity provision and margin levels data retention and storage
 - [588](https://github.com/vegaprotocol/data-node/issues/588) - Return correct error code when proposal not found
 - [556](https://github.com/vegaprotocol/data-node/issues/556) - Expose an endpoint to list oracle data
+- [548](https://github.com/vegaprotocol/data-node/issues/548) - Remove foreign key constraints on hyper tables 
 
 ### 🐛 Fixes
 - [524](https://github.com/vegaprotocol/data-node/issues/524) - Fix for incorrect balances
