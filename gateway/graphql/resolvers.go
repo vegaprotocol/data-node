@@ -247,6 +247,10 @@ func (r *VegaResolverRoot) OracleSpec() OracleSpecResolver {
 	return (*oracleSpecResolver)(r)
 }
 
+func (r *VegaResolverRoot) OracleData() OracleDataResolver {
+	return (*oracleDataResolver)(r)
+}
+
 func (r *VegaResolverRoot) PropertyKey() PropertyKeyResolver {
 	return (*propertyKeyResolver)(r)
 }
@@ -473,9 +477,15 @@ func (r *myQueryResolver) LastBlockHeight(ctx context.Context) (string, error) {
 	return strconv.FormatUint(resp.Height, 10), nil
 }
 
-func (r *myQueryResolver) OracleSpecs(ctx context.Context) ([]*oraclespb.OracleSpec, error) {
+func (r *myQueryResolver) OracleSpecs(ctx context.Context, pagination *OffsetPagination) ([]*oraclespb.OracleSpec, error) {
+	paginationProto, err := pagination.ToProto()
+	if err != nil {
+		return nil, fmt.Errorf("invalid pagination object: %w", err)
+	}
 	res, err := r.tradingDataClient.OracleSpecs(
-		ctx, &protoapi.OracleSpecsRequest{},
+		ctx, &protoapi.OracleSpecsRequest{
+			Pagination: &paginationProto,
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -495,9 +505,35 @@ func (r *myQueryResolver) OracleSpec(ctx context.Context, id string) (*oraclespb
 	return res.OracleSpec, nil
 }
 
-func (r *myQueryResolver) OracleDataBySpec(ctx context.Context, id string) ([]*oraclespb.OracleData, error) {
+func (r *myQueryResolver) OracleDataBySpec(ctx context.Context, id string, pagination *OffsetPagination) ([]*oraclespb.OracleData, error) {
+	paginationProto, err := pagination.ToProto()
+	if err != nil {
+		return nil, fmt.Errorf("invalid pagination object: %w", err)
+	}
+
 	res, err := r.tradingDataClient.OracleDataBySpec(
-		ctx, &protoapi.OracleDataBySpecRequest{Id: id},
+		ctx, &protoapi.OracleDataBySpecRequest{
+			Id:         id,
+			Pagination: &paginationProto,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return res.OracleData, nil
+}
+
+func (r *myQueryResolver) OracleData(ctx context.Context, pagination *OffsetPagination) ([]*oraclespb.OracleData, error) {
+	paginationProto, err := pagination.ToProto()
+	if err != nil {
+		return nil, fmt.Errorf("invalid pagination object: %w", err)
+	}
+
+	res, err := r.tradingDataClient.ListOracleData(
+		ctx, &protoapi.ListOracleDataRequest{
+			Pagination: &paginationProto,
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -964,6 +1000,7 @@ func (r *myNodeSignatureResolver) Kind(ctx context.Context, obj *commandspb.Node
 
 type myPartyResolver VegaResolverRoot
 
+// func makePagination(skip, first, last *int) *protoapi.Pagination {
 func makePagination(skip, first, last *int) *protoapi.Pagination {
 	var (
 		offset, limit uint64

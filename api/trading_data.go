@@ -157,8 +157,9 @@ type WithdrawalService interface {
 //go:generate go run github.com/golang/mock/mockgen -destination mocks/oracle_service_mock.go -package mocks code.vegaprotocol.io/data-node/api  OracleService
 type OracleService interface {
 	GetSpecByID(id string) (oraclespb.OracleSpec, error)
-	GetSpecs() []oraclespb.OracleSpec
-	GetOracleDataBySpecID(string) ([]oraclespb.OracleData, error)
+	ListOracleSpecs(protoapi.Pagination) []oraclespb.OracleSpec
+	GetOracleDataBySpecID(string, protoapi.Pagination) ([]oraclespb.OracleData, error)
+	ListOracleData(protoapi.Pagination) []oraclespb.OracleData
 }
 
 // DepositService ...
@@ -644,9 +645,16 @@ func (t *tradingDataService) OracleSpec(_ context.Context, req *protoapi.OracleS
 	}, nil
 }
 
-func (t *tradingDataService) OracleSpecs(_ context.Context, _ *protoapi.OracleSpecsRequest) (*protoapi.OracleSpecsResponse, error) {
+func (t *tradingDataService) OracleSpecs(_ context.Context, req *protoapi.OracleSpecsRequest) (*protoapi.OracleSpecsResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("OracleSpecs")()
-	specs := t.oracleService.GetSpecs()
+
+	pagination := protoapi.Pagination{}
+
+	if req.Pagination != nil {
+		pagination = *req.Pagination
+	}
+
+	specs := t.oracleService.ListOracleSpecs(pagination)
 	out := make([]*oraclespb.OracleSpec, 0, len(specs))
 	for _, v := range specs {
 		v := v
@@ -662,7 +670,14 @@ func (t *tradingDataService) OracleDataBySpec(_ context.Context, req *protoapi.O
 	if len(req.Id) <= 0 {
 		return nil, ErrMissingOracleSpecID
 	}
-	data, err := t.oracleService.GetOracleDataBySpecID(req.Id)
+
+	pagination := protoapi.Pagination{}
+
+	if req.Pagination != nil {
+		pagination = *req.Pagination
+	}
+
+	data, err := t.oracleService.GetOracleDataBySpecID(req.Id, pagination)
 	if err != nil {
 		return nil, apiError(codes.NotFound, err)
 	}
@@ -672,6 +687,26 @@ func (t *tradingDataService) OracleDataBySpec(_ context.Context, req *protoapi.O
 		out = append(out, &v)
 	}
 	return &protoapi.OracleDataBySpecResponse{
+		OracleData: out,
+	}, nil
+}
+
+func (t *tradingDataService) ListOracleData(_ context.Context, req *protoapi.ListOracleDataRequest) (*protoapi.ListOracleDataResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("ListOracleData")()
+
+	pagination := protoapi.Pagination{}
+
+	if req.Pagination != nil {
+		pagination = *req.Pagination
+	}
+
+	data := t.oracleService.ListOracleData(pagination)
+	out := make([]*oraclespb.OracleData, 0, len(data))
+	for _, v := range data {
+		v := v
+		out = append(out, &v)
+	}
+	return &protoapi.ListOracleDataResponse{
 		OracleData: out,
 	}, nil
 }
@@ -806,7 +841,8 @@ func (t *tradingDataService) Assets(ctx context.Context, req *protoapi.AssetsReq
 }
 
 func (t *tradingDataService) GetNodeSignaturesAggregate(ctx context.Context,
-	req *protoapi.GetNodeSignaturesAggregateRequest) (*protoapi.GetNodeSignaturesAggregateResponse, error) {
+	req *protoapi.GetNodeSignaturesAggregateRequest,
+) (*protoapi.GetNodeSignaturesAggregateResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("GetNodeSignaturesAggregate")()
 	if len(req.Id) <= 0 {
 		return nil, apiError(codes.InvalidArgument, errors.New("missing ID"))
@@ -832,7 +868,8 @@ func (t *tradingDataService) GetNodeSignaturesAggregate(ctx context.Context,
 // Pagination: Optional. If not provided, defaults are used.
 // Returns a list of orders sorted by timestamp descending (most recent first).
 func (t *tradingDataService) OrdersByMarket(ctx context.Context,
-	request *protoapi.OrdersByMarketRequest) (*protoapi.OrdersByMarketResponse, error) {
+	request *protoapi.OrdersByMarketRequest,
+) (*protoapi.OrdersByMarketResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("OrdersByMarket")()
 
 	p := defaultPagination
@@ -857,7 +894,8 @@ func (t *tradingDataService) OrdersByMarket(ctx context.Context,
 // Pagination: Optional. If not provided, defaults are used.
 // Returns a list of orders sorted by timestamp descending (most recent first).
 func (t *tradingDataService) OrdersByParty(ctx context.Context,
-	request *protoapi.OrdersByPartyRequest) (*protoapi.OrdersByPartyResponse, error) {
+	request *protoapi.OrdersByPartyRequest,
+) (*protoapi.OrdersByPartyResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("OrdersByParty")()
 
 	p := defaultPagination
@@ -892,7 +930,8 @@ func (t *tradingDataService) Markets(ctx context.Context, _ *protoapi.MarketsReq
 
 // OrdersByMarketAndID provides the given order, searching by Market and (Order)Id.
 func (t *tradingDataService) OrderByMarketAndID(ctx context.Context,
-	request *protoapi.OrderByMarketAndIDRequest) (*protoapi.OrderByMarketAndIDResponse, error) {
+	request *protoapi.OrderByMarketAndIDRequest,
+) (*protoapi.OrderByMarketAndIDResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("OrderByMarketAndID")()
 
 	order, err := t.OrderService.GetByMarketAndID(ctx, request.MarketId, request.OrderId)
@@ -922,7 +961,8 @@ func (t *tradingDataService) OrderByReference(ctx context.Context, req *protoapi
 // It will fill in any intervals without trades with zero based candles.
 // SinceTimestamp must be in RFC3339 string format.
 func (t *tradingDataService) Candles(ctx context.Context,
-	request *protoapi.CandlesRequest) (*protoapi.CandlesResponse, error) {
+	request *protoapi.CandlesRequest,
+) (*protoapi.CandlesResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("Candles")()
 
 	if request.Interval == pbtypes.Interval_INTERVAL_UNSPECIFIED {
@@ -1086,7 +1126,8 @@ func (t *tradingDataService) Checkpoints(ctx context.Context, _ *protoapi.Checkp
 
 // TransferResponsesSubscribe opens a subscription to transfer response data provided by the transfer response service.
 func (t *tradingDataService) TransferResponsesSubscribe(
-	_ *protoapi.TransferResponsesSubscribeRequest, srv protoapi.TradingDataService_TransferResponsesSubscribeServer) error {
+	_ *protoapi.TransferResponsesSubscribeRequest, srv protoapi.TradingDataService_TransferResponsesSubscribeServer,
+) error {
 	defer metrics.StartAPIRequestAndTimeGRPC("TransferResponseSubscribe")()
 	// Wrap context from the request into cancellable. We can close internal chan in error.
 	ctx, cancel := context.WithCancel(srv.Context())
@@ -1146,7 +1187,8 @@ func (t *tradingDataService) TransferResponsesSubscribe(
 
 // MarketsDataSubscribe opens a subscription to market data provided by the markets service.
 func (t *tradingDataService) MarketsDataSubscribe(req *protoapi.MarketsDataSubscribeRequest,
-	srv protoapi.TradingDataService_MarketsDataSubscribeServer) error {
+	srv protoapi.TradingDataService_MarketsDataSubscribeServer,
+) error {
 	defer metrics.StartAPIRequestAndTimeGRPC("MarketsDataSubscribe")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
@@ -1264,7 +1306,8 @@ func (t *tradingDataService) MarginLevelsSubscribe(req *protoapi.MarginLevelsSub
 
 // AccountsSubscribe opens a subscription to the Accounts service.
 func (t *tradingDataService) AccountsSubscribe(req *protoapi.AccountsSubscribeRequest,
-	srv protoapi.TradingDataService_AccountsSubscribeServer) error {
+	srv protoapi.TradingDataService_AccountsSubscribeServer,
+) error {
 	defer metrics.StartAPIRequestAndTimeGRPC("AccountsSubscribe")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
@@ -1329,7 +1372,8 @@ func (t *tradingDataService) AccountsSubscribe(req *protoapi.AccountsSubscribeRe
 // MarketID: Optional.
 // PartyID: Optional.
 func (t *tradingDataService) OrdersSubscribe(
-	req *protoapi.OrdersSubscribeRequest, srv protoapi.TradingDataService_OrdersSubscribeServer) error {
+	req *protoapi.OrdersSubscribeRequest, srv protoapi.TradingDataService_OrdersSubscribeServer,
+) error {
 	defer metrics.StartAPIRequestAndTimeGRPC("OrdersSubscribe")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
@@ -1401,7 +1445,8 @@ func (t *tradingDataService) OrdersSubscribe(
 
 // TradesSubscribe opens a subscription to the Trades service.
 func (t *tradingDataService) TradesSubscribe(req *protoapi.TradesSubscribeRequest,
-	srv protoapi.TradingDataService_TradesSubscribeServer) error {
+	srv protoapi.TradingDataService_TradesSubscribeServer,
+) error {
 	defer metrics.StartAPIRequestAndTimeGRPC("TradesSubscribe")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
@@ -1469,7 +1514,8 @@ func (t *tradingDataService) TradesSubscribe(req *protoapi.TradesSubscribeReques
 
 // CandlesSubscribe opens a subscription to the Candles service.
 func (t *tradingDataService) CandlesSubscribe(req *protoapi.CandlesSubscribeRequest,
-	srv protoapi.TradingDataService_CandlesSubscribeServer) error {
+	srv protoapi.TradingDataService_CandlesSubscribeServer,
+) error {
 	defer metrics.StartAPIRequestAndTimeGRPC("CandlesSubscribe")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
@@ -1761,7 +1807,8 @@ func (t *tradingDataService) PartyByID(ctx context.Context, req *protoapi.PartyB
 // TradesByParty provides a list of trades for the given party.
 // Pagination: Optional. If not provided, defaults are used.
 func (t *tradingDataService) TradesByParty(ctx context.Context,
-	req *protoapi.TradesByPartyRequest) (*protoapi.TradesByPartyResponse, error) {
+	req *protoapi.TradesByPartyRequest,
+) (*protoapi.TradesByPartyResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("TradesByParty")()
 
 	p := defaultPagination
@@ -1778,7 +1825,8 @@ func (t *tradingDataService) TradesByParty(ctx context.Context,
 
 // TradesByOrder provides a list of the trades that correspond to a given order.
 func (t *tradingDataService) TradesByOrder(ctx context.Context,
-	req *protoapi.TradesByOrderRequest) (*protoapi.TradesByOrderResponse, error) {
+	req *protoapi.TradesByOrderRequest,
+) (*protoapi.TradesByOrderResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("TradesByOrder")()
 	trades, err := t.TradeService.GetByOrderID(ctx, req.OrderId)
 	if err != nil {
@@ -1791,7 +1839,8 @@ func (t *tradingDataService) TradesByOrder(ctx context.Context,
 
 // LastTrade provides the last trade for the given market.
 func (t *tradingDataService) LastTrade(ctx context.Context,
-	req *protoapi.LastTradeRequest) (*protoapi.LastTradeResponse, error) {
+	req *protoapi.LastTradeRequest,
+) (*protoapi.LastTradeResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("LastTrade")()
 	if len(req.MarketId) <= 0 {
 		return nil, apiError(codes.InvalidArgument, ErrEmptyMissingMarketID)
@@ -1809,7 +1858,8 @@ func (t *tradingDataService) LastTrade(ctx context.Context,
 }
 
 func (t *tradingDataService) MarketAccounts(_ context.Context,
-	req *protoapi.MarketAccountsRequest) (*protoapi.MarketAccountsResponse, error) {
+	req *protoapi.MarketAccountsRequest,
+) (*protoapi.MarketAccountsResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("MarketAccounts")()
 	accs, err := t.AccountsService.GetMarketAccounts(req.MarketId, req.Asset)
 	if err != nil {
@@ -1821,7 +1871,8 @@ func (t *tradingDataService) MarketAccounts(_ context.Context,
 }
 
 func (t *tradingDataService) FeeInfrastructureAccounts(_ context.Context,
-	req *protoapi.FeeInfrastructureAccountsRequest) (*protoapi.FeeInfrastructureAccountsResponse, error) {
+	req *protoapi.FeeInfrastructureAccountsRequest,
+) (*protoapi.FeeInfrastructureAccountsResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("FeeInfrastructureAccounts")()
 	accs, err := t.AccountsService.GetFeeInfrastructureAccounts(req.Asset)
 	if err != nil {
@@ -1833,7 +1884,8 @@ func (t *tradingDataService) FeeInfrastructureAccounts(_ context.Context,
 }
 
 func (t *tradingDataService) GlobalRewardPoolAccounts(_ context.Context,
-	req *protoapi.GlobalRewardPoolAccountsRequest) (*protoapi.GlobalRewardPoolAccountsResponse, error) {
+	req *protoapi.GlobalRewardPoolAccountsRequest,
+) (*protoapi.GlobalRewardPoolAccountsResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("GloabRewardPoolAccounts")()
 	accs, err := t.AccountsService.GetGlobalRewardPoolAccounts(req.Asset)
 	if err != nil {
@@ -1845,7 +1897,8 @@ func (t *tradingDataService) GlobalRewardPoolAccounts(_ context.Context,
 }
 
 func (t *tradingDataService) PartyAccounts(_ context.Context,
-	req *protoapi.PartyAccountsRequest) (*protoapi.PartyAccountsResponse, error) {
+	req *protoapi.PartyAccountsRequest,
+) (*protoapi.PartyAccountsResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("PartyAccounts")()
 	accs, err := t.AccountsService.GetPartyAccounts(req.PartyId, req.MarketId, req.Asset, req.Type)
 	if err != nil {
@@ -2207,7 +2260,8 @@ func (t *tradingDataService) ObserveProposalVotes(
 }
 
 func (t *tradingDataService) ObserveEventBus(
-	stream protoapi.TradingDataService_ObserveEventBusServer) error {
+	stream protoapi.TradingDataService_ObserveEventBusServer,
+) error {
 	defer metrics.StartAPIRequestAndTimeGRPC("ObserveEventBus")()
 
 	ctx, cfunc := context.WithCancel(stream.Context())

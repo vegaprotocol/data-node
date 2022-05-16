@@ -74,6 +74,7 @@ type ResolverRoot interface {
 	NodeData() NodeDataResolver
 	NodeSignature() NodeSignatureResolver
 	OneOffTransfer() OneOffTransferResolver
+	OracleData() OracleDataResolver
 	OracleSpec() OracleSpecResolver
 	Order() OrderResolver
 	PaginatedMarket() PaginatedMarketResolver
@@ -106,7 +107,8 @@ type ResolverRoot interface {
 	Withdrawal() WithdrawalResolver
 }
 
-type DirectiveRoot struct{}
+type DirectiveRoot struct {
+}
 
 type ComplexityRoot struct {
 	Account struct {
@@ -584,8 +586,10 @@ type ComplexityRoot struct {
 	}
 
 	OracleData struct {
-		Data    func(childComplexity int) int
-		PubKeys func(childComplexity int) int
+		BroadcastAt    func(childComplexity int) int
+		Data           func(childComplexity int) int
+		MatchedSpecIds func(childComplexity int) int
+		PubKeys        func(childComplexity int) int
 	}
 
 	OracleSpec struct {
@@ -848,9 +852,10 @@ type ComplexityRoot struct {
 		NodeData                   func(childComplexity int) int
 		NodeSignatures             func(childComplexity int, resourceID string) int
 		Nodes                      func(childComplexity int) int
-		OracleDataBySpec           func(childComplexity int, oracleSpecID string) int
+		OracleData                 func(childComplexity int, pagination *OffsetPagination) int
+		OracleDataBySpec           func(childComplexity int, oracleSpecID string, pagination *OffsetPagination) int
 		OracleSpec                 func(childComplexity int, oracleSpecID string) int
-		OracleSpecs                func(childComplexity int) int
+		OracleSpecs                func(childComplexity int, pagination *OffsetPagination) int
 		OrderByID                  func(childComplexity int, orderID string, version *int) int
 		OrderByReference           func(childComplexity int, reference string) int
 		OrderVersions              func(childComplexity int, orderID string, skip *int, first *int, last *int) int
@@ -1341,6 +1346,9 @@ type NodeSignatureResolver interface {
 type OneOffTransferResolver interface {
 	DeliverOn(ctx context.Context, obj *v1.OneOffTransfer) (*string, error)
 }
+type OracleDataResolver interface {
+	BroadcastAt(ctx context.Context, obj *v11.OracleData) (string, error)
+}
 type OracleSpecResolver interface {
 	CreatedAt(ctx context.Context, obj *v11.OracleSpec) (string, error)
 	UpdatedAt(ctx context.Context, obj *v11.OracleSpec) (*string, error)
@@ -1468,9 +1476,10 @@ type QueryResolver interface {
 	PartiesPaged(ctx context.Context, id *string, pagination *v2.Pagination) (*v2.PartyConnection, error)
 	Party(ctx context.Context, id string) (*vega.Party, error)
 	LastBlockHeight(ctx context.Context) (string, error)
-	OracleSpecs(ctx context.Context) ([]*v11.OracleSpec, error)
+	OracleSpecs(ctx context.Context, pagination *OffsetPagination) ([]*v11.OracleSpec, error)
 	OracleSpec(ctx context.Context, oracleSpecID string) (*v11.OracleSpec, error)
-	OracleDataBySpec(ctx context.Context, oracleSpecID string) ([]*v11.OracleData, error)
+	OracleDataBySpec(ctx context.Context, oracleSpecID string, pagination *OffsetPagination) ([]*v11.OracleData, error)
+	OracleData(ctx context.Context, pagination *OffsetPagination) ([]*v11.OracleData, error)
 	OrderByID(ctx context.Context, orderID string, version *int) (*vega.Order, error)
 	OrderVersions(ctx context.Context, orderID string, skip *int, first *int, last *int) ([]*vega.Order, error)
 	OrderByReference(ctx context.Context, reference string) (*vega.Order, error)
@@ -3714,12 +3723,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.OneOffTransfer.DeliverOn(childComplexity), true
 
+	case "OracleData.broadcastAt":
+		if e.complexity.OracleData.BroadcastAt == nil {
+			break
+		}
+
+		return e.complexity.OracleData.BroadcastAt(childComplexity), true
+
 	case "OracleData.data":
 		if e.complexity.OracleData.Data == nil {
 			break
 		}
 
 		return e.complexity.OracleData.Data(childComplexity), true
+
+	case "OracleData.matchedSpecIds":
+		if e.complexity.OracleData.MatchedSpecIds == nil {
+			break
+		}
+
+		return e.complexity.OracleData.MatchedSpecIds(childComplexity), true
 
 	case "OracleData.pubKeys":
 		if e.complexity.OracleData.PubKeys == nil {
@@ -5163,6 +5186,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Nodes(childComplexity), true
 
+	case "Query.oracleData":
+		if e.complexity.Query.OracleData == nil {
+			break
+		}
+
+		args, err := ec.field_Query_oracleData_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.OracleData(childComplexity, args["pagination"].(*OffsetPagination)), true
+
 	case "Query.oracleDataBySpec":
 		if e.complexity.Query.OracleDataBySpec == nil {
 			break
@@ -5173,7 +5208,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.OracleDataBySpec(childComplexity, args["oracleSpecID"].(string)), true
+		return e.complexity.Query.OracleDataBySpec(childComplexity, args["oracleSpecID"].(string), args["pagination"].(*OffsetPagination)), true
 
 	case "Query.oracleSpec":
 		if e.complexity.Query.OracleSpec == nil {
@@ -5192,7 +5227,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.OracleSpecs(childComplexity), true
+		args, err := ec.field_Query_oracleSpecs_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.OracleSpecs(childComplexity, args["pagination"].(*OffsetPagination)), true
 
 	case "Query.orderByID":
 		if e.complexity.Query.OrderByID == nil {
@@ -6989,13 +7029,27 @@ type Query {
   lastBlockHeight: String!
 
   "All registered oracle specs"
-  oracleSpecs: [OracleSpec!]
+  oracleSpecs(
+    "Pagination"
+    pagination: OffsetPagination
+  ): [OracleSpec!]
 
   "An oracle spec for a given oracle spec ID"
   oracleSpec("ID for an oracle spec" oracleSpecID: String!): OracleSpec
 
   "All oracle data for a given oracle spec ID"
-  oracleDataBySpec("ID for an oracle spec" oracleSpecID: String!): [OracleData!]
+  oracleDataBySpec(
+    "ID for an oracle spec"
+    oracleSpecID: String!
+    "Pagination"
+    pagination: OffsetPagination
+  ): [OracleData!]
+
+  "All registered oracle specs"
+  oracleData(
+    "Pagination"
+    pagination: OffsetPagination
+  ): [OracleData!]
 
   "An order in the VEGA network found by orderID"
   orderByID(
@@ -7141,9 +7195,9 @@ type Query {
   statistics: Statistics!
 
   historicBalances(
-    filter: AccountFilter
-    groupBy: [AccountField]
-  ): [AggregatedBalance!]!
+    filter: AccountFilter,
+    groupBy: [AccountField])
+  : [AggregatedBalance!]!
 
   "Current network limits"
   networkLimits: NetworkLimits
@@ -7243,14 +7297,14 @@ type RecurringTransfer {
 }
 
 enum DispatchMetric {
-  
+
   MarketTradingValue
-  
+
   MakerFeesReceived
 
   TakerFeesPaid
 
-  LPFeesReceived 
+  LPFeesReceived
 }
 
 type DispatchStrategy {
@@ -7406,15 +7460,13 @@ type Node {
   status: NodeStatus!
 
   # All delegation for a node by a given party if specified, or all delegations.
-  delegations(
-    partyId: String
+  delegations(partyId: String,
     "Pagination skip"
     skip: Int
     "Pagination first element"
     first: Int
     "Pagination last element"
-    last: Int
-  ): [Delegation!]
+    last: Int): [Delegation!]
 
   "Reward scores for the current epoch for the validator"
   rewardScore: RewardScore
@@ -7826,6 +7878,18 @@ type OracleData {
   pubKeys: [String!]
   "data contains all the properties send by an oracle"
   data: [Property!]
+
+  """
+  lists all the oracle specs that matched this oracle data.
+  When the array is empty, it means no oracle spec matched this oracle data.
+  """
+  matchedSpecIds: [String!]
+  """
+  RFC3339Nano formatted date and time for when the data was broadcast to the markets
+  with a matching oracle spec.
+  It has no value when the oracle date did not match any oracle spec.
+  """
+  broadcastAt:  String!
 }
 
 "A property associates a name to a value"
@@ -9712,6 +9776,18 @@ type NetworkLimits {
   proposeAssetEnabledFrom: Timestamp!
 }
 
+input OffsetPagination {
+  "Skip the number of records specified, default is 0"
+  skip: Int!
+  "Limit the number of returned records to the value specified, default is 50"
+  limit: Int!
+  """
+  Descending reverses the order of the records returned
+  default is true, if false the results will be returned in ascending order
+  """
+  descending: Boolean!
+}
+
 """
 Pagination constructs to support cursor based pagination in the API
 """
@@ -11279,6 +11355,30 @@ func (ec *executionContext) field_Query_oracleDataBySpec_args(ctx context.Contex
 		}
 	}
 	args["oracleSpecID"] = arg0
+	var arg1 *OffsetPagination
+	if tmp, ok := rawArgs["pagination"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+		arg1, err = ec.unmarshalOOffsetPagination2ᚖcodeᚗvegaprotocolᚗioᚋdataᚑnodeᚋgatewayᚋgraphqlᚐOffsetPagination(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["pagination"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_oracleData_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *OffsetPagination
+	if tmp, ok := rawArgs["pagination"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+		arg0, err = ec.unmarshalOOffsetPagination2ᚖcodeᚗvegaprotocolᚗioᚋdataᚑnodeᚋgatewayᚋgraphqlᚐOffsetPagination(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["pagination"] = arg0
 	return args, nil
 }
 
@@ -11294,6 +11394,21 @@ func (ec *executionContext) field_Query_oracleSpec_args(ctx context.Context, raw
 		}
 	}
 	args["oracleSpecID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_oracleSpecs_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *OffsetPagination
+	if tmp, ok := rawArgs["pagination"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+		arg0, err = ec.unmarshalOOffsetPagination2ᚖcodeᚗvegaprotocolᚗioᚋdataᚑnodeᚋgatewayᚋgraphqlᚐOffsetPagination(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["pagination"] = arg0
 	return args, nil
 }
 
@@ -21965,6 +22080,73 @@ func (ec *executionContext) _OracleData_data(ctx context.Context, field graphql.
 	return ec.marshalOProperty2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚋoraclesᚋv1ᚐPropertyᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _OracleData_matchedSpecIds(ctx context.Context, field graphql.CollectedField, obj *v11.OracleData) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "OracleData",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MatchedSpecIds, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _OracleData_broadcastAt(ctx context.Context, field graphql.CollectedField, obj *v11.OracleData) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "OracleData",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.OracleData().BroadcastAt(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _OracleSpec_id(ctx context.Context, field graphql.CollectedField, obj *v11.OracleSpec) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -27577,9 +27759,16 @@ func (ec *executionContext) _Query_oracleSpecs(ctx context.Context, field graphq
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_oracleSpecs_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().OracleSpecs(rctx)
+		return ec.resolvers.Query().OracleSpecs(rctx, args["pagination"].(*OffsetPagination))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -27657,7 +27846,46 @@ func (ec *executionContext) _Query_oracleDataBySpec(ctx context.Context, field g
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().OracleDataBySpec(rctx, args["oracleSpecID"].(string))
+		return ec.resolvers.Query().OracleDataBySpec(rctx, args["oracleSpecID"].(string), args["pagination"].(*OffsetPagination))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*v11.OracleData)
+	fc.Result = res
+	return ec.marshalOOracleData2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚋoraclesᚋv1ᚐOracleDataᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_oracleData(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_oracleData_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().OracleData(rctx, args["pagination"].(*OffsetPagination))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -36318,6 +36546,45 @@ func (ec *executionContext) unmarshalInputAccountFilter(ctx context.Context, obj
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputOffsetPagination(ctx context.Context, obj interface{}) (OffsetPagination, error) {
+	var it OffsetPagination
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "skip":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("skip"))
+			it.Skip, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "limit":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+			it.Limit, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "descending":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("descending"))
+			it.Descending, err = ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputPagination(ctx context.Context, obj interface{}) (v2.Pagination, error) {
 	var it v2.Pagination
 	asMap := map[string]interface{}{}
@@ -36779,6 +37046,7 @@ func (ec *executionContext) _Account(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "type":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -36805,6 +37073,7 @@ func (ec *executionContext) _Account(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -36931,6 +37200,7 @@ func (ec *executionContext) _Asset(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "symbol":
 			field := field
@@ -36950,6 +37220,7 @@ func (ec *executionContext) _Asset(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "totalSupply":
 			field := field
@@ -36969,6 +37240,7 @@ func (ec *executionContext) _Asset(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "decimals":
 			field := field
@@ -36988,6 +37260,7 @@ func (ec *executionContext) _Asset(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "quantum":
 			field := field
@@ -37007,6 +37280,7 @@ func (ec *executionContext) _Asset(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "source":
 			field := field
@@ -37026,6 +37300,7 @@ func (ec *executionContext) _Asset(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "infrastructureFeeAccount":
 			field := field
@@ -37045,6 +37320,7 @@ func (ec *executionContext) _Asset(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "globalRewardPoolAccount":
 			field := field
@@ -37061,6 +37337,7 @@ func (ec *executionContext) _Asset(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -37172,6 +37449,7 @@ func (ec *executionContext) _AuctionEvent(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "auctionEnd":
 			field := field
@@ -37191,6 +37469,7 @@ func (ec *executionContext) _AuctionEvent(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "trigger":
 			field := field
@@ -37210,6 +37489,7 @@ func (ec *executionContext) _AuctionEvent(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "extensionTrigger":
 			field := field
@@ -37226,6 +37506,7 @@ func (ec *executionContext) _AuctionEvent(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -37358,6 +37639,7 @@ func (ec *executionContext) _Candle(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "datetime":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -37427,6 +37709,7 @@ func (ec *executionContext) _Candle(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "interval":
 			field := field
@@ -37446,6 +37729,7 @@ func (ec *executionContext) _Candle(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -37486,6 +37770,7 @@ func (ec *executionContext) _Condition(ctx context.Context, sel ast.SelectionSet
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "value":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -37574,6 +37859,7 @@ func (ec *executionContext) _Delegation(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "node":
 			field := field
@@ -37593,6 +37879,7 @@ func (ec *executionContext) _Delegation(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "epoch":
 			field := field
@@ -37612,6 +37899,7 @@ func (ec *executionContext) _Delegation(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -37662,6 +37950,7 @@ func (ec *executionContext) _Deposit(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "amount":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -37691,6 +37980,7 @@ func (ec *executionContext) _Deposit(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "status":
 			field := field
@@ -37710,6 +38000,7 @@ func (ec *executionContext) _Deposit(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "createdTimestamp":
 			field := field
@@ -37729,6 +38020,7 @@ func (ec *executionContext) _Deposit(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "creditedTimestamp":
 			field := field
@@ -37745,6 +38037,7 @@ func (ec *executionContext) _Deposit(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "txHash":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -37912,6 +38205,7 @@ func (ec *executionContext) _Epoch(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "timestamps":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -38079,6 +38373,7 @@ func (ec *executionContext) _EpochTimestamps(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "expiry":
 			field := field
@@ -38095,6 +38390,7 @@ func (ec *executionContext) _EpochTimestamps(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "end":
 			field := field
@@ -38111,6 +38407,7 @@ func (ec *executionContext) _EpochTimestamps(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -38424,6 +38721,7 @@ func (ec *executionContext) _Future(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "quoteName":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -38504,6 +38802,7 @@ func (ec *executionContext) _FutureProduct(ctx context.Context, sel ast.Selectio
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "quoteName":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -38624,6 +38923,7 @@ func (ec *executionContext) _Instrument(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -38681,6 +38981,7 @@ func (ec *executionContext) _InstrumentConfiguration(ctx context.Context, sel as
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -38779,6 +39080,7 @@ func (ec *executionContext) _KeyRotation(ctx context.Context, sel ast.SelectionS
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -38941,6 +39243,7 @@ func (ec *executionContext) _LiquidityOrder(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "proportion":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -38998,6 +39301,7 @@ func (ec *executionContext) _LiquidityOrderReference(ctx context.Context, sel as
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "liquidityOrder":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -39106,6 +39410,7 @@ func (ec *executionContext) _LiquidityProvision(ctx context.Context, sel ast.Sel
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "createdAt":
 			field := field
@@ -39125,6 +39430,7 @@ func (ec *executionContext) _LiquidityProvision(ctx context.Context, sel ast.Sel
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "updatedAt":
 			field := field
@@ -39141,6 +39447,7 @@ func (ec *executionContext) _LiquidityProvision(ctx context.Context, sel ast.Sel
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "market":
 			field := field
@@ -39160,6 +39467,7 @@ func (ec *executionContext) _LiquidityProvision(ctx context.Context, sel ast.Sel
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "commitmentAmount":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -39219,6 +39527,7 @@ func (ec *executionContext) _LiquidityProvision(ctx context.Context, sel ast.Sel
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "status":
 			field := field
@@ -39238,6 +39547,7 @@ func (ec *executionContext) _LiquidityProvision(ctx context.Context, sel ast.Sel
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "reference":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -39469,6 +39779,7 @@ func (ec *executionContext) _MarginLevels(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "asset":
 			field := field
@@ -39488,6 +39799,7 @@ func (ec *executionContext) _MarginLevels(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "party":
 			field := field
@@ -39507,6 +39819,7 @@ func (ec *executionContext) _MarginLevels(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "maintenanceLevel":
 			field := field
@@ -39526,6 +39839,7 @@ func (ec *executionContext) _MarginLevels(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "searchLevel":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -39555,6 +39869,7 @@ func (ec *executionContext) _MarginLevels(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "collateralReleaseLevel":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -39584,6 +39899,7 @@ func (ec *executionContext) _MarginLevels(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -39634,6 +39950,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "fees":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -39673,6 +39990,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "positionDecimalPlaces":
 			field := field
@@ -39692,6 +40010,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "openingAuction":
 			field := field
@@ -39711,6 +40030,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "priceMonitoringSettings":
 			field := field
@@ -39730,6 +40050,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "liquidityMonitoringParameters":
 			field := field
@@ -39749,6 +40070,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "tradingMode":
 			field := field
@@ -39768,6 +40090,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "state":
 			field := field
@@ -39787,6 +40110,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "proposal":
 			field := field
@@ -39803,6 +40127,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "orders":
 			field := field
@@ -39819,6 +40144,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "accounts":
 			field := field
@@ -39835,6 +40161,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "trades":
 			field := field
@@ -39851,6 +40178,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "tradesPaged":
 			field := field
@@ -39870,6 +40198,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "depth":
 			field := field
@@ -39889,6 +40218,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "candles":
 			field := field
@@ -39905,6 +40235,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "data":
 			field := field
@@ -39921,6 +40252,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "liquidityProvisions":
 			field := field
@@ -39937,6 +40269,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "marketTimestamps":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -39963,6 +40296,7 @@ func (ec *executionContext) _Market(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -40054,6 +40388,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "markPrice":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -40093,6 +40428,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "bestOfferPrice":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -40122,6 +40458,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "bestStaticBidPrice":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -40151,6 +40488,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "bestStaticOfferPrice":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -40180,6 +40518,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "midPrice":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -40219,6 +40558,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "openInterest":
 			field := field
@@ -40238,6 +40578,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "auctionEnd":
 			field := field
@@ -40254,6 +40595,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "auctionStart":
 			field := field
@@ -40270,6 +40612,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "indicativePrice":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -40299,6 +40642,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "marketTradingMode":
 			field := field
@@ -40318,6 +40662,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "trigger":
 			field := field
@@ -40337,6 +40682,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "extensionTrigger":
 			field := field
@@ -40356,6 +40702,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "targetStake":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -40389,6 +40736,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "priceMonitoringBounds":
 			field := field
@@ -40405,6 +40753,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "marketValueProxy":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -40431,6 +40780,7 @@ func (ec *executionContext) _MarketData(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -40506,6 +40856,7 @@ func (ec *executionContext) _MarketDepth(ctx context.Context, sel ast.SelectionS
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "buy":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -40536,6 +40887,7 @@ func (ec *executionContext) _MarketDepth(ctx context.Context, sel ast.SelectionS
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "sequenceNumber":
 			field := field
@@ -40555,6 +40907,7 @@ func (ec *executionContext) _MarketDepth(ctx context.Context, sel ast.SelectionS
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -40595,6 +40948,7 @@ func (ec *executionContext) _MarketDepthUpdate(ctx context.Context, sel ast.Sele
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "buy":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -40628,6 +40982,7 @@ func (ec *executionContext) _MarketDepthUpdate(ctx context.Context, sel ast.Sele
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -40788,6 +41143,7 @@ func (ec *executionContext) _MarketTimestamps(ctx context.Context, sel ast.Selec
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "pending":
 			field := field
@@ -40804,6 +41160,7 @@ func (ec *executionContext) _MarketTimestamps(ctx context.Context, sel ast.Selec
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "open":
 			field := field
@@ -40820,6 +41177,7 @@ func (ec *executionContext) _MarketTimestamps(ctx context.Context, sel ast.Selec
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "close":
 			field := field
@@ -40836,6 +41194,7 @@ func (ec *executionContext) _MarketTimestamps(ctx context.Context, sel ast.Selec
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -41028,6 +41387,7 @@ func (ec *executionContext) _NewAsset(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "symbol":
 			field := field
@@ -41047,6 +41407,7 @@ func (ec *executionContext) _NewAsset(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "totalSupply":
 			field := field
@@ -41066,6 +41427,7 @@ func (ec *executionContext) _NewAsset(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "decimals":
 			field := field
@@ -41085,6 +41447,7 @@ func (ec *executionContext) _NewAsset(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "minLpStake":
 			field := field
@@ -41104,6 +41467,7 @@ func (ec *executionContext) _NewAsset(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "source":
 			field := field
@@ -41123,6 +41487,7 @@ func (ec *executionContext) _NewAsset(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -41160,6 +41525,7 @@ func (ec *executionContext) _NewFreeform(ctx context.Context, sel ast.SelectionS
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -41200,6 +41566,7 @@ func (ec *executionContext) _NewMarket(ctx context.Context, sel ast.SelectionSet
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "decimalPlaces":
 			field := field
@@ -41219,6 +41586,7 @@ func (ec *executionContext) _NewMarket(ctx context.Context, sel ast.SelectionSet
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "riskParameters":
 			field := field
@@ -41238,6 +41606,7 @@ func (ec *executionContext) _NewMarket(ctx context.Context, sel ast.SelectionSet
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "metadata":
 			field := field
@@ -41254,6 +41623,7 @@ func (ec *executionContext) _NewMarket(ctx context.Context, sel ast.SelectionSet
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "commitment":
 			field := field
@@ -41270,6 +41640,7 @@ func (ec *executionContext) _NewMarket(ctx context.Context, sel ast.SelectionSet
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -41479,6 +41850,7 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "delegations":
 			field := field
@@ -41495,6 +41867,7 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "rewardScore":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -41609,6 +41982,7 @@ func (ec *executionContext) _NodeData(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -41656,6 +42030,7 @@ func (ec *executionContext) _NodeSignature(ctx context.Context, sel ast.Selectio
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "kind":
 			field := field
@@ -41672,6 +42047,7 @@ func (ec *executionContext) _NodeSignature(ctx context.Context, sel ast.Selectio
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -41709,6 +42085,7 @@ func (ec *executionContext) _OneOffTransfer(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -41745,6 +42122,33 @@ func (ec *executionContext) _OracleData(ctx context.Context, sel ast.SelectionSe
 
 			out.Values[i] = innerFunc(ctx)
 
+		case "matchedSpecIds":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._OracleData_matchedSpecIds(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+		case "broadcastAt":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._OracleData_broadcastAt(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -41794,6 +42198,7 @@ func (ec *executionContext) _OracleSpec(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "updatedAt":
 			field := field
@@ -41810,6 +42215,7 @@ func (ec *executionContext) _OracleSpec(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "pubKeys":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -41843,6 +42249,7 @@ func (ec *executionContext) _OracleSpec(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "data":
 			field := field
@@ -41862,6 +42269,7 @@ func (ec *executionContext) _OracleSpec(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -41998,6 +42406,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "side":
 			field := field
@@ -42017,6 +42426,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "market":
 			field := field
@@ -42033,6 +42443,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "size":
 			field := field
@@ -42052,6 +42463,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "remaining":
 			field := field
@@ -42071,6 +42483,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "party":
 			field := field
@@ -42090,6 +42503,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "createdAt":
 			field := field
@@ -42109,6 +42523,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "expiresAt":
 			field := field
@@ -42125,6 +42540,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "status":
 			field := field
@@ -42144,6 +42560,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "reference":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -42170,6 +42587,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "type":
 			field := field
@@ -42186,6 +42604,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "rejectionReason":
 			field := field
@@ -42202,6 +42621,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "version":
 			field := field
@@ -42221,6 +42641,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "updatedAt":
 			field := field
@@ -42237,6 +42658,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "peggedOrder":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -42260,6 +42682,7 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -42422,6 +42845,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "fees":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -42461,6 +42885,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "positionDecimalPlaces":
 			field := field
@@ -42480,6 +42905,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "openingAuction":
 			field := field
@@ -42499,6 +42925,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "priceMonitoringSettings":
 			field := field
@@ -42518,6 +42945,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "liquidityMonitoringParameters":
 			field := field
@@ -42537,6 +42965,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "tradingMode":
 			field := field
@@ -42556,6 +42985,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "state":
 			field := field
@@ -42575,6 +43005,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "proposal":
 			field := field
@@ -42591,6 +43022,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "orders":
 			field := field
@@ -42607,6 +43039,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "accounts":
 			field := field
@@ -42623,6 +43056,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "tradesPaged":
 			field := field
@@ -42642,6 +43076,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "depth":
 			field := field
@@ -42661,6 +43096,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "candles":
 			field := field
@@ -42677,6 +43113,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "data":
 			field := field
@@ -42693,6 +43130,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "liquidityProvisions":
 			field := field
@@ -42709,6 +43147,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "marketTimestamps":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -42735,6 +43174,7 @@ func (ec *executionContext) _PaginatedMarket(ctx context.Context, sel ast.Select
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -42782,6 +43222,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "tradesPaged":
 			field := field
@@ -42801,6 +43242,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "accounts":
 			field := field
@@ -42817,6 +43259,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "positions":
 			field := field
@@ -42833,6 +43276,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "margins":
 			field := field
@@ -42849,6 +43293,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "proposals":
 			field := field
@@ -42865,6 +43310,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "votes":
 			field := field
@@ -42881,6 +43327,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "withdrawals":
 			field := field
@@ -42897,6 +43344,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "deposits":
 			field := field
@@ -42913,6 +43361,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "liquidityProvisions":
 			field := field
@@ -42929,6 +43378,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "delegations":
 			field := field
@@ -42945,6 +43395,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "stake":
 			field := field
@@ -42964,6 +43415,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "rewards":
 			field := field
@@ -42980,6 +43432,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "rewardSummaries":
 			field := field
@@ -42996,6 +43449,7 @@ func (ec *executionContext) _PaginatedParty(ctx context.Context, sel ast.Selecti
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -43043,6 +43497,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "trades":
 			field := field
@@ -43059,6 +43514,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "tradesPaged":
 			field := field
@@ -43078,6 +43534,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "accounts":
 			field := field
@@ -43094,6 +43551,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "positions":
 			field := field
@@ -43110,6 +43568,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "margins":
 			field := field
@@ -43126,6 +43585,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "proposals":
 			field := field
@@ -43142,6 +43602,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "votes":
 			field := field
@@ -43158,6 +43619,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "withdrawals":
 			field := field
@@ -43174,6 +43636,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "deposits":
 			field := field
@@ -43190,6 +43653,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "liquidityProvisions":
 			field := field
@@ -43206,6 +43670,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "delegations":
 			field := field
@@ -43222,6 +43687,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "stake":
 			field := field
@@ -43241,6 +43707,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "rewards":
 			field := field
@@ -43257,6 +43724,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "rewardSummaries":
 			field := field
@@ -43273,6 +43741,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "rewardDetails":
 			field := field
@@ -43289,6 +43758,7 @@ func (ec *executionContext) _Party(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -43428,6 +43898,7 @@ func (ec *executionContext) _PartyStake(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -43468,6 +43939,7 @@ func (ec *executionContext) _PeggedOrder(ctx context.Context, sel ast.SelectionS
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "offset":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -43518,6 +43990,7 @@ func (ec *executionContext) _Position(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "party":
 			field := field
@@ -43537,6 +44010,7 @@ func (ec *executionContext) _Position(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "openVolume":
 			field := field
@@ -43556,6 +44030,7 @@ func (ec *executionContext) _Position(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "realisedPNL":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -43602,6 +44077,7 @@ func (ec *executionContext) _Position(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "updatedAt":
 			field := field
@@ -43618,6 +44094,7 @@ func (ec *executionContext) _Position(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -43729,6 +44206,7 @@ func (ec *executionContext) _PriceLevel(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "numberOfOrders":
 			field := field
@@ -43748,6 +44226,7 @@ func (ec *executionContext) _PriceLevel(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -44014,6 +44493,7 @@ func (ec *executionContext) _PropertyKey(ctx context.Context, sel ast.SelectionS
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -44051,6 +44531,7 @@ func (ec *executionContext) _Proposal(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "reference":
 			field := field
@@ -44070,6 +44551,7 @@ func (ec *executionContext) _Proposal(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "party":
 			field := field
@@ -44089,6 +44571,7 @@ func (ec *executionContext) _Proposal(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "state":
 			field := field
@@ -44108,6 +44591,7 @@ func (ec *executionContext) _Proposal(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "datetime":
 			field := field
@@ -44127,6 +44611,7 @@ func (ec *executionContext) _Proposal(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "rationale":
 			field := field
@@ -44146,6 +44631,7 @@ func (ec *executionContext) _Proposal(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "terms":
 			field := field
@@ -44165,6 +44651,7 @@ func (ec *executionContext) _Proposal(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "votes":
 			field := field
@@ -44184,6 +44671,7 @@ func (ec *executionContext) _Proposal(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "rejectionReason":
 			field := field
@@ -44200,6 +44688,7 @@ func (ec *executionContext) _Proposal(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "errorDetails":
 			field := field
@@ -44216,6 +44705,7 @@ func (ec *executionContext) _Proposal(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -44301,6 +44791,7 @@ func (ec *executionContext) _ProposalTerms(ctx context.Context, sel ast.Selectio
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "enactmentDatetime":
 			field := field
@@ -44320,6 +44811,7 @@ func (ec *executionContext) _ProposalTerms(ctx context.Context, sel ast.Selectio
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "change":
 			field := field
@@ -44339,6 +44831,7 @@ func (ec *executionContext) _ProposalTerms(ctx context.Context, sel ast.Selectio
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -44709,6 +45202,26 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_oracleDataBySpec(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "oracleData":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_oracleData(ctx, field)
 				return res
 			}
 
@@ -45353,6 +45866,7 @@ func (ec *executionContext) _RankingScore(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "previousStatus":
 			field := field
@@ -45372,6 +45886,7 @@ func (ec *executionContext) _RankingScore(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "rankingScore":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -45421,6 +45936,7 @@ func (ec *executionContext) _RankingScore(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -45461,6 +45977,7 @@ func (ec *executionContext) _RecurringTransfer(ctx context.Context, sel ast.Sele
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "endEpoch":
 			field := field
@@ -45477,6 +45994,7 @@ func (ec *executionContext) _RecurringTransfer(ctx context.Context, sel ast.Sele
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "factor":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -45503,6 +46021,7 @@ func (ec *executionContext) _RecurringTransfer(ctx context.Context, sel ast.Sele
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -45543,6 +46062,7 @@ func (ec *executionContext) _Reward(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "marketID":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -45582,6 +46102,7 @@ func (ec *executionContext) _Reward(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "epoch":
 			field := field
@@ -45601,6 +46122,7 @@ func (ec *executionContext) _Reward(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "amount":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -45640,6 +46162,7 @@ func (ec *executionContext) _Reward(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -45680,6 +46203,7 @@ func (ec *executionContext) _RewardPerAssetDetail(ctx context.Context, sel ast.S
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "assetId":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -45706,6 +46230,7 @@ func (ec *executionContext) _RewardPerAssetDetail(ctx context.Context, sel ast.S
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "totalAmount":
 			field := field
@@ -45725,6 +46250,7 @@ func (ec *executionContext) _RewardPerAssetDetail(ctx context.Context, sel ast.S
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -45815,6 +46341,7 @@ func (ec *executionContext) _RewardScore(ctx context.Context, sel ast.SelectionS
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -45855,6 +46382,7 @@ func (ec *executionContext) _RewardSummary(ctx context.Context, sel ast.Selectio
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "amount":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -45881,6 +46409,7 @@ func (ec *executionContext) _RewardSummary(ctx context.Context, sel ast.Selectio
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -46224,6 +46753,7 @@ func (ec *executionContext) _StakeLinking(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "timestamp":
 			field := field
@@ -46243,6 +46773,7 @@ func (ec *executionContext) _StakeLinking(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "party":
 			field := field
@@ -46262,6 +46793,7 @@ func (ec *executionContext) _StakeLinking(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "amount":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -46291,6 +46823,7 @@ func (ec *executionContext) _StakeLinking(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "finalizedAt":
 			field := field
@@ -46307,6 +46840,7 @@ func (ec *executionContext) _StakeLinking(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "txHash":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -46357,6 +46891,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "blockHash":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -46386,6 +46921,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "totalPeers":
 			field := field
@@ -46405,6 +46941,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "genesisTime":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -46464,6 +47001,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "txPerBlock":
 			field := field
@@ -46483,6 +47021,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "averageTxBytes":
 			field := field
@@ -46502,6 +47041,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "averageOrdersPerBlock":
 			field := field
@@ -46521,6 +47061,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "tradesPerSecond":
 			field := field
@@ -46540,6 +47081,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "ordersPerSecond":
 			field := field
@@ -46559,6 +47101,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "totalMarkets":
 			field := field
@@ -46578,6 +47121,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "totalAmendOrder":
 			field := field
@@ -46597,6 +47141,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "totalCancelOrder":
 			field := field
@@ -46616,6 +47161,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "totalCreateOrder":
 			field := field
@@ -46635,6 +47181,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "totalOrders":
 			field := field
@@ -46654,6 +47201,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "totalTrades":
 			field := field
@@ -46673,6 +47221,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "appVersionHash":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -46722,6 +47271,7 @@ func (ec *executionContext) _Statistics(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "chainId":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -46900,6 +47450,7 @@ func (ec *executionContext) _TradableInstrument(ctx context.Context, sel ast.Sel
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "marginCalculator":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -46957,6 +47508,7 @@ func (ec *executionContext) _Trade(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "buyOrder":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -46996,6 +47548,7 @@ func (ec *executionContext) _Trade(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "seller":
 			field := field
@@ -47015,6 +47568,7 @@ func (ec *executionContext) _Trade(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "aggressor":
 			field := field
@@ -47034,6 +47588,7 @@ func (ec *executionContext) _Trade(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "price":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -47063,6 +47618,7 @@ func (ec *executionContext) _Trade(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "createdAt":
 			field := field
@@ -47082,6 +47638,7 @@ func (ec *executionContext) _Trade(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "type":
 			field := field
@@ -47101,6 +47658,7 @@ func (ec *executionContext) _Trade(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "buyerFee":
 			field := field
@@ -47120,6 +47678,7 @@ func (ec *executionContext) _Trade(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "sellerFee":
 			field := field
@@ -47139,6 +47698,7 @@ func (ec *executionContext) _Trade(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "buyerAuctionBatch":
 			field := field
@@ -47155,6 +47715,7 @@ func (ec *executionContext) _Trade(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "sellerAuctionBatch":
 			field := field
@@ -47171,6 +47732,7 @@ func (ec *executionContext) _Trade(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -47473,6 +48035,7 @@ func (ec *executionContext) _Transfer(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "amount":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -47509,6 +48072,7 @@ func (ec *executionContext) _Transfer(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "timestamp":
 			field := field
@@ -47528,6 +48092,7 @@ func (ec *executionContext) _Transfer(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "kind":
 			field := field
@@ -47547,6 +48112,7 @@ func (ec *executionContext) _Transfer(ctx context.Context, sel ast.SelectionSet,
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -47803,6 +48369,7 @@ func (ec *executionContext) _UpdateMarket(ctx context.Context, sel ast.Selection
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -47843,6 +48410,7 @@ func (ec *executionContext) _UpdateMarketConfiguration(ctx context.Context, sel 
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "metadata":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -47869,6 +48437,7 @@ func (ec *executionContext) _UpdateMarketConfiguration(ctx context.Context, sel 
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "liquidityMonitoringParameters":
 			field := field
@@ -47888,6 +48457,7 @@ func (ec *executionContext) _UpdateMarketConfiguration(ctx context.Context, sel 
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "riskParameters":
 			field := field
@@ -47907,6 +48477,7 @@ func (ec *executionContext) _UpdateMarketConfiguration(ctx context.Context, sel 
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -48003,6 +48574,7 @@ func (ec *executionContext) _UpdateNetworkParameter(ctx context.Context, sel ast
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -48043,6 +48615,7 @@ func (ec *executionContext) _Vote(ctx context.Context, sel ast.SelectionSet, obj
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "party":
 			field := field
@@ -48062,6 +48635,7 @@ func (ec *executionContext) _Vote(ctx context.Context, sel ast.SelectionSet, obj
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "datetime":
 			field := field
@@ -48081,6 +48655,7 @@ func (ec *executionContext) _Vote(ctx context.Context, sel ast.SelectionSet, obj
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "proposalId":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -48110,6 +48685,7 @@ func (ec *executionContext) _Vote(ctx context.Context, sel ast.SelectionSet, obj
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "governanceTokenWeight":
 			field := field
@@ -48129,6 +48705,7 @@ func (ec *executionContext) _Vote(ctx context.Context, sel ast.SelectionSet, obj
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -48179,6 +48756,7 @@ func (ec *executionContext) _Withdrawal(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "amount":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -48208,6 +48786,7 @@ func (ec *executionContext) _Withdrawal(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "status":
 			field := field
@@ -48227,6 +48806,7 @@ func (ec *executionContext) _Withdrawal(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "ref":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -48256,6 +48836,7 @@ func (ec *executionContext) _Withdrawal(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "createdTimestamp":
 			field := field
@@ -48275,6 +48856,7 @@ func (ec *executionContext) _Withdrawal(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "withdrawnTimestamp":
 			field := field
@@ -48291,6 +48873,7 @@ func (ec *executionContext) _Withdrawal(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "txHash":
 			field := field
@@ -48307,6 +48890,7 @@ func (ec *executionContext) _Withdrawal(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		case "details":
 			field := field
@@ -48323,6 +48907,7 @@ func (ec *executionContext) _Withdrawal(ctx context.Context, sel ast.SelectionSe
 
 			out.Concurrently(i, func() graphql.Marshaler {
 				return innerFunc(ctx)
+
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -51154,7 +51739,7 @@ func (ec *executionContext) unmarshalOAuctionTrigger2ᚖcodeᚗvegaprotocolᚗio
 	if v == nil {
 		return nil, nil
 	}
-	res := new(AuctionTrigger)
+	var res = new(AuctionTrigger)
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -52254,7 +52839,7 @@ func (ec *executionContext) unmarshalONodeSignatureKind2ᚖcodeᚗvegaprotocol�
 	if v == nil {
 		return nil, nil
 	}
-	res := new(NodeSignatureKind)
+	var res = new(NodeSignatureKind)
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -52264,6 +52849,14 @@ func (ec *executionContext) marshalONodeSignatureKind2ᚖcodeᚗvegaprotocolᚗi
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) unmarshalOOffsetPagination2ᚖcodeᚗvegaprotocolᚗioᚋdataᚑnodeᚋgatewayᚋgraphqlᚐOffsetPagination(ctx context.Context, v interface{}) (*OffsetPagination, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputOffsetPagination(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOOracleData2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚋoraclesᚋv1ᚐOracleDataᚄ(ctx context.Context, sel ast.SelectionSet, v []*v11.OracleData) graphql.Marshaler {
@@ -52425,7 +53018,7 @@ func (ec *executionContext) unmarshalOOrderRejectionReason2ᚖcodeᚗvegaprotoco
 	if v == nil {
 		return nil, nil
 	}
-	res := new(OrderRejectionReason)
+	var res = new(OrderRejectionReason)
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -52441,7 +53034,7 @@ func (ec *executionContext) unmarshalOOrderType2ᚖcodeᚗvegaprotocolᚗioᚋda
 	if v == nil {
 		return nil, nil
 	}
-	res := new(OrderType)
+	var res = new(OrderType)
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -52863,7 +53456,7 @@ func (ec *executionContext) unmarshalOProposalRejectionReason2ᚖcodeᚗvegaprot
 	if v == nil {
 		return nil, nil
 	}
-	res := new(ProposalRejectionReason)
+	var res = new(ProposalRejectionReason)
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -52879,7 +53472,7 @@ func (ec *executionContext) unmarshalOProposalState2ᚖcodeᚗvegaprotocolᚗio�
 	if v == nil {
 		return nil, nil
 	}
-	res := new(ProposalState)
+	var res = new(ProposalState)
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
