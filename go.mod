@@ -6,7 +6,7 @@ require (
 	code.vegaprotocol.io/protos v0.51.1-0.20220516093119-2a7ded6bc6ac
 	code.vegaprotocol.io/quant v0.2.5
 	code.vegaprotocol.io/shared v0.0.0-20220321185018-3b5684b00533
-	code.vegaprotocol.io/vega v0.0.0-20220504061204-167f68a2dfcb
+	code.vegaprotocol.io/vega v0.51.0
 	github.com/99designs/gqlgen v0.16.0
 	github.com/cenkalti/backoff/v4 v4.1.2
 	github.com/dgraph-io/badger/v2 v2.2007.3
@@ -43,7 +43,7 @@ require (
 )
 
 require (
-	code.vegaprotocol.io/vegawallet v0.14.2-pre1.0.20220503182222-05676c95ef36 // indirect
+	code.vegaprotocol.io/vegawallet v0.15.0 // indirect
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/DataDog/zstd v1.4.1 // indirect
 	github.com/adrg/xdg v0.4.0 // indirect

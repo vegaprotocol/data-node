@@ -648,13 +648,12 @@ func (t *tradingDataService) OracleSpec(_ context.Context, req *protoapi.OracleS
 func (t *tradingDataService) OracleSpecs(_ context.Context, req *protoapi.OracleSpecsRequest) (*protoapi.OracleSpecsResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("OracleSpecs")()
 
-	pagination := protoapi.Pagination{}
-
+	p := defaultPagination
 	if req.Pagination != nil {
-		pagination = *req.Pagination
+		p = *req.Pagination
 	}
 
-	specs := t.oracleService.ListOracleSpecs(pagination)
+	specs := t.oracleService.ListOracleSpecs(p)
 	out := make([]*oraclespb.OracleSpec, 0, len(specs))
 	for _, v := range specs {
 		v := v
@@ -671,13 +670,12 @@ func (t *tradingDataService) OracleDataBySpec(_ context.Context, req *protoapi.O
 		return nil, ErrMissingOracleSpecID
 	}
 
-	pagination := protoapi.Pagination{}
-
+	p := defaultPagination
 	if req.Pagination != nil {
-		pagination = *req.Pagination
+		p = *req.Pagination
 	}
 
-	data, err := t.oracleService.GetOracleDataBySpecID(req.Id, pagination)
+	data, err := t.oracleService.GetOracleDataBySpecID(req.Id, p)
 	if err != nil {
 		return nil, apiError(codes.NotFound, err)
 	}
@@ -694,13 +692,12 @@ func (t *tradingDataService) OracleDataBySpec(_ context.Context, req *protoapi.O
 func (t *tradingDataService) ListOracleData(_ context.Context, req *protoapi.ListOracleDataRequest) (*protoapi.ListOracleDataResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("ListOracleData")()
 
-	pagination := protoapi.Pagination{}
-
+	p := defaultPagination
 	if req.Pagination != nil {
-		pagination = *req.Pagination
+		p = *req.Pagination
 	}
 
-	data := t.oracleService.ListOracleData(pagination)
+	data := t.oracleService.ListOracleData(p)
 	out := make([]*oraclespb.OracleData, 0, len(data))
 	for _, v := range data {
 		v := v
