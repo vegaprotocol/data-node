@@ -9,6 +9,7 @@
 - [](https://github.com/vegaprotocol/data-node/issues/xxx) -
 
 ### 🛠  Improvements
+- [609](https://github.com/vegaprotocol/data-node/issues/609) - Add fields related to network limit for ERC20 asset
 - [590](https://github.com/vegaprotocol/data-node/pull/590) - Implement pagination for `Data-Node V2 APIs` for Trades, Parties and Markets
 - [560](https://github.com/vegaprotocol/data-node/issues/560) - Implement pagination for `Data-Node V2 APIs` for Orders
 - [](https://github.com/vegaprotocol/data-node/issues/xxx) -
@@ -39,10 +40,10 @@
 - [591](https://github.com/vegaprotocol/data-node/issues/591) - Optimise liquidity provision and margin levels data retention and storage
 - [588](https://github.com/vegaprotocol/data-node/issues/588) - Return correct error code when proposal not found
 - [556](https://github.com/vegaprotocol/data-node/issues/556) - Expose an endpoint to list oracle data
-- [548](https://github.com/vegaprotocol/data-node/issues/548) - Remove foreign key constraints on hyper tables 
 
 ### 🐛 Fixes
 - [524](https://github.com/vegaprotocol/data-node/issues/524) - Fix for incorrect balances
+- [600](https://github.com/vegaprotocol/data-node/issues/600) - Node lists filter based on whether a node exists for the given epoch
 - [520](https://github.com/vegaprotocol/data-node/issues/520) - Fix event race where a ranking event can come in before the new node event
 - [519](https://github.com/vegaprotocol/data-node/issues/519) - Fix market depth update subscriptions streaming events for all markets.
 - [551](https://github.com/vegaprotocol/data-node/issues/551) - Shut down cleanly on `SIGINT` or `SIGTERM`
