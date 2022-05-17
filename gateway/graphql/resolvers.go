@@ -1767,7 +1767,7 @@ func (r *myOrderResolver) TradesPaged(ctx context.Context, ord *types.Order, pag
 	if ord == nil {
 		return nil, errors.New("nil order")
 	}
-	req := v2.GetTradesByOrderIDRequest{OrderId: ord.Id}
+	req := v2.GetTradesByOrderIDRequest{OrderId: ord.Id, Pagination: pagination}
 	res, err := r.tradingDataClientV2.GetTradesByOrderID(ctx, &req)
 	if err != nil {
 		r.log.Error("tradingData client", logging.Error(err))

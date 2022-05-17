@@ -57,7 +57,7 @@ func orderAndPaginateQuery(query string, orderColumns []string, pagination entit
 	return query, args
 }
 
-func orderAndPaginateWithCursor(query string, pagination entities.Pagination, cursors Cursors,
+func orderAndPaginateWithCursor(query string, pagination entities.Pagination, cursors CursorBuilders,
 	args ...interface{}) (string, []interface{},
 ) {
 	var limit int32
