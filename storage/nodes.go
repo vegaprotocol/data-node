@@ -81,16 +81,13 @@ func (ns *Node) ReloadConf(cfg Config) {
 func (ns *Node) AddEpoch(epoch string) {
 	ns.mut.Lock()
 	defer ns.mut.Unlock()
-	// for all nodes copy their existence flags from the previous epoch unless we get get told otherwise
-	// by a ValidatorUpdate event
+	// for all nodes copy their existence flags from the last known state change
 	for _, n := range ns.nodes {
 
 		if _, ok := n.existsPerEpoch[epoch]; ok {
 			// if we already know just move on, ValidatorUpdate event may have come through before the epoch event
 			continue
 		}
-
-		//
 		n.existsPerEpoch[epoch] = n.lastChangeAdded
 	}
 }
