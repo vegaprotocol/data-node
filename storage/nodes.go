@@ -123,7 +123,6 @@ func (ns *Node) AddNode(n pb.Node, added bool, fromEpoch uint64) {
 	}
 	*nd.minEpoch = math.MaxUint64
 	ns.nodes[n.GetId()] = nd
-	ns.log.Info("NODE WAS NEW", logging.String("nodeid", n.Id), logging.Bool("added", added), logging.Uint64("from", fromEpoch))
 }
 
 func (ns *Node) AddNodeRewardScore(nodeID, epochID string, scoreData vega.RewardScore) {
