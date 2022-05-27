@@ -269,9 +269,7 @@ func (l *NodeCommand) setupLegacyStorages() error {
 	if l.checkpointStore, err = storage.NewCheckpoints(l.Log, st.CheckpointsHome, l.conf.Storage, l.cancel); err != nil {
 		return err
 	}
-	if l.chainInfoStore, err = storage.NewChainInfo(l.Log, st.ChainInfoHome, l.conf.Storage, l.cancel); err != nil {
-		return err
-	}
+
 	l.configWatcher.OnConfigUpdate(
 		func(cfg config.Config) { l.accounts.ReloadConf(cfg.Storage) },
 		func(cfg config.Config) { l.tradeStore.ReloadConf(cfg.Storage) },
@@ -285,7 +283,6 @@ func (l *NodeCommand) setupLegacyStorages() error {
 		func(cfg config.Config) { l.nodeStore.ReloadConf(cfg.Storage) },
 		func(cfg config.Config) { l.epochStore.ReloadConf(cfg.Storage) },
 		func(cfg config.Config) { l.delegationStore.ReloadConf(cfg.Storage) },
-		func(cfg config.Config) { l.chainInfoStore.ReloadConf(cfg.Storage) },
 		func(cfg config.Config) { l.transferStore.ReloadConf(cfg.Storage) },
 	)
 
@@ -304,6 +301,16 @@ func (l *NodeCommand) preRun(_ []string) (err error) {
 	eventSource, err := broker.NewEventSource(l.conf.Broker, l.Log)
 	if err != nil {
 		l.Log.Error("unable to initialise event source", logging.Error(err))
+		return err
+	}
+
+	// Todo - move chaininfo into postgres
+	st, err := storage.InitialiseStorage(l.vegaPaths)
+	if err != nil {
+		return fmt.Errorf("couldn't initialise storage: %w", err)
+	}
+
+	if l.chainInfoStore, err = storage.NewChainInfo(l.Log, st.ChainInfoHome, l.conf.Storage, l.cancel); err != nil {
 		return err
 	}
 
