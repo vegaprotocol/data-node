@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"code.vegaprotocol.io/data-node/entities"
+	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/sqlstore"
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"code.vegaprotocol.io/vega/types"
@@ -49,8 +50,9 @@ const numTestOrders = 30
 
 func TestOrders(t *testing.T) {
 	defer DeleteEverything()
+	logger := logging.NewTestLogger()
 	ps := sqlstore.NewParties(connectionSource)
-	os := sqlstore.NewOrders(connectionSource)
+	os := sqlstore.NewOrders(connectionSource, logger)
 	bs := sqlstore.NewBlocks(connectionSource)
 	block := addTestBlock(t, bs)
 	block2 := addTestBlock(t, bs)
@@ -409,11 +411,11 @@ func generateTestOrders(t *testing.T, blocks []entities.Block, parties []entitie
 
 func TestOrders_GetLiveOrders(t *testing.T) {
 	defer DeleteEverything()
-
+	logger := logging.NewTestLogger()
 	bs := sqlstore.NewBlocks(connectionSource)
 	ps := sqlstore.NewParties(connectionSource)
 	ms := sqlstore.NewMarkets(connectionSource)
-	os := sqlstore.NewOrders(connectionSource)
+	os := sqlstore.NewOrders(connectionSource, logger)
 
 	t.Logf("test store port: %d", testDBPort)
 
@@ -481,11 +483,12 @@ type orderTestData struct {
 func setupOrderCursorPaginationTests(t *testing.T) (*orderTestStores, func(t *testing.T)) {
 	t.Helper()
 	DeleteEverything()
+	logger := logging.NewTestLogger()
 	stores := &orderTestStores{
 		bs:     sqlstore.NewBlocks(connectionSource),
 		ps:     sqlstore.NewParties(connectionSource),
 		ms:     sqlstore.NewMarkets(connectionSource),
-		os:     sqlstore.NewOrders(connectionSource),
+		os:     sqlstore.NewOrders(connectionSource, logger),
 		config: sqlstore.NewDefaultConfig(),
 	}
 

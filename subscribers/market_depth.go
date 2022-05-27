@@ -79,12 +79,6 @@ func NewMarketDepthBuilder(ctx context.Context, log *logging.Logger, orderStore 
 		orderStore:   orderStore,
 	}
 
-	if sqlStoreEnabled && orderStore != nil {
-		if err := initMarketDepths(ctx, &mdb); err != nil {
-			panic(fmt.Errorf("could not initialize market depths from SQL store: %w", err))
-		}
-	}
-
 	if mdb.isRunning() {
 		go mdb.loop(mdb.ctx)
 	}
