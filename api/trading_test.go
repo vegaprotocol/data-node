@@ -195,7 +195,7 @@ func getTestGRPCServer(
 	candleService := candles.NewService(logger, conf.Candles, candleStore)
 	marketDataStore := storage.NewMarketData(logger, conf.Storage)
 
-	marketDepth := subscribers.NewMarketDepthBuilder(ctx, logger, nil, false, true)
+	marketDepth := subscribers.NewMarketDepthBuilder(ctx, logger, true)
 	if marketDepth == nil {
 		return
 	}

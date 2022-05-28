@@ -12,7 +12,7 @@ import (
 )
 
 func getTestMDB(t *testing.T, ctx context.Context, ack bool) *subscribers.MarketDepthBuilder {
-	return subscribers.NewMarketDepthBuilder(ctx, nil, nil, false, ack)
+	return subscribers.NewMarketDepthBuilder(ctx, nil, ack)
 }
 
 func buildOrder(id string, side types.Side, orderType types.OrderType, price uint64, size uint64, remaining uint64) *types.Order {

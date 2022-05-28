@@ -154,10 +154,6 @@ func (m *MarketDepth) AddOrder(order *types.Order, vegaTime time.Time, sequenceN
 		m.marketDepths[order.MarketID] = md
 	}
 
-	// TODO: Think about htis
-	// // Initialise changes slice ready for new items
-	// md.Changes = []*entities.PriceLevel{}
-
 	md.AddOrderUpdate(order)
 
 	md.SequenceNumber = m.sequenceNumber
