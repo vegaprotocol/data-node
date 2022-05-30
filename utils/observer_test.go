@@ -28,9 +28,14 @@ func TestNotifyDoesNotBlock(t *testing.T) {
 	ch, _ := o.Observe(context.Background(), 3, func(x int) bool { return true })
 
 	// We have an observer that isn't reading from it's channel - when we notify it should
-	// output a debug message saying "channel could not be updated"
+	// output a debug message saying "channel could not be updated". There's an effective buffer
+	// of 1 message in the Observe() select loop, which may or may not have started by the time
+	// we Notify(), so notify twice just in case.
 	o.Notify([]int{1, 2, 3})
-	assert.Equal(t, 1, logs.FilterMessageSnippet("channel could not be updated").Len())
+	o.Notify([]int{1, 2, 3})
+
+	flogs := logs.FilterMessageSnippet("channel could not be updated")
+	assert.NotZero(t, flogs.Len())
 
 	// And there should be nothing on the channel
 	select {
