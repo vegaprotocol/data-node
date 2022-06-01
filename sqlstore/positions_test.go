@@ -100,16 +100,19 @@ func TestPosition(t *testing.T) {
 		assertPositionsMatch(t, expected, actual)
 	})
 
+
+	last := uint64(3)
+
 	t.Run("GetByParty", func(t *testing.T) {
 		expected := []entities.Position{pos1c, pos3}
-		actual, err := ps.GetByParty(ctx, party1.ID)
+		actual, err := ps.GetByParty(ctx, party1.ID, &entities.OffsetPagination{Limit: last, Descending: true})
 		require.NoError(t, err)
 		assertPositionsMatch(t, expected, actual)
 	})
 
 	t.Run("GetByMarket", func(t *testing.T) {
 		expected := []entities.Position{pos1c, pos2}
-		actual, err := ps.GetByMarket(ctx, market1.ID)
+		actual, err := ps.GetByMarket(ctx, market1.ID, &entities.OffsetPagination{Limit: last, Descending: true})
 		require.NoError(t, err)
 		assertPositionsMatch(t, expected, actual)
 	})

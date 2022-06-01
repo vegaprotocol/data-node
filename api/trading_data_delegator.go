@@ -66,15 +66,20 @@ var defaultEntityPagination = entities.OffsetPagination{
 func (t *tradingDataDelegator) PositionsByParty(ctx context.Context, request *protoapi.PositionsByPartyRequest) (*protoapi.PositionsByPartyResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("PositionsByParty SQL")()
 
+	p := defaultPaginationV2
+	if request.Pagination != nil {
+		p = toEntityPagination(request.Pagination)
+	}
+
 	var positions []entities.Position
 	var err error
 
 	if request.MarketId == "" && request.PartyId == "" {
 		positions, err = t.positionStore.GetAll(ctx)
 	} else if request.MarketId == "" {
-		positions, err = t.positionStore.GetByParty(ctx, entities.NewPartyID(request.PartyId))
+		positions, err = t.positionStore.GetByParty(ctx, entities.NewPartyID(request.PartyId), &p)
 	} else if request.PartyId == "" {
-		positions, err = t.positionStore.GetByMarket(ctx, entities.NewMarketID(request.MarketId))
+		positions, err = t.positionStore.GetByMarket(ctx, entities.NewMarketID(request.MarketId), &p)
 	} else {
 		positions = make([]entities.Position, 1)
 		positions[0], err = t.positionStore.GetByMarketAndParty(ctx,

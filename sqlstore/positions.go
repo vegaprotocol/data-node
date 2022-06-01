@@ -73,30 +73,58 @@ func (ps *Positions) GetByMarketAndParty(ctx context.Context,
 	return position, err
 }
 
-func (ps *Positions) GetByMarket(ctx context.Context, marketID entities.MarketID) ([]entities.Position, error) {
+func (ps *Positions) GetByMarket(ctx context.Context, marketID entities.MarketID, p *entities.OffsetPagination) ([]entities.Position, error) {
 	defer metrics.StartSQLQuery("Positions", "GetByMarket")()
+	query := `SELECT * FROM positions_current WHERE market_id=$1`
+	args := []interface{}{marketID}
+	if p != nil {
+		query, args = paginatePositionQuery(query, args, *p)
+	}
 	positions := []entities.Position{}
 	err := pgxscan.Select(ctx, ps.Connection, &positions,
-		`SELECT * FROM positions_current WHERE market_id=$1`,
-		marketID)
+		query,
+		args)
 	return positions, err
 }
 
-func (ps *Positions) GetByParty(ctx context.Context, partyID entities.PartyID) ([]entities.Position, error) {
+func (ps *Positions) GetByParty(ctx context.Context, partyID entities.PartyID, p *entities.OffsetPagination) ([]entities.Position, error) {
 	defer metrics.StartSQLQuery("Positions", "GetByParty")()
+	query := `SELECT * FROM positions_current WHERE party_id=$1`
+	args := []interface{}{partyID}
+	if p != nil {
+		query, args = paginatePositionQuery(query, args, *p)
+	}
 	positions := []entities.Position{}
 	err := pgxscan.Select(ctx, ps.Connection, &positions,
-		`SELECT * FROM positions_current WHERE party_id=$1`,
-		partyID)
+		query,
+		args)
 	return positions, err
 }
 
 func (ps *Positions) GetAll(ctx context.Context) ([]entities.Position, error) {
 	defer metrics.StartSQLQuery("Positions", "GetAll")()
+
 	positions := []entities.Position{}
 	err := pgxscan.Select(ctx, ps.Connection, &positions,
 		`SELECT * FROM positions_current`)
 	return positions, err
+}
+
+func paginatePositionQuery(query string, args []interface{}, p entities.OffsetPagination) (string, []interface{}) {
+	dir := "ASC"
+	if p.Descending {
+		dir = "DESC"
+	}
+
+	var limit interface{} = nil
+	if p.Limit != 0 {
+		limit = p.Limit
+	}
+
+	query = fmt.Sprintf(" %s ORDER BY vega_time %s, id %s LIMIT %s OFFSET %s",
+		query, dir, dir, nextBindVar(&args, limit), nextBindVar(&args, p.Skip))
+
+	return query, args
 }
 
 func (ps *Positions) updateCache(p entities.Position) {
