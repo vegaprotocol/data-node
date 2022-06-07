@@ -89,6 +89,7 @@ func (l *NodeCommand) persistentPre(args []string) (err error) {
 	}
 
 	if l.conf.API.ExposeLegacyAPI || !l.conf.SQLStore.Enabled {
+		l.Log.Info("Enabling legacy stores")
 		if err := l.setupLegacyStorages(); err != nil {
 			return err
 		}
@@ -97,6 +98,7 @@ func (l *NodeCommand) persistentPre(args []string) (err error) {
 	}
 
 	if l.conf.SQLStore.Enabled {
+		l.Log.Info("Enabling SQL stores")
 		if err := l.setupStoresSQL(); err != nil {
 			return err
 		}
