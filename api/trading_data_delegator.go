@@ -78,7 +78,6 @@ var defaultEntityPagination = entities.OffsetPagination{
 func (t *tradingDataDelegator) TransferResponsesSubscribe(
 	_ *protoapi.TransferResponsesSubscribeRequest, srv protoapi.TradingDataService_TransferResponsesSubscribeServer,
 ) error {
-	defer metrics.StartAPIRequestAndTimeGRPC("TransferResponseSubscribe-SQL")()
 	// Wrap context from the request into cancellable. We can close internal chan in error.
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
@@ -168,7 +167,6 @@ func (t *tradingDataDelegator) MarketDepthSubscribe(
 	req *protoapi.MarketDepthSubscribeRequest,
 	srv protoapi.TradingDataService_MarketDepthSubscribeServer,
 ) error {
-	defer metrics.StartAPIRequestAndTimeGRPC("MarketDepthSubscribe-SQL")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
@@ -235,7 +233,6 @@ func (t *tradingDataDelegator) MarketDepthUpdatesSubscribe(
 	req *protoapi.MarketDepthUpdatesSubscribeRequest,
 	srv protoapi.TradingDataService_MarketDepthUpdatesSubscribeServer,
 ) error {
-	defer metrics.StartAPIRequestAndTimeGRPC("MarketDepthUpdatesSubscribe-SQL")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
@@ -342,7 +339,6 @@ func (t *tradingDataDelegator) PositionsSubscribe(
 	req *protoapi.PositionsSubscribeRequest,
 	srv protoapi.TradingDataService_PositionsSubscribeServer,
 ) error {
-	defer metrics.StartAPIRequestAndTimeGRPC("PositionsSubscribe")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
@@ -613,7 +609,6 @@ func toV2IntervalString(interval vega.Interval) (string, error) {
 func (t *tradingDataDelegator) CandlesSubscribe(req *protoapi.CandlesSubscribeRequest,
 	srv protoapi.TradingDataService_CandlesSubscribeServer,
 ) error {
-	defer metrics.StartAPIRequestAndTimeGRPC("CandlesSubscribe-SQL")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
@@ -1394,7 +1389,6 @@ func (t *tradingDataDelegator) LastTrade(ctx context.Context,
 func (t *tradingDataDelegator) TradesSubscribe(req *protoapi.TradesSubscribeRequest,
 	srv protoapi.TradingDataService_TradesSubscribeServer,
 ) error {
-	defer metrics.StartAPIRequestAndTimeGRPC("TradesSubscribe-SQL")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
@@ -1466,7 +1460,6 @@ func (t *tradingDataDelegator) TradesSubscribe(req *protoapi.TradesSubscribeRequ
 func (t *tradingDataDelegator) OrdersSubscribe(
 	req *protoapi.OrdersSubscribeRequest, srv protoapi.TradingDataService_OrdersSubscribeServer,
 ) error {
-	defer metrics.StartAPIRequestAndTimeGRPC("OrdersSubscribe-SQL")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
@@ -1535,8 +1528,6 @@ func (t *tradingDataDelegator) OrdersSubscribe(
 }
 
 func (t *tradingDataDelegator) OrderByID(ctx context.Context, req *protoapi.OrderByIDRequest) (*protoapi.OrderByIDResponse, error) {
-	defer metrics.StartAPIRequestAndTimeGRPC("OrderByID-SQL")()
-
 	if len(req.OrderId) == 0 {
 		return nil, ErrMissingOrderIDParameter
 	}
@@ -1880,7 +1871,6 @@ func (t *tradingDataDelegator) GlobalRewardPoolAccounts(ctx context.Context,
 func (t *tradingDataDelegator) AccountsSubscribe(req *protoapi.AccountsSubscribeRequest,
 	srv protoapi.TradingDataService_AccountsSubscribeServer,
 ) error {
-	defer metrics.StartAPIRequestAndTimeGRPC("AccountsSubscribe")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
@@ -1982,7 +1972,6 @@ func (t *tradingDataDelegator) MarketsData(ctx context.Context, _ *protoapi.Mark
 func (t *tradingDataDelegator) MarketsDataSubscribe(req *protoapi.MarketsDataSubscribeRequest,
 	srv protoapi.TradingDataService_MarketsDataSubscribeServer,
 ) error {
-	defer metrics.StartAPIRequestAndTimeGRPC("MarketsDataSubscribe")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
@@ -2131,7 +2120,6 @@ func (t *tradingDataDelegator) Deposits(ctx context.Context, req *protoapi.Depos
 /****************************** Market Data **************************************/
 
 func (t *tradingDataDelegator) MarginLevelsSubscribe(req *protoapi.MarginLevelsSubscribeRequest, srv protoapi.TradingDataService_MarginLevelsSubscribeServer) error {
-	defer metrics.StartAPIRequestAndTimeGRPC("MarginLevelsSubscribe")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
