@@ -8,7 +8,6 @@ import (
 type Asset struct{ *sqlstore.Assets }
 type Block struct{ *sqlstore.Blocks }
 type Party struct{ *sqlstore.Parties }
-type Order struct{ *sqlstore.Orders }
 type NetworkLimits struct{ *sqlstore.NetworkLimits }
 type Markets struct{ *sqlstore.Markets }
 type Epoch struct{ *sqlstore.Epochs }
@@ -39,10 +38,6 @@ func NewBlock(store *sqlstore.Blocks, log *logging.Logger) *Block {
 
 func NewParty(store *sqlstore.Parties, log *logging.Logger) *Party {
 	return &Party{Parties: store}
-}
-
-func NewOrder(store *sqlstore.Orders, log *logging.Logger) *Order {
-	return &Order{Orders: store}
 }
 
 func NewNetworkLimits(store *sqlstore.NetworkLimits, log *logging.Logger) *NetworkLimits {

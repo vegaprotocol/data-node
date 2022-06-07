@@ -427,7 +427,7 @@ func TestOrders_GetLiveOrders(t *testing.T) {
 	testOrders := generateTestOrders(t, blocks, parties, markets, orderIDs, os)
 
 	// Make sure we flush the batcher and write the orders to the database
-	err := os.Flush(context.Background())
+	_, err := os.Flush(context.Background())
 	require.NoError(t, err)
 
 	want := append(testOrders[:3], testOrders[4:6]...)
@@ -774,7 +774,7 @@ func generateTestOrdersForCursorPagination(t *testing.T, stores *orderTestStores
 	}
 
 	// Make sure we flush the batcher and write the orders to the database
-	err := stores.os.Flush(context.Background())
+	_, err := stores.os.Flush(context.Background())
 	require.NoError(t, err, "Could not insert test order data to the test database")
 
 	return orderTestData{

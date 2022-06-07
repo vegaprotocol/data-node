@@ -9,7 +9,6 @@ import (
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/metrics"
-	"code.vegaprotocol.io/data-node/utils"
 	"github.com/georgysavva/scany/pgxscan"
 )
 
@@ -23,8 +22,7 @@ const (
 
 type Orders struct {
 	*ConnectionSource
-	batcher  MapBatcher[entities.OrderKey, entities.Order]
-	observer utils.Observer[entities.Order]
+	batcher MapBatcher[entities.OrderKey, entities.Order]
 }
 
 func NewOrders(connectionSource *ConnectionSource, logger *logging.Logger) *Orders {
@@ -33,16 +31,13 @@ func NewOrders(connectionSource *ConnectionSource, logger *logging.Logger) *Orde
 		batcher: NewMapBatcher[entities.OrderKey, entities.Order](
 			"orders",
 			entities.OrderColumns),
-		observer: utils.NewObserver[entities.Order]("order", logger, 0, 0),
 	}
 	return a
 }
 
-func (os *Orders) Flush(ctx context.Context) error {
+func (os *Orders) Flush(ctx context.Context) ([]entities.Order, error) {
 	defer metrics.StartSQLQuery("Orders", "Flush")()
-	flushed, err := os.batcher.Flush(ctx, os.Connection)
-	os.observer.Notify(flushed)
-	return err
+	return os.batcher.Flush(ctx, os.Connection)
 }
 
 // Add inserts an order update row into the database if an row for this (block time, order id, version)
@@ -127,17 +122,6 @@ and time_in_force not in (3, 4)
 and status in (1, 7)
 order by vega_time, seq_num`, sqlOrderColumns)
 	return os.queryOrders(ctx, query, nil, nil)
-}
-
-func (os *Orders) ObserveOrders(ctx context.Context, retries int, market *string, party *string) (<-chan []entities.Order, uint64) {
-	ch, ref := os.observer.Observe(ctx,
-		retries,
-		func(o entities.Order) bool {
-			marketOk := market == nil || o.MarketID.String() == *market
-			partyOk := party == nil || o.PartyID.String() == *party
-			return marketOk && partyOk
-		})
-	return ch, ref
 }
 
 // -------------------------------------------- Utility Methods
