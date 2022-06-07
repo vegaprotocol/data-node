@@ -447,6 +447,7 @@ func (g *GRPCServer) Start(ctx context.Context, lis net.Listener) error {
 
 	tradingDataSvcV2 := &tradingDataServiceV2{
 		log:                  g.log,
+		v2ApiEnabled:         g.useSQLStores,
 		orderService:         g.orderServiceV2,
 		networkLimitsService: g.networkLimitsServiceV2,
 		marketDataService:    g.marketDataServiceV2,
