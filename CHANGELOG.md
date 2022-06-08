@@ -9,10 +9,10 @@
 - [](https://github.com/vegaprotocol/data-node/issues/xxx) -
 
 ### 🛠  Improvements
-- [](https://github.com/vegaprotocol/data-node/issues/xxx) -
+- [624](https://github.com/vegaprotocol/data-node/issues/624) - Support subscriptions in new `API`
 
 ### 🐛 Fixes
-- [](https://github.com/vegaprotocol/data-node/issues/xxx) -
+- [657](https://github.com/vegaprotocol/data-node/issues/657) - Add missing creation field in `ERC20` withdrawal bundle
 
 ## 0.51.1
 
@@ -24,6 +24,8 @@
 - [560](https://github.com/vegaprotocol/data-node/issues/560) - Implement pagination for `Data-Node V2 APIs` for Orders
 - [562](https://github.com/vegaprotocol/data-node/issues/560) - Implement pagination for `Data-Node V2 APIs` for Margin Levels
 - [630](https://github.com/vegaprotocol/data-node/issues/630) - Data retention across all historical data tables
+- [645](https://github.com/vegaprotocol/data-node/issues/645) - Make `rewardType` an `enum` in `GraphQL API`
+- [427](https://github.com/vegaprotocol/data-node/issues/427) - Handle recovery from snapshots
 
 ### 🐛 Fixes
 - [616](https://github.com/vegaprotocol/data-node/pull/616) - Don't return multiple delegations per epoch/party/node
