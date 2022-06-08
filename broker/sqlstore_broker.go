@@ -99,7 +99,7 @@ func (b *sqlStoreBroker) Receive(ctx context.Context) error {
 
 // waitForFirstBlock processes all events until a new block is encountered and returns the new block. A 'new' block is one for which
 // events have not already been processed by this datanode.
-func (b *sqlStoreBroker) waitForFirstBlock(ctx context.Context, errCh <-chan error, receiveCh <-chan events.Event) (*entities.Block, error) {
+func (b *sqlStoreBroker) waitForFirstBlock(ctx context.Context, errCh <-chan error, receiveCh <-chan events.Event) (*block, error) {
 
 	lastProcessedBlock, err := b.blockStore.GetLastBlock(ctx)
 
@@ -131,7 +131,7 @@ func (b *sqlStoreBroker) waitForFirstBlock(ctx context.Context, errCh <-chan err
 				}
 
 				if timeUpdate.BlockNr() > lastProcessedBlock.Height {
-					return entities.BlockFromTimeUpdate(timeUpdate)
+					return blockFromTimeUpdate(timeUpdate)
 				}
 			}
 		}
@@ -140,12 +140,12 @@ func (b *sqlStoreBroker) waitForFirstBlock(ctx context.Context, errCh <-chan err
 }
 
 // processBlock processes all events in the current block up to the next time update.  The next time block is returned when processing of the block is done.
-func (b *sqlStoreBroker) processBlock(ctx context.Context, dbContext context.Context, block *entities.Block, eventsCh <-chan events.Event, errCh <-chan error) (*entities.Block, error) {
+func (b *sqlStoreBroker) processBlock(ctx context.Context, dbContext context.Context, block *block, eventsCh <-chan events.Event, errCh <-chan error) (*block, error) {
 
 	metrics.BlockCounterInc()
 
 	for _, subscriber := range b.subscribers {
-		subscriber.SetVegaTime(block.VegaTime)
+		subscriber.SetVegaTime(block.vegaTime)
 	}
 
 	// Don't use our parent context as a parent of the database operation; if we get cancelled
@@ -160,7 +160,7 @@ func (b *sqlStoreBroker) processBlock(ctx context.Context, dbContext context.Con
 		return nil, fmt.Errorf("failed to add transaction to context:%w", err)
 	}
 
-	if err = b.addBlock(blockCtx, block); err != nil {
+	if err = b.addBlock(blockCtx, block.entityBlock); err != nil {
 		return nil, fmt.Errorf("failed to add block:%w", err)
 	}
 
@@ -194,8 +194,7 @@ func (b *sqlStoreBroker) processBlock(ctx context.Context, dbContext context.Con
 					return nil, fmt.Errorf("failed to commit transactional context:%w", err)
 				}
 
-				return entities.BlockFromTimeUpdate(timeUpdate)
-
+				return blockFromTimeUpdate(timeUpdate)
 			} else {
 				if err = b.handleEvent(blockCtx, e); err != nil {
 					return nil, err
@@ -262,4 +261,21 @@ func (b *sqlStoreBroker) push(ctx context.Context, sub SqlBrokerSubscriber, e ev
 	}
 
 	return nil
+}
+
+func blockFromTimeUpdate(timeUpdate entities.TimeUpdateEvent) (*block, error) {
+	entityBlock, err := entities.BlockFromTimeUpdate(timeUpdate)
+	if err != nil {
+		return nil, err
+	}
+
+	return &block{
+		entityBlock: entityBlock,
+		vegaTime:    timeUpdate.Time(),
+	}, nil
+}
+
+type block struct {
+	entityBlock *entities.Block
+	vegaTime    time.Time
 }
