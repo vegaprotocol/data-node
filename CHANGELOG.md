@@ -10,6 +10,7 @@
 
 ### 🛠  Improvements
 - [624](https://github.com/vegaprotocol/data-node/issues/624) - Support subscriptions in new `API`
+- [564](https://github.com/vegaprotocol/data-node/issues/564) - Add cursor based pagination to market data requests
 - [](https://github.com/vegaprotocol/data-node/issues/xxx) -
 
 ### 🐛 Fixes
