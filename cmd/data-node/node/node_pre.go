@@ -394,6 +394,10 @@ func (l *NodeCommand) preRun(_ []string) (err error) {
 	return nil
 }
 
+type initialiser interface {
+	Initialise(context.Context) error
+}
+
 func (l *NodeCommand) setupV2Services() error {
 	l.accountServiceV2 = service.NewAccount(l.accountStoreSQL, l.balanceStoreSQL, l.Log)
 	l.assetServiceV2 = service.NewAsset(l.assetStoreSQL, l.Log)
@@ -428,10 +432,18 @@ func (l *NodeCommand) setupV2Services() error {
 	l.transferServiceV2 = service.NewTransfer(l.transfersStoreSQL, l.Log)
 	l.withdrawalServiceV2 = service.NewWithdrawal(l.withdrawalsStoreSQL, l.Log)
 
-	err := l.marketDepthServiceV2.Initialise(l.ctx)
-	if err != nil {
-		return err
+	toInit := []initialiser{
+		l.marketDepthServiceV2,
+		l.marketDataServiceV2,
 	}
+
+	for _, svc := range toInit {
+		err := svc.Initialise(l.ctx)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
