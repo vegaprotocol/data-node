@@ -9,7 +9,6 @@ import (
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/utils"
-	"golang.org/x/exp/maps"
 )
 
 //go:generate go run github.com/golang/mock/mockgen -destination mocks/market_data_mock.go -package mocks code.vegaprotocol.io/data-node/service MarketDataStore
@@ -88,10 +87,9 @@ func (m *MarketData) GetMarketsData(ctx context.Context) ([]entities.MarketData,
 	m.cacheLock.RLock()
 	defer m.cacheLock.RUnlock()
 
-	pData := maps.Values(m.cache)
-	data := make([]entities.MarketData, len(pData))
-	for i := 0; i < len(pData); i++ {
-		data[i] = *pData[i]
+	data := make([]entities.MarketData, 0, len(m.cache))
+	for _, v := range m.cache {
+		data = append(data, *v)
 	}
 	return data, nil
 }
