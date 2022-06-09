@@ -158,6 +158,10 @@ type PositionKey struct {
 	VegaTime time.Time
 }
 
+func (p Position) Cursor() *Cursor {
+	return NewCursor(p.VegaTime.Format(time.RFC3339Nano))
+}
+
 func (p Position) Key() PositionKey {
 	return PositionKey{p.MarketID, p.PartyID, p.VegaTime}
 }

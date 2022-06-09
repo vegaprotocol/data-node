@@ -91,6 +91,33 @@ func (ps *Positions) GetByParty(ctx context.Context, partyID entities.PartyID) (
 	return positions, err
 }
 
+func (ps *Positions) GetByIDWithCursorPagination(ctx context.Context, partyID, marketID string, pagination entities.Pagination) ([]entities.Position, entities.PageInfo, error) {
+	var query string
+	if marketID != "" {
+		query = fmt.Sprintf(`select * from positions_current where party_id=%s`, partyID)
+	} else {
+		query = fmt.Sprintf(`select * from positions_current where party_id=%s and market_id=%s`,
+			partyID)
+	}
+
+	positions := make([]entities.Position, 0)
+	args := make([]interface{}, 0)
+
+	var pagedPositions []entities.Position
+	var pageInfo entities.PageInfo
+
+	sorting, cmp, cursor := extractPaginationInfo(pagination)
+	cursors := []CursorQueryParameter{NewCursorQueryParameter("vega_time", sorting, cmp, cursor)}
+	query, args = orderAndPaginateWithCursor(query, pagination, cursors, args...)
+
+	if err := pgxscan.Select(ctx, ps.Connection, &positions, query, args...); err != nil {
+		return nil, entities.PageInfo{}, err
+	}
+
+	pagedPositions, pageInfo = entities.PageEntities(positions, pagination)
+	return pagedPositions, pageInfo, nil
+}
+
 func (ps *Positions) GetAll(ctx context.Context) ([]entities.Position, error) {
 	defer metrics.StartSQLQuery("Positions", "GetAll")()
 	positions := []entities.Position{}
