@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc"
 	"strconv"
 	"strings"
 	"time"
@@ -40,6 +41,7 @@ type tradingDataServiceV2 struct {
 	marketsService       *service.Markets
 	partyService         *service.Party
 	riskService          *service.Risk
+	positionService      *service.Position
 	accountService       *service.Account
 }
 
@@ -695,6 +697,47 @@ func makeMarketEdges(markets []entities.Market) []*v2.MarketEdge {
 		}
 		edges[i] = &v2.MarketEdge{
 			Node:   marketProto,
+			Cursor: m.Cursor().Encode(),
+		}
+	}
+	return edges
+}
+
+// Get all Positions using a cursor based pagination model
+func (t *tradingDataServiceV2) GetPositionsByPartyPaged(ctx context.Context, in *v2.GetPositionsByPartyPagedRequest, opts ...grpc.CallOption) (*v2.GetPositionsByPartyPagedResponse, error) {
+	if err := t.checkV2ApiEnabled(); err != nil {
+		return nil, err
+	}
+
+	pagination, err := entities.PaginationFromProto(in.Pagination)
+	if err != nil {
+		return nil, apiError(codes.InvalidArgument, err)
+	}
+
+	positions, pageInfo, err := t.positionService.GetByPartyPaged(ctx, in.PartyId, in.MarketId)
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+
+	PositionsConnection := &v2.PositionConnection{
+		TotalCount: 0, // TODO: implement total count
+		Edges:      makePositionEdges(positions),
+		PageInfo:   pageInfo.ToProto(),
+	}
+
+	resp := &v2.GetPositionsByPartyPagedResponse{
+		Positions: PositionsConnection,
+	}
+
+	return resp, nil
+}
+
+func makePositionEdges(positions []entities.Position) []*v2.PositionEdge {
+	edges := make([]*v2.PositionEdge, len(positions))
+	for i, m := range positions {
+		PositionProto := m.ToProto()
+		edges[i] = &v2.PositionEdge{
+			Node:   PositionProto,
 			Cursor: m.Cursor().Encode(),
 		}
 	}
