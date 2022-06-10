@@ -940,14 +940,14 @@ type ComplexityRoot struct {
 		Parties                            func(childComplexity int, id *string) int
 		PartiesPaged                       func(childComplexity int, id *string, pagination *v2.Pagination) int
 		Party                              func(childComplexity int, id string) int
+		PositionsByParty                   func(childComplexity int, partyID *string, marketID *string) int
+		PositionsByPartyPaged              func(childComplexity int, partyID *string, marketID string, pagination *v2.Pagination) int
 		Proposal                           func(childComplexity int, id *string, reference *string) int
 		Proposals                          func(childComplexity int, inState *ProposalState) int
 		Statistics                         func(childComplexity int) int
 		Transfers                          func(childComplexity int, pubkey string, isFrom *bool, isTo *bool) int
 		UpdateMarketProposals              func(childComplexity int, marketID *string, inState *ProposalState) int
 		Withdrawal                         func(childComplexity int, id string) int
-		PositionsByParty           func(childComplexity int, partyID *string, marketID *string) int
-		PositionsByPartyPaged      func(childComplexity int, partyID *string, marketID string, pagination *v2.Pagination) int
 	}
 
 	RankingScore struct {

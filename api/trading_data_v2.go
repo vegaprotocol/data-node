@@ -742,7 +742,7 @@ func (t *tradingDataServiceV2) GetPositionsByPartyPaged(ctx context.Context, in 
 		return nil, err
 	}
 
-	pagination, err := entities.PaginationFromProto(in.Pagination)
+	pagination, err := entities.CursorPaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
