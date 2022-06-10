@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"google.golang.org/grpc"
 	"strconv"
 	"strings"
 	"time"
@@ -704,7 +703,7 @@ func makeMarketEdges(markets []entities.Market) []*v2.MarketEdge {
 }
 
 // Get all Positions using a cursor based pagination model
-func (t *tradingDataServiceV2) GetPositionsByPartyPaged(ctx context.Context, in *v2.GetPositionsByPartyPagedRequest, opts ...grpc.CallOption) (*v2.GetPositionsByPartyPagedResponse, error) {
+func (t *tradingDataServiceV2) GetPositionsByPartyPaged(ctx context.Context, in *v2.GetPositionsByPartyPagedRequest) (*v2.GetPositionsByPartyPagedResponse, error) {
 	if err := t.checkV2ApiEnabled(); err != nil {
 		return nil, err
 	}
@@ -714,7 +713,7 @@ func (t *tradingDataServiceV2) GetPositionsByPartyPaged(ctx context.Context, in 
 		return nil, apiError(codes.InvalidArgument, err)
 	}
 
-	positions, pageInfo, err := t.positionService.GetByPartyPaged(ctx, in.PartyId, in.MarketId)
+	positions, pageInfo, err := t.positionService.GetByPartyPaged(ctx, entities.NewPartyID(in.PartyId), entities.NewMarketID(in.MarketId), pagination)
 	if err != nil {
 		return nil, apiError(codes.Internal, err)
 	}

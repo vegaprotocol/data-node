@@ -91,13 +91,13 @@ func (ps *Positions) GetByParty(ctx context.Context, partyID entities.PartyID) (
 	return positions, err
 }
 
-func (ps *Positions) GetByIDWithCursorPagination(ctx context.Context, partyID, marketID string, pagination entities.Pagination) ([]entities.Position, entities.PageInfo, error) {
+func (ps *Positions) GetByPartyPaged(ctx context.Context, partyID entities.PartyID, marketID entities.MarketID, pagination entities.Pagination) ([]entities.Position, entities.PageInfo, error) {
 	var query string
-	if marketID != "" {
-		query = fmt.Sprintf(`select * from positions_current where party_id=%s`, partyID)
+	if marketID.String() != "" {
+		query = fmt.Sprintf(`select * from positions_current where party_id=%s`, partyID.String())
 	} else {
 		query = fmt.Sprintf(`select * from positions_current where party_id=%s and market_id=%s`,
-			partyID)
+			partyID.String(), marketID.String())
 	}
 
 	positions := make([]entities.Position, 0)
