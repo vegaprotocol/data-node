@@ -3431,35 +3431,8 @@ type OrderConnection {
   pageInfo: PageInfo
 }
 
-"""
-Represents current position data for a party on the specified Vega market"""
-type PaginatedPosition {
-  "Market identifier"
-  marketId: Market!
-
-  "The party who place the order (probably stored internally as the party's public key)"
-  party: Party!
-
-  """"
-  Average entry price for the position, the price is an integer, for example `123456` is a correctly
-  formatted price of `1.23456` assuming market configured to 5 decimal places"""
-  average_entry_price: String!
-
-  "Open volume for the position, value is signed +ve for long and -ve for short (int64)"
-  open_volume: String!
-
-  "Realised profit and loss for the position, value is signed +ve for long and -ve for short (int64)"
-  realized_pnl: String!
-
-  "Unrealised profit and loss for the position, value is signed +ve for long and -ve for short (int64)"
-  unrealized_pnl: String!
-
-  "RFC3339Nano time the position was altered"
-  updatedAt: String
-}
-
 type PositionEdge {
-  node: PaginatedPosition!
+  node: Position!
   cursor: String
 }
 

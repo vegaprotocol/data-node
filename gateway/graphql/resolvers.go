@@ -2084,16 +2084,13 @@ func (r *myPositionResolver) MarginsPaged(ctx context.Context, pos *types.Positi
 	return res.MarginLevels, nil
 }
 
-func (r *myPositionResolver) Positions(ctx context.Context, obj *types.Position) ([]*types.Position, error) {
-	if obj == nil {
-		return nil, errors.New("invalid position")
-	}
-	if len(obj.PartyId) <= 0 {
+func (r *myQueryResolver) PositionsByParty(ctx context.Context, partyID *string, marketID *string) ([]*types.Position, error) {
+	if len(*partyID) <= 0 {
 		return nil, errors.New("missing party id")
 	}
 	req := protoapi.PositionsByPartyRequest{
-		PartyId:  obj.PartyId,
-		MarketId: obj.MarketId,
+		PartyId:  *partyID,
+		MarketId: *marketID,
 	}
 	res, err := r.tradingDataClient.PositionsByParty(ctx, &req)
 	if err != nil {
@@ -2103,10 +2100,10 @@ func (r *myPositionResolver) Positions(ctx context.Context, obj *types.Position)
 	return res.Positions, nil
 }
 
-func (r *myPositionResolver) PositionsPaged(ctx context.Context, pos *types.Position, pagination *v2.Pagination) (*v2.PositionConnection, error) {
+func (r *myQueryResolver) PositionsByPartyPaged(ctx context.Context, partyID *string, marketID string, pagination *v2.Pagination) (*v2.PositionConnection, error) {
 	req := v2.GetPositionsByPartyPagedRequest{
-		PartyId:    pos.PartyId,
-		MarketId:   pos.MarketId,
+		PartyId:    *partyID,
+		MarketId:   marketID,
 		Pagination: pagination,
 	}
 
