@@ -118,7 +118,7 @@ func (t *tradingDataServiceV2) GetOrdersByMarket(ctx context.Context, req *v2.Ge
 	}, nil
 }
 
-func entityMarketDataListToProtoList(list []entities.MarketData) []*vega.MarketData {
+func entityMarketDataListToProtoList(list []entities.MarketData) *v2.MarketDataConnection {
 	if len(list) == 0 {
 		return nil
 	}
@@ -129,7 +129,11 @@ func entityMarketDataListToProtoList(list []entities.MarketData) []*vega.MarketD
 		results = append(results, item.ToProto())
 	}
 
-	return results
+	connection := v2.MarketDataConnection{
+		Edges: makeMarketDataHistoryEdges(list),
+	}
+
+	return &connection
 }
 
 func (t *tradingDataServiceV2) GetMarketDataHistoryByID(ctx context.Context, req *v2.GetMarketDataHistoryByIDRequest) (*v2.GetMarketDataHistoryByIDResponse, error) {
@@ -151,9 +155,18 @@ func (t *tradingDataServiceV2) GetMarketDataHistoryByID(ctx context.Context, req
 		endTime = time.Unix(0, *req.EndTimestamp)
 	}
 
+	if req.OffsetPagination != nil {
+		// TODO: This has been deprecated in the GraphQL API, but needs to be supported until it is removed.
+		return t.handleGetMarketDataHistoryWithOffsetPagination(ctx, req, startTime, endTime)
+	}
+
+	return t.handleGetMarketDataHistoryWithCursorPagination(ctx, req, startTime, endTime)
+}
+
+func (t *tradingDataServiceV2) handleGetMarketDataHistoryWithOffsetPagination(ctx context.Context, req *v2.GetMarketDataHistoryByIDRequest, startTime, endTime time.Time) (*v2.GetMarketDataHistoryByIDResponse, error) {
 	pagination := defaultPaginationV2
-	if req.Pagination != nil {
-		pagination = entities.OffsetPaginationFromProto(req.Pagination)
+	if req.OffsetPagination != nil {
+		pagination = entities.OffsetPaginationFromProto(req.OffsetPagination)
 	}
 
 	if req.StartTimestamp != nil && req.EndTimestamp != nil {
@@ -171,6 +184,27 @@ func (t *tradingDataServiceV2) GetMarketDataHistoryByID(ctx context.Context, req
 	return t.getMarketDataByID(ctx, req.MarketId)
 }
 
+func (t *tradingDataServiceV2) handleGetMarketDataHistoryWithCursorPagination(ctx context.Context, req *v2.GetMarketDataHistoryByIDRequest, startTime, endTime time.Time) (*v2.GetMarketDataHistoryByIDResponse, error) {
+	pagination, err := entities.CursorPaginationFromProto(req.Pagination)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse cursor pagination information: %w", err)
+	}
+	history, pageInfo, err := t.marketDataService.GetBetweenDatesByID(ctx, req.MarketId, startTime, endTime, pagination)
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve historic market data: %w", err)
+	}
+
+	connection := v2.MarketDataConnection{
+		TotalCount: 0,
+		Edges:      makeMarketDataHistoryEdges(history),
+		PageInfo:   pageInfo.ToProto(),
+	}
+
+	return &v2.GetMarketDataHistoryByIDResponse{
+		MarketData: &connection,
+	}, nil
+}
+
 func parseMarketDataResults(results []entities.MarketData) (*v2.GetMarketDataHistoryByIDResponse, error) {
 	response := v2.GetMarketDataHistoryByIDResponse{
 		MarketData: entityMarketDataListToProtoList(results),
@@ -180,7 +214,7 @@ func parseMarketDataResults(results []entities.MarketData) (*v2.GetMarketDataHis
 }
 
 func (t *tradingDataServiceV2) getMarketDataHistoryByID(ctx context.Context, id string, start, end time.Time, pagination entities.OffsetPagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
-	results, err := t.marketDataService.GetBetweenDatesByID(ctx, id, start, end, pagination)
+	results, _, err := t.marketDataService.GetBetweenDatesByID(ctx, id, start, end, pagination)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
 	}
@@ -198,7 +232,7 @@ func (t *tradingDataServiceV2) getMarketDataByID(ctx context.Context, id string)
 }
 
 func (t *tradingDataServiceV2) getMarketDataHistoryFromDateByID(ctx context.Context, id string, start time.Time, pagination entities.OffsetPagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
-	results, err := t.marketDataService.GetFromDateByID(ctx, id, start, pagination)
+	results, _, err := t.marketDataService.GetFromDateByID(ctx, id, start, pagination)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
 	}
@@ -207,7 +241,7 @@ func (t *tradingDataServiceV2) getMarketDataHistoryFromDateByID(ctx context.Cont
 }
 
 func (t *tradingDataServiceV2) getMarketDataHistoryToDateByID(ctx context.Context, id string, end time.Time, pagination entities.OffsetPagination) (*v2.GetMarketDataHistoryByIDResponse, error) {
-	results, err := t.marketDataService.GetToDateByID(ctx, id, end, pagination)
+	results, _, err := t.marketDataService.GetToDateByID(ctx, id, end, pagination)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve market data history for market id: %w", err)
 	}
@@ -550,7 +584,7 @@ func (t *tradingDataServiceV2) GetTradesByMarket(ctx context.Context, in *v2.Get
 		return nil, apiError(codes.InvalidArgument, fmt.Errorf("marketId must be supplied"))
 	}
 
-	pagination, err := entities.PaginationFromProto(in.Pagination)
+	pagination, err := entities.CursorPaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
@@ -588,7 +622,7 @@ func (t *tradingDataServiceV2) GetTradesByParty(ctx context.Context, in *v2.GetT
 		market = &in.MarketId
 	}
 
-	pagination, err := entities.PaginationFromProto(in.Pagination)
+	pagination, err := entities.CursorPaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
@@ -625,7 +659,7 @@ func (t *tradingDataServiceV2) GetTradesByOrderID(ctx context.Context, in *v2.Ge
 		market = &in.MarketId
 	}
 
-	pagination, err := entities.PaginationFromProto(in.Pagination)
+	pagination, err := entities.CursorPaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
@@ -665,7 +699,7 @@ func (t *tradingDataServiceV2) GetMarkets(ctx context.Context, in *v2.GetMarkets
 		return nil, err
 	}
 
-	pagination, err := entities.PaginationFromProto(in.Pagination)
+	pagination, err := entities.CursorPaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
@@ -749,7 +783,7 @@ func (t *tradingDataServiceV2) GetParties(ctx context.Context, in *v2.GetParties
 		return nil, err
 	}
 
-	pagination, err := entities.PaginationFromProto(in.Pagination)
+	pagination, err := entities.CursorPaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
@@ -785,7 +819,7 @@ func (t *tradingDataServiceV2) GetOrdersByMarketPaged(ctx context.Context, in *v
 		return nil, err
 	}
 
-	pagination, err := entities.PaginationFromProto(in.Pagination)
+	pagination, err := entities.CursorPaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
@@ -811,7 +845,7 @@ func (t *tradingDataServiceV2) GetOrderVersionsByIDPaged(ctx context.Context, in
 		return nil, err
 	}
 
-	pagination, err := entities.PaginationFromProto(in.Pagination)
+	pagination, err := entities.CursorPaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
@@ -837,7 +871,7 @@ func (t *tradingDataServiceV2) GetOrdersByPartyPaged(ctx context.Context, in *v2
 		return nil, err
 	}
 
-	pagination, err := entities.PaginationFromProto(in.Pagination)
+	pagination, err := entities.CursorPaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
@@ -875,7 +909,7 @@ func (t *tradingDataServiceV2) GetMarginLevels(ctx context.Context, in *v2.GetMa
 		return nil, err
 	}
 
-	pagination, err := entities.PaginationFromProto(in.Pagination)
+	pagination, err := entities.CursorPaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
@@ -908,6 +942,17 @@ func makeMarginLevelEdges(accountService *service.Account, marginLevels []entiti
 		edges[i] = &v2.MarginEdge{
 			Node:   mlProto,
 			Cursor: ml.Cursor().Encode(),
+		}
+	}
+	return edges
+}
+
+func makeMarketDataHistoryEdges(history []entities.MarketData) []*v2.MarketDataEdge {
+	edges := make([]*v2.MarketDataEdge, len(history))
+	for i, md := range history {
+		edges[i] = &v2.MarketDataEdge{
+			Node:   md.ToProto(),
+			Cursor: md.Cursor().Encode(),
 		}
 	}
 	return edges
