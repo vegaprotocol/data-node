@@ -2,10 +2,6 @@ module code.vegaprotocol.io/data-node
 
 go 1.18
 
-replace code.vegaprotocol.io/protos => /home/tom/go/src/github.com/vegaprotocol/protos
-
-replace code.vegaprotocol.io/vega => /home/tom/go/src/github.com/vegaprotocol/vega
-
 require (
 	code.vegaprotocol.io/protos v0.51.2-0.20220609143205-3f2e3b7dcdc7
 	code.vegaprotocol.io/quant v0.2.5
