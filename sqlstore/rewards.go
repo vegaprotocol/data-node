@@ -49,12 +49,28 @@ func (rs *Rewards) GetAll(ctx context.Context) ([]entities.Reward, error) {
 func (rs *Rewards) Get(ctx context.Context,
 	partyIDHex *string,
 	assetIDHex *string,
-	p *entities.OffsetPagination,
-) ([]entities.Reward, error) {
-	query := `SELECT * from rewards`
-	args := []interface{}{}
-	if err := addRewardWhereClause(&query, &args, partyIDHex, assetIDHex); err != nil {
-		return nil, err
+	pagination entities.Pagination,
+) ([]entities.Reward, entities.PageInfo, error) {
+	switch p := pagination.(type) {
+	case entities.OffsetPagination:
+		return rs.getByOffset(ctx, partyIDHex, assetIDHex, &p)
+	case *entities.OffsetPagination:
+		return rs.getByOffset(ctx, partyIDHex, assetIDHex, p)
+	case entities.CursorPagination:
+		return rs.getByCursor(ctx, partyIDHex, assetIDHex, p)
+	case *entities.CursorPagination:
+		return rs.getByCursor(ctx, partyIDHex, assetIDHex, *p)
+	case nil:
+		return rs.getByOffset(ctx, partyIDHex, assetIDHex, nil)
+	default:
+		return nil, entities.PageInfo{}, fmt.Errorf("unsupported pagination type: %T", p)
+	}
+}
+
+func (rs *Rewards) getByOffset(ctx context.Context, partyIDHex, assetIDHex *string, p *entities.OffsetPagination) ([]entities.Reward, entities.PageInfo, error) {
+	query, args, err := selectRewards(partyIDHex, assetIDHex)
+	if err != nil {
+		return nil, entities.PageInfo{}, err
 	}
 
 	if p != nil {
@@ -64,11 +80,44 @@ func (rs *Rewards) Get(ctx context.Context,
 
 	rewards := []entities.Reward{}
 	defer metrics.StartSQLQuery("Rewards", "Get")()
-	err := pgxscan.Select(ctx, rs.Connection, &rewards, query, args...)
+	err = pgxscan.Select(ctx, rs.Connection, &rewards, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("querying rewards: %w", err)
+		return nil, entities.PageInfo{}, fmt.Errorf("querying rewards: %w", err)
 	}
-	return rewards, nil
+	return rewards, entities.PageInfo{}, nil
+
+}
+
+func (rs *Rewards) getByCursor(ctx context.Context, partyIDHex, assetIDHex *string, p entities.CursorPagination) ([]entities.Reward, entities.PageInfo, error) {
+	query, args, err := selectRewards(partyIDHex, assetIDHex)
+	if err != nil {
+		return nil, entities.PageInfo{}, err
+	}
+
+	sorting, cmp, cursor := extractPaginationInfo(p)
+	cursorParams := []CursorQueryParameter{
+		NewCursorQueryParameter("epoch_id", sorting, cmp, cursor),
+	}
+
+	query, args = orderAndPaginateWithCursor(query, p, cursorParams, args...)
+
+	rewards := []entities.Reward{}
+	if err := pgxscan.Select(ctx, rs.Connection, &rewards, query, args...); err != nil {
+		return nil, entities.PageInfo{}, fmt.Errorf("querying rewards: %w", err)
+	}
+
+	pagedData, pageInfo := entities.PageEntities(rewards, p)
+	return pagedData, pageInfo, nil
+}
+
+func selectRewards(partyIDHex, assetIDHex *string) (string, []interface{}, error) {
+	query := `SELECT * from rewards`
+	args := []interface{}{}
+	if err := addRewardWhereClause(&query, &args, partyIDHex, assetIDHex); err != nil {
+		return "", nil, err
+	}
+
+	return query, args, nil
 }
 
 func (rs *Rewards) GetSummaries(ctx context.Context,

@@ -11,7 +11,7 @@ import (
 type rewardStore interface {
 	Add(ctx context.Context, r entities.Reward) error
 	GetAll(ctx context.Context) ([]entities.Reward, error)
-	Get(ctx context.Context, partyID *string, assetID *string, p *entities.OffsetPagination) ([]entities.Reward, error)
+	Get(ctx context.Context, partyID *string, assetID *string, p entities.Pagination) ([]entities.Reward, entities.PageInfo, error)
 	GetSummaries(ctx context.Context, partyID *string, assetID *string) ([]entities.RewardSummary, error)
 }
 
@@ -42,7 +42,7 @@ func (r *Reward) GetAll(ctx context.Context) ([]entities.Reward, error) {
 	return r.store.GetAll(ctx)
 }
 
-func (r *Reward) Get(ctx context.Context, partyID *string, assetID *string, p *entities.OffsetPagination) ([]entities.Reward, error) {
+func (r *Reward) Get(ctx context.Context, partyID *string, assetID *string, p entities.Pagination) ([]entities.Reward, entities.PageInfo, error) {
 	return r.store.Get(ctx, partyID, assetID, p)
 }
 

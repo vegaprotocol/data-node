@@ -73,3 +73,7 @@ func RewardFromProto(pr eventspb.RewardPayoutEvent, vegaTime time.Time) (Reward,
 
 	return reward, nil
 }
+
+func (r Reward) Cursor() *Cursor {
+	return NewCursor(fmt.Sprintf("%d", r.EpochID))
+}
