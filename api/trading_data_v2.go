@@ -928,7 +928,7 @@ func (t *tradingDataServiceV2) GetRewards(ctx context.Context, in *v2.GetRewards
 		return nil, apiError(codes.InvalidArgument, err)
 	}
 
-	rewards, pageInfo, err := t.rewardService.Get(ctx, &in.PartyId, &in.AssetId, pagination)
+	rewards, pageInfo, err := t.rewardService.GetByCursor(ctx, &in.PartyId, &in.AssetId, pagination)
 	if err != nil {
 		return nil, apiError(codes.Internal, err)
 	}

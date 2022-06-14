@@ -1215,9 +1215,9 @@ func (t *tradingDataDelegator) GetRewards(ctx context.Context,
 	var err error
 
 	if len(req.AssetId) <= 0 {
-		rewards, _, err = t.rewardServiceV2.Get(ctx, &req.PartyId, nil, &p)
+		rewards, err = t.rewardServiceV2.GetByOffset(ctx, &req.PartyId, nil, &p)
 	} else {
-		rewards, _, err = t.rewardServiceV2.Get(ctx, &req.PartyId, &req.AssetId, &p)
+		rewards, err = t.rewardServiceV2.GetByOffset(ctx, &req.PartyId, &req.AssetId, &p)
 	}
 
 	if err != nil {
