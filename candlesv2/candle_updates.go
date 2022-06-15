@@ -128,6 +128,10 @@ func (s *candleUpdates) getCandleUpdates(ctx context.Context, lastCandle *entiti
 		var candles []entities.Candle
 		candles, _, err = s.candleSource.GetCandleDataForTimeSpan(ctx, s.candleId, &start, nil, entities.CursorPagination{})
 
+		if err != nil {
+			return nil, fmt.Errorf("getting candle updates:%w", err)
+		}
+
 		for _, candle := range candles {
 			if candle.LastUpdateInPeriod.After(lastCandle.LastUpdateInPeriod) {
 				updates = append(updates, candle)
@@ -135,16 +139,15 @@ func (s *candleUpdates) getCandleUpdates(ctx context.Context, lastCandle *entiti
 		}
 	} else {
 		last := int32(1)
-
 		pagination, err := entities.NewCursorPagination(nil, nil, &last, nil)
 		if err != nil {
 			return nil, err
 		}
 		updates, _, err = s.candleSource.GetCandleDataForTimeSpan(ctx, s.candleId, nil, nil, pagination)
-	}
 
-	if err != nil {
-		return nil, fmt.Errorf("getting candle updates:%w", err)
+		if err != nil {
+			return nil, fmt.Errorf("getting candle updates:%w", err)
+		}
 	}
 
 	return updates, nil
