@@ -307,7 +307,7 @@ func makeCandleDataEdges(candles []entities.Candle) []*v2.CandleEdge {
 	for i, candle := range candles {
 		edges[i] = &v2.CandleEdge{
 			Node:   candle.ToV2CandleProto(),
-			Cursor: "FIXME",
+			Cursor: candle.Cursor().Encode(),
 		}
 	}
 	return edges
