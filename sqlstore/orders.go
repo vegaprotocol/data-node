@@ -2,9 +2,10 @@ package sqlstore
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
@@ -22,22 +23,109 @@ const (
 
 type Orders struct {
 	*ConnectionSource
-	batcher MapBatcher[entities.OrderKey, entities.Order]
+	batcher       MapBatcher[entities.OrderKey, entities.Order]
+	liveOrders    map[entities.OrderID]entities.Order
+	ordersInBlock map[entities.OrderID]entities.Order
 }
 
 func NewOrders(connectionSource *ConnectionSource, logger *logging.Logger) *Orders {
 	a := &Orders{
 		ConnectionSource: connectionSource,
 		batcher: NewMapBatcher[entities.OrderKey, entities.Order](
-			"orders",
+			"orders_history",
 			entities.OrderColumns),
+		ordersInBlock: map[entities.OrderID]entities.Order{},
 	}
+
 	return a
 }
 
 func (os *Orders) Flush(ctx context.Context) ([]entities.Order, error) {
 	defer metrics.StartSQLQuery("Orders", "Flush")()
-	return os.batcher.Flush(ctx, os.Connection)
+
+	if os.liveOrders == nil {
+		os.liveOrders = map[entities.OrderID]entities.Order{}
+
+		liveOrders, err := os.GetLiveOrders(ctx)
+		if err != nil {
+			return []entities.Order{}, errors.Wrap(err, "failed to get live orders")
+		}
+
+		for _, order := range liveOrders {
+			os.liveOrders[order.ID] = order
+		}
+	}
+
+	if len(os.ordersInBlock) <= 0 {
+		return []entities.Order{}, nil
+	}
+
+	var vegaTime time.Time
+	for _, order := range os.ordersInBlock {
+		vegaTime = order.VegaTime
+		break
+	}
+
+	var liveOrderIdsToDelete [][]byte
+	liveOrdersBatcher := NewListBatcher[entities.Order]("orders_live", entities.OrderColumns)
+	historyOrdersBatcher := NewListBatcher[entities.Order]("orders_live", entities.OrderColumns)
+
+	for _, o := range os.ordersInBlock {
+		if o.IsLive() {
+			if _, alreadyLive := os.liveOrders[o.ID]; alreadyLive {
+				historyOrdersBatcher.Add(os.liveOrders[o.ID])
+				bytes, _ := o.ID.Bytes()
+				liveOrderIdsToDelete = append(liveOrderIdsToDelete, bytes)
+				liveOrdersBatcher.Add(o)
+				os.liveOrders[o.ID] = o
+			} else {
+				liveOrdersBatcher.Add(o)
+				os.liveOrders[o.ID] = o
+			}
+		} else {
+			if _, alreadyLive := os.liveOrders[o.ID]; alreadyLive {
+				historyOrdersBatcher.Add(o)
+				bytes, _ := o.ID.Bytes()
+				liveOrderIdsToDelete = append(liveOrderIdsToDelete, bytes)
+				delete(os.liveOrders, o.ID)
+			} else {
+				historyOrdersBatcher.Add(o)
+			}
+		}
+	}
+
+	var events []entities.Order
+	var orderIds [][]byte
+
+	for id, o := range os.ordersInBlock {
+		events = append(events, o)
+		idbytes, _ := id.Bytes()
+		orderIds = append(orderIds, idbytes)
+	}
+
+	_, err := os.ConnectionSource.Connection.Exec(ctx, "UPDATE orders_history SET vega_time_to = $1 WHERE vega_time_to = 'infinity' and id = ANY ($2)", vegaTime, orderIds)
+	if err != nil {
+		return []entities.Order{}, errors.Wrap(err, "failed to update vega_time on order history")
+	}
+
+	results, err := os.ConnectionSource.Connection.Exec(ctx, "delete from orders_live where id = ANY ($1)", liveOrderIdsToDelete)
+	if err != nil {
+		return []entities.Order{}, errors.Wrap(err, "failed to delete from live orders")
+	}
+
+	if results.RowsAffected() != int64(len(liveOrderIdsToDelete)) {
+		return []entities.Order{}, errors.Errorf("expected to delete %d orders, deleted %d", len(liveOrderIdsToDelete), results.RowsAffected())
+	}
+
+	if _, err := liveOrdersBatcher.Flush(ctx, os.Connection); err != nil {
+		return []entities.Order{}, errors.Wrap(err, "failed to flush live orders")
+	}
+
+	if _, err := historyOrdersBatcher.Flush(ctx, os.Connection); err != nil {
+		return []entities.Order{}, errors.Wrap(err, "failed to flush history orders")
+	}
+
+	return events, nil
 }
 
 // Add inserts an order update row into the database if an row for this (block time, order id, version)
@@ -45,7 +133,7 @@ func (os *Orders) Flush(ctx context.Context) ([]entities.Order, error) {
 // Currently we only store the last update to an order per block, so the order history is not
 // complete if multiple updates happen in one block.
 func (os *Orders) Add(o entities.Order) error {
-	os.batcher.Add(o)
+	os.ordersInBlock[o.ID] = o
 	return nil
 }
 

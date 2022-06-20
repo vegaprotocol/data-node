@@ -195,6 +195,14 @@ func (o Order) Cursor() *Cursor {
 	return NewCursor(cursor.String())
 }
 
+func (o Order) IsLive() bool {
+	if o.TimeInForce == OrderTimeInForceIOC || o.TimeInForce == OrderTimeInForceFOK {
+		return false
+	}
+
+	return o.Status == OrderStatusActive || o.Status == OrderStatusPartiallyFilled
+}
+
 func ParseOrderCursor(cursor string) (time.Time, uint64, error) {
 	var oc OrderCursor
 

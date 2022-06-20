@@ -58,7 +58,7 @@ func (o *Order) Flush(ctx context.Context) error {
 	return nil
 }
 
-func (o *Order) Add(order entities.Order) error {
+func (o *Order) Add(ctx context.Context, order entities.Order) error {
 	return o.store.Add(order)
 }
 

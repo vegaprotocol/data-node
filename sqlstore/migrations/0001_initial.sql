@@ -168,63 +168,7 @@ CREATE VIEW orders AS (
   SELECT * FROM orders_history
 );
 
--- +goose StatementBegin
 
-CREATE OR REPLACE FUNCTION archive_orders()
-   RETURNS TRIGGER
-   LANGUAGE PLPGSQL AS
-$$
-    BEGIN
-    -- It is permitted by core to re-use order IDs and 'resurrect' done orders (specifically,
-    -- LP orders do this, so we need to check our history table to see if we need to updated
-    -- vega_time_to on any most-recent-version-of an order.
-    UPDATE orders_history
-       SET vega_time_to = NEW.vega_time
-     WHERE vega_time_to = 'infinity'
-       AND id = NEW.id;
-
-    -- If we're 'updating' an order in orders_live (by adding a row with a matching id),
-    -- move the old one into order_history, updating it's vega_time_to from infinity to the new
-    -- row's vega_time
-    INSERT INTO orders_history
-         SELECT id, market_id, party_id, side, price,
-                size, remaining, time_in_force, type, status,
-                reference, reason, version, batch_id, pegged_offset,
-                pegged_reference, lp_id, created_at, updated_at, expires_at,
-                vega_time, seq_num, NEW.vega_time as vega_time_to
-           FROM orders_live
-        WHERE id = NEW.id;
-    DELETE from orders_live
-        WHERE id = NEW.id;
-
-    -- As per https://github.com/vegaprotocol/specs-internal/blob/master/protocol/0024-OSTA-order_status.md
-    -- we consider an order 'live' if it either ACTIVE (status=1) or PARKED (status=8). Orders
-    -- with statuses other than this are discarded by core, so we consider them candidates for
-    -- eventual deletion according to the data retention policy by placing them in orders_history.
-    IF NEW.status IN (1, 8)
-    THEN
-       INSERT INTO orders_live
-       VALUES(new.id, new.market_id, new.party_id, new.side, new.price,
-              new.size, new.remaining, new.time_in_force, new.type, new.status,
-              new.reference, new.reason, new.version, new.batch_id, new.pegged_offset,
-              new.pegged_reference, new.lp_id, new.created_at, new.updated_at, new.expires_at,
-              new.vega_time, new.seq_num, 'infinity');
-       RETURN NULL;
-    ELSE
-       INSERT INTO orders_history
-       VALUES(new.id, new.market_id, new.party_id, new.side, new.price,
-              new.size, new.remaining, new.time_in_force, new.type, new.status,
-              new.reference, new.reason, new.version, new.batch_id, new.pegged_offset,
-              new.pegged_reference, new.lp_id, new.created_at, new.updated_at, new.expires_at,
-              new.vega_time, new.seq_num, 'infinity');
-       RETURN NULL;
-    END IF;
-    END;
-$$;
-
--- +goose StatementEnd
-
-CREATE TRIGGER archive_orders INSTEAD OF INSERT ON orders FOR EACH ROW EXECUTE function archive_orders();
 
 
 -- Orders contains all the historical changes to each order (as of the end of the block),
