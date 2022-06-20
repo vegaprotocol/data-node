@@ -68,7 +68,7 @@ func (os *Orders) Flush(ctx context.Context) ([]entities.Order, error) {
 
 	var liveOrderIdsToDelete [][]byte
 	liveOrdersBatcher := NewListBatcher[entities.Order]("orders_live", entities.OrderColumns)
-	historyOrdersBatcher := NewListBatcher[entities.Order]("orders_live", entities.OrderColumns)
+	historyOrdersBatcher := NewListBatcher[entities.Order]("orders_history", entities.OrderColumns)
 
 	for _, o := range os.ordersInBlock {
 		if o.IsLive() {
@@ -124,6 +124,8 @@ func (os *Orders) Flush(ctx context.Context) ([]entities.Order, error) {
 	if _, err := historyOrdersBatcher.Flush(ctx, os.Connection); err != nil {
 		return []entities.Order{}, errors.Wrap(err, "failed to flush history orders")
 	}
+
+	os.ordersInBlock = map[entities.OrderID]entities.Order{}
 
 	return events, nil
 }
