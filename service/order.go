@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
@@ -9,7 +10,7 @@ import (
 )
 
 type orderStore interface {
-	Flush(ctx context.Context) ([]entities.Order, error)
+	Flush(ctx context.Context, vegaTime time.Time) ([]entities.Order, error)
 	Add(o entities.Order) error
 	GetAll(ctx context.Context) ([]entities.Order, error)
 	GetByOrderID(ctx context.Context, orderIdStr string, version *int32) (entities.Order, error)
@@ -49,8 +50,8 @@ func (o *Order) ObserveOrders(ctx context.Context, retries int, market *string, 
 	return ch, ref
 }
 
-func (o *Order) Flush(ctx context.Context) error {
-	flushed, err := o.store.Flush(ctx)
+func (o *Order) Flush(ctx context.Context, vegaTime time.Time) error {
+	flushed, err := o.store.Flush(ctx, vegaTime)
 	if err != nil {
 		return err
 	}

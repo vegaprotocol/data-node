@@ -2,6 +2,7 @@ package sqlsubscribers
 
 import (
 	"context"
+	"time"
 
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
@@ -17,7 +18,7 @@ type OrderEvent interface {
 
 type OrderStore interface {
 	Add(context.Context, entities.Order) error
-	Flush(ctx context.Context) error
+	Flush(ctx context.Context, vegaTime time.Time) error
 }
 
 type Order struct {
@@ -42,7 +43,7 @@ func (os *Order) Push(ctx context.Context, evt events.Event) error {
 }
 
 func (os *Order) Flush(ctx context.Context) error {
-	return os.store.Flush(ctx)
+	return os.store.Flush(ctx, os.vegaTime)
 }
 
 func (os *Order) consume(ctx context.Context, oe OrderEvent, seqNum uint64) error {

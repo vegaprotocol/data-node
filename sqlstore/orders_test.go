@@ -115,7 +115,7 @@ func TestOrders(t *testing.T) {
 	}
 
 	// Flush everything from the first block
-	os.Flush(ctx)
+	os.Flush(ctx, block.VegaTime)
 
 	for i := 0; i < numTestOrders; i++ {
 		// Update Another 1/4 of the orders in the next block
@@ -143,7 +143,7 @@ func TestOrders(t *testing.T) {
 	}
 
 	// Flush everything from the second block
-	os.Flush(ctx)
+	os.Flush(ctx, block2.VegaTime)
 
 	t.Run("GetAll", func(t *testing.T) {
 		// Check we inserted new rows only when the update was in a different block
@@ -398,13 +398,15 @@ func generateTestOrders(t *testing.T, blocks []entities.Block, parties []entitie
 		// It's important for order triggers that orders are inserted in order. The batcher in the
 		// order store does not preserve insert order, so manually flush each block.
 		if to.block.VegaTime != lastBlockTime {
-			os.Flush(context.Background())
+			os.Flush(context.Background(), lastBlockTime)
 			lastBlockTime = to.block.VegaTime
 		}
 		ref := fmt.Sprintf("reference-%d", i)
 		orders[i] = addTestOrder(t, os, to.id, to.block, to.party, to.market, ref, to.side,
 			to.timeInForce, to.orderType, to.status, to.price, to.size, to.remaining, uint64(i), int32(1))
 	}
+	_, err := os.Flush(context.Background(), lastBlockTime)
+	require.NoError(t, err, "Could not insert test order data to the test database")
 
 	return orders
 }
@@ -427,8 +429,8 @@ func TestOrders_GetLiveOrders(t *testing.T) {
 	testOrders := generateTestOrders(t, blocks, parties, markets, orderIDs, os)
 
 	// Make sure we flush the batcher and write the orders to the database
-	_, err := os.Flush(context.Background())
-	require.NoError(t, err)
+	//_, err := os.Flush(context.Background(), l)
+	//require.NoError(t, err)
 
 	want := append(testOrders[:3], testOrders[4:6]...)
 	got, err := os.GetLiveOrders(context.Background())
@@ -759,7 +761,7 @@ func generateTestOrdersForCursorPagination(t *testing.T, stores *orderTestStores
 		// It's important for order triggers that orders are inserted in order. The batcher in the
 		// order store does not preserve insert order, so manually flush each block.
 		if order.block.VegaTime != lastBlockTime {
-			stores.os.Flush(context.Background())
+			stores.os.Flush(context.Background(), lastBlockTime)
 			lastBlockTime = order.block.VegaTime
 		}
 
@@ -774,7 +776,7 @@ func generateTestOrdersForCursorPagination(t *testing.T, stores *orderTestStores
 	}
 
 	// Make sure we flush the batcher and write the orders to the database
-	_, err := stores.os.Flush(context.Background())
+	_, err := stores.os.Flush(context.Background(), lastBlockTime)
 	require.NoError(t, err, "Could not insert test order data to the test database")
 
 	return orderTestData{

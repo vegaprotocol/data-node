@@ -40,7 +40,7 @@ func NewOrders(connectionSource *ConnectionSource, logger *logging.Logger) *Orde
 	return a
 }
 
-func (os *Orders) Flush(ctx context.Context) ([]entities.Order, error) {
+func (os *Orders) Flush(ctx context.Context, vegaTime time.Time) ([]entities.Order, error) {
 	defer metrics.StartSQLQuery("Orders", "Flush")()
 
 	if os.liveOrders == nil {
@@ -58,12 +58,6 @@ func (os *Orders) Flush(ctx context.Context) ([]entities.Order, error) {
 
 	if len(os.ordersInBlock) <= 0 {
 		return []entities.Order{}, nil
-	}
-
-	var vegaTime time.Time
-	for _, order := range os.ordersInBlock {
-		vegaTime = order.VegaTime
-		break
 	}
 
 	var liveOrderIdsToDelete [][]byte
