@@ -13,7 +13,8 @@
 - [624](https://github.com/vegaprotocol/data-node/issues/624) - Support subscriptions in new `API`
 - [666](https://github.com/vegaprotocol/data-node/issues/666) - Cache latest market data
 - [564](https://github.com/vegaprotocol/data-node/issues/564) - Add cursor based pagination to market data requests
-- [](https://github.com/vegaprotocol/data-node/issues/xxx) -
+- [619](https://github.com/vegaprotocol/data-node/issues/619) - Cache markets
+- [675](https://github.com/vegaprotocol/data-node/issues/675) - Monitoring of subscriber count 
 
 ### 🐛 Fixes
 - [657](https://github.com/vegaprotocol/data-node/issues/657) - Add missing creation field in `ERC20` withdrawal bundle
