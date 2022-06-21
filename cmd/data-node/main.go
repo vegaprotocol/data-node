@@ -45,6 +45,7 @@ func Main(ctx context.Context) error {
 		Gateway,
 		Node,
 		Version,
+		UnsafeResetAll,
 	); err != nil {
 		fmt.Printf("%+v\n", err)
 		return err
