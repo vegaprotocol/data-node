@@ -1,6 +1,7 @@
 package sqlstore
 
 import (
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"context"
 	"errors"
 	"fmt"
@@ -96,7 +97,7 @@ func (ps *Positions) GetByPartyPaged(ctx context.Context, partyID entities.Party
 		return nil, entities.PageInfo{}, err
 	}
 
-	pagedPositions, pageInfo = entities.PageEntities(positions, pagination)
+	pagedPositions, pageInfo = entities.PageEntities[*v2.PositionEdge](positions, pagination)
 	return pagedPositions, pageInfo, nil
 }
 

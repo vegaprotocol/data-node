@@ -750,21 +750,6 @@ func (t *tradingDataServiceV2) GetMarkets(ctx context.Context, in *v2.GetMarkets
 	return resp, nil
 }
 
-func makeMarketEdges(markets []entities.Market) []*v2.MarketEdge {
-	edges := make([]*v2.MarketEdge, len(markets))
-	for i, m := range markets {
-		marketProto, err := m.ToProto()
-		if err != nil {
-			continue
-		}
-		edges[i] = &v2.MarketEdge{
-			Node:   marketProto,
-			Cursor: m.Cursor().Encode(),
-		}
-	}
-	return edges
-}
-
 // Get all Positions using a cursor based pagination model
 func (t *tradingDataServiceV2) GetPositionsByPartyPaged(ctx context.Context, in *v2.GetPositionsByPartyPagedRequest) (*v2.GetPositionsByPartyPagedResponse, error) {
 	if err := t.checkV2ApiEnabled(); err != nil {

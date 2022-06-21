@@ -1,6 +1,7 @@
 package entities
 
 import (
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"time"
 
 	"code.vegaprotocol.io/protos/vega"
@@ -98,6 +99,13 @@ func (p *Position) ToProto() *vega.Position {
 		UnrealisedPnl:     p.UnrealisedPnl.Round(0).String(),
 		AverageEntryPrice: p.AverageEntryPrice.Round(0).String(),
 		UpdatedAt:         timestamp,
+	}
+}
+
+func (p Position) ToProtoEdge(_ ...any) *v2.PositionEdge {
+	return &v2.PositionEdge{
+		Node:   p.ToProto(),
+		Cursor: p.Cursor().Encode(),
 	}
 }
 
