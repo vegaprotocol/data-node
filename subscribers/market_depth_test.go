@@ -2,6 +2,7 @@ package subscribers_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"code.vegaprotocol.io/data-node/subscribers"
@@ -29,6 +30,67 @@ func buildOrder(id string, side types.Side, orderType types.OrderType, price uin
 		MarketID:      "M",
 	}
 	return order
+}
+
+func TestForCrossedOrders(t *testing.T) {
+	ctx := context.Background()
+	mdb := getTestMDB(t, ctx, true)
+
+	updates := make(chan *types.MarketDepthUpdate, 100)
+	mdb.Subscribe(updates)
+
+	order1 := buildOrder("Order1", types.SideBuy, types.OrderTypeLimit, 30000, 1, 1)
+	event := events.NewOrderEvent(ctx, order1)
+	mdb.Push(event)
+
+	order2 := buildOrder("Order2", types.SideSell, types.OrderTypeLimit, 30000, 1, 1)
+	event = events.NewOrderEvent(ctx, order2)
+	mdb.Push(event)
+
+	order3 := buildOrder("Order3", types.SideBuy, types.OrderTypeLimit, 29998, 1, 1)
+	event = events.NewOrderEvent(ctx, order3)
+	mdb.Push(event)
+
+	order4 := buildOrder("Order4", types.SideSell, types.OrderTypeLimit, 30002, 1, 1)
+	event = events.NewOrderEvent(ctx, order4)
+	mdb.Push(event)
+
+	order2FF := buildOrder("Order2", types.SideSell, types.OrderTypeLimit, 30000, 1, 1)
+	order2FF.Remaining = 0
+	order2FF.Status = types.OrderStatusFilled
+	event = events.NewOrderEvent(ctx, order2FF)
+	mdb.Push(event)
+
+	order1FF := buildOrder("Order1", types.SideBuy, types.OrderTypeLimit, 30000, 1, 1)
+	order1FF.Remaining = 0
+	order1FF.Status = types.OrderStatusFilled
+	event = events.NewOrderEvent(ctx, order1)
+	mdb.Push(event)
+
+	order5 := buildOrder("Order5", types.SideBuy, types.OrderTypeLimit, 29999, 667, 667)
+	event = events.NewOrderEvent(ctx, order5)
+	mdb.Push(event)
+
+	order6 := buildOrder("Order6", types.SideSell, types.OrderTypeLimit, 30001, 667, 667)
+	event = events.NewOrderEvent(ctx, order6)
+	mdb.Push(event)
+
+	depth, _ := mdb.GetMarketDepth(context.Background(), "M", 100)
+	fmt.Printf("DEPTH:%v\n", depth)
+
+	/*
+		allOrders := mdb.GetAllOrders("M")
+		fmt.Printf("ALLORDERS:%v\n", allOrders)
+
+		time.Sleep(time.Second)
+		updatesSlice := []*types.MarketDepthUpdate{}
+
+		for up := range updates {
+			updatesSlice = append(updatesSlice, up)
+		}
+
+		fmt.Printf("ALLUPDATES:%v\n", updatesSlice)*/
+
 }
 
 func TestBuyPriceLevels(t *testing.T) {

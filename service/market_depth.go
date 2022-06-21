@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -132,7 +133,19 @@ func (m *MarketDepth) AddOrder(order *types.Order, vegaTime time.Time, sequenceN
 	// we truncate the vegaTime by microsecond because Postgres only supports microsecond
 	// granularity for time. In order to be able to reproduce the same sequence numbers regardless
 	// the source, we have to truncate the time to microsecond granularity
-	seqNum := uint64(vegaTime.Truncate(time.Microsecond).UnixNano()) + sequenceNumber
+
+	time := uint64(vegaTime.Truncate(time.Microsecond).UnixNano())
+	fmt.Printf("time:%d\n", time)
+	fmt.Printf("passed sqe num:%d\n", sequenceNumber)
+	seqNum := time + sequenceNumber
+
+	fmt.Printf("SeqNum:%d\n", seqNum)
+	if m.sequenceNumber > seqNum {
+
+		fmt.Printf("Ignoring, mdb time %d, seq num %d\n", m.sequenceNumber, seqNum)
+		// This update is older than the current MarketDepth
+		return
+	}
 
 	if m.sequenceNumber > seqNum {
 		// This update is older than the current MarketDepth

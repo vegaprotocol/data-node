@@ -99,12 +99,18 @@ func (mdb *MarketDepthBuilder) Push(evts ...events.Event) {
 			mdb.mu.Lock()
 			mdb.vegaTime = et.Time()
 			mdb.mu.Unlock()
+		//	fmt.Printf("Time Update:%v\n", et.Time())
+		//	time := uint64(mdb.vegaTime.Truncate(time.Microsecond).UnixNano())
+		//	fmt.Printf("Microsec time update:%d\n", time)
+
 		case OE:
 			order, err := types.OrderFromProto(et.Order())
 			if err != nil {
 				panic(err)
 			}
 			mdb.updateMarketDepth(order, et.Sequence())
+		//	mdb.GetMarketDepth(context.Background(), "2d58a89abfc6689251c451e9c81638b6654a4d821f90b38bff7387e9a49a7576", 0)
+
 		default:
 			mdb.log.Panic("Unknown event type in market depth builder", logging.String("Type", et.Type().String()))
 		}
@@ -262,6 +268,8 @@ func (mdb *MarketDepthBuilder) updateMarketDepth(order *types.Order, sequenceNum
 	mdb.mu.Lock()
 	defer mdb.mu.Unlock()
 
+	fmt.Printf("Order: %v\n\n\n", order)
+
 	// Non persistent and network orders do not matter
 	if order.Type == types.OrderTypeMarket ||
 		order.TimeInForce == types.OrderTimeInForceFOK ||
@@ -277,9 +285,15 @@ func (mdb *MarketDepthBuilder) updateMarketDepth(order *types.Order, sequenceNum
 	// we truncate the vegaTime by microsecond because Postgres only supports microsecond
 	// granularity for time. In order to be able to reproduce the same sequence numbers regardless
 	// the source, we have to truncate the time to microsecond granularity
-	seqNum := uint64(mdb.vegaTime.Truncate(time.Microsecond).UnixNano()) + sequenceNumber
+	time := uint64(mdb.vegaTime.Truncate(time.Microsecond).UnixNano())
+	fmt.Printf("time:%d\n", time)
+	fmt.Printf("passed sqe num:%d\n", sequenceNumber)
+	seqNum := time + sequenceNumber
 
+	fmt.Printf("SeqNum:%d\n", seqNum)
 	if mdb.sequenceNumber > seqNum {
+
+		fmt.Printf("Ignoring, mdb time %d, seq num %d\n", mdb.sequenceNumber, seqNum)
 		// This update is older than the current MarketDepth
 		return
 	}
@@ -353,7 +367,6 @@ func (mdb *MarketDepthBuilder) updateMarketDepth(order *types.Order, sequenceNum
 	marketDepthUpdate := &types.MarketDepthUpdate{
 		MarketId:       order.MarketID,
 		Buy:            types.PriceLevels(buyPtr).IntoProto(),
-		Sell:           types.PriceLevels(sellPtr).IntoProto(),
 		SequenceNumber: md.sequenceNumber,
 	}
 
@@ -415,12 +428,18 @@ func (mdb *MarketDepthBuilder) GetMarketDepth(ctx context.Context, market string
 		}
 	}
 
-	return &types.MarketDepth{
+	d := &types.MarketDepth{
 		MarketId:       market,
 		Buy:            types.PriceLevels(buyPtr).IntoProto(),
 		Sell:           types.PriceLevels(sellPtr).IntoProto(),
 		SequenceNumber: md.sequenceNumber,
-	}, nil
+	}
+
+	//d, _ := mdb.GetMarketDepth(context.Background(), "M", 100)
+	fmt.Printf("DEPTH SELLS:%v\n\n", d.Sell)
+	fmt.Printf("DEPTH BUYS:%v\n\n", d.Buy)
+
+	return d, nil
 }
 
 /*****************************************************************************/

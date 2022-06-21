@@ -139,18 +139,26 @@ func (b *Broker) startSending(t events.Type, evts []events.Event) {
 	b.mu.Lock()
 	ch, ok := b.eChans[t]
 	if !ok {
+		fmt.Printf("new for type:%v\n", t)
 		subs, ver = b.getSubsByType(t, 0)
 		ln := len(subs) + 1                      // at least buffer 1
 		ch = make(chan []events.Event, ln*20+20) // create a channel with buffer, min 40
 		b.eChans[t] = ch                         // assign the newly created channel
 	}
 	b.mu.Unlock()
-	ch <- evts
+
+	if t == events.TimeUpdate {
+		b.sendEvents(t, ver, subs, evts)
+	} else {
+		ch <- evts
+	}
+
 	if ok {
 		// we already started the routine to consume the channel
 		// we can return here
 		return
 	}
+
 	go func(ch chan []events.Event, t events.Type) {
 		defer func() {
 			b.mu.Lock()
@@ -164,39 +172,43 @@ func (b *Broker) startSending(t events.Type, evts []events.Event) {
 				return
 			case events := <-ch:
 				// we're only reading here, so allow multiple routines to do traverse the map simultaneously
-				b.mu.RLock()
-				ns, nv := b.getSubsByType(t, ver)
-				b.mu.RUnlock()
-				// if nv == ver, the subs haven't changed
-				if nv != ver {
-					ver = nv
-					subs = ns
-				}
-				unsub := make([]int, 0, len(subs))
-				for k, sub := range subs {
-					select {
-					case <-sub.Skip():
-						continue
-					case <-sub.Closed():
-						unsub = append(unsub, k)
-					default:
-						if sub.required {
-							sub.Push(events...)
-						} else if rm := b.sendChannelSync(sub, events); rm {
-							unsub = append(unsub, k)
-						}
-					}
-				}
-				if len(unsub) != 0 {
-					b.mu.Lock()
-					b.rmSubs(unsub...)
-					// we could update the sub map here, because we know subscribers have been removed
-					// but that would hold a write lock for a longer time.
-					b.mu.Unlock()
-				}
+				b.sendEvents(t, ver, subs, events)
 			}
 		}
 	}(ch, t)
+}
+
+func (b *Broker) sendEvents(t events.Type, ver int, subs map[int]*subscription, events []events.Event) {
+	b.mu.RLock()
+	ns, nv := b.getSubsByType(t, ver)
+	b.mu.RUnlock()
+	// if nv == ver, the subs haven't changed
+	if nv != ver {
+		ver = nv
+		subs = ns
+	}
+	unsub := make([]int, 0, len(subs))
+	for k, sub := range subs {
+		select {
+		case <-sub.Skip():
+			continue
+		case <-sub.Closed():
+			unsub = append(unsub, k)
+		default:
+			if sub.required {
+				sub.Push(events...)
+			} else if rm := b.sendChannelSync(sub, events); rm {
+				unsub = append(unsub, k)
+			}
+		}
+	}
+	if len(unsub) != 0 {
+		b.mu.Lock()
+		b.rmSubs(unsub...)
+		// we could update the sub map here, because we know subscribers have been removed
+		// but that would hold a write lock for a longer time.
+		b.mu.Unlock()
+	}
 }
 
 // Send sends an event to all subscribers
