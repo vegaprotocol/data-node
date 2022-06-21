@@ -77,6 +77,12 @@ type Subscription {
     marketId: ID
   ): MarketData!
 
+  "Subscribe to the mark price changes, but get multiple updates at once"
+  marketsData(
+    "id of the market we want to subscribe to the market data changes"
+    marketId: ID
+  ): [MarketData!]!
+
   "Subscribe to the margin changes"
   margins(
     "id of the party we want to subscribe for margin updates"
@@ -1444,7 +1450,19 @@ type Market {
     since: String!
     "Interval of the candles"
     interval: Interval!
-  ): [Candle]
+  ): [Candle] @deprecated(reason: "Use the 'candlesConnection' field instead")
+
+  "Candles on a market, for the 'last' n candles, at 'interval' seconds as specified by params using cursor based pagination"
+  candlesConnection(
+    "RFC3339Nano encoded time to get candles from"
+    since: String!
+    "Optional: RFC3339Nano encoded time to get candles to"
+    to: String
+    "Interval of the candles"
+    interval: Interval!
+    "Pagination information"
+    pagination: Pagination
+  ): CandleDataConnection!
 
   "marketData for the given market"
   data: MarketData
@@ -1613,10 +1631,16 @@ type Party {
   votes: [ProposalVote]
 
   "The list of all withdrawals initiated by the party"
-  withdrawals: [Withdrawal!]
+  withdrawals: [Withdrawal!] @deprecated(reason: "Use withdrawalsConnection instead")
+
+  "The list of all withdrawals initiated by the party"
+  withdrawalsConnection: WithdrawalsConnection!
 
   "The list of all deposits for a party by the party"
-  deposits: [Deposit!]
+  deposits: [Deposit!] @deprecated(reason: "Use depositsConnection instead")
+
+  "The list of all deposits for a party by the party"
+  depositsConnection: DepositsConnection!
 
   "The list of the liquidity provision commitment from this party"
   liquidityProvisions(
@@ -1650,7 +1674,14 @@ type Party {
     first: Int
     "Pagination last element"
     last: Int
-  ): [Reward]
+  ): [Reward] @deprecated(reason: "Use rewardsConnection instead")
+
+  rewardsConnection(
+    "An optional asset"
+    asset: String
+    "Cursor pagination information"
+    pagination: Pagination
+  ): RewardsConnection
 
   "return net reward information"
   rewardSummaries(
@@ -3040,7 +3071,14 @@ type RewardSummary {
     "Pagination first element"
     first: Int
     "Pagination last element"
-    last: Int): [Reward]
+    last: Int): [Reward] @deprecated(reason: "Use rewardsConnection instead")
+  "List of individual reward payouts, ordered by epoch"
+  rewardsConnection(
+    "An optional asset"
+    asset: String
+    "Cursor pagination information"
+    pagination: Pagination
+  ): RewardsConnection
 }
 
 "RewardPerAssetDetail is depricated, use RewardSummmary instead "
@@ -3194,10 +3232,16 @@ type PaginatedParty {
   votes: [ProposalVote]
 
   "The list of all withdrawals initiated by the party"
-  withdrawals: [Withdrawal!]
+  withdrawals: [Withdrawal!] @deprecated(reason: "Use withdrawalsConnection instead")
+
+  "The list of all withdrawals initiated by the party"
+  withdrawalsConnection: WithdrawalsConnection!
 
   "The list of all deposits for a party by the party"
-  deposits: [Deposit!]
+  deposits: [Deposit!] @deprecated(reason: "Use depositsConnection instead")
+
+  "The list of all deposits for a party by the party"
+  depositsConnection: DepositsConnection!
 
   "The list of the liquidity provision commitment from this party"
   liquidityProvisions(
@@ -3232,7 +3276,14 @@ type PaginatedParty {
     first: Int
     "Pagination last element"
     last: Int
-  ): [Reward]
+  ): [Reward] @deprecated(reason: "Use rewardsConnection instead")
+  "List of individual reward payouts, ordered by epoch"
+  rewardsConnection(
+    "An optional asset"
+    asset: String
+    "Cursor pagination information"
+    pagination: Pagination
+  ): RewardsConnection
 
   "return net reward information"
   rewardSummaries("An optional asset" asset: String): [RewardSummary]
@@ -3342,7 +3393,19 @@ type PaginatedMarket {
     since: String!
     "Interval of the candles"
     interval: Interval!
-  ): [Candle]
+  ): [Candle] @deprecated(reason: "Use the 'candlesConnection' field instead")
+
+  "Candles on a market, for the 'last' n candles, at 'interval' seconds as specified by params using cursor based pagination"
+  candlesConnection(
+    "RFC3339Nano encoded time to get candles from"
+    since: String!
+    "Optional: RFC3339Nano encoded time to get candles to"
+    to: String
+    "Interval of the candles"
+    interval: Interval!
+    "Pagination information"
+    pagination: Pagination
+  ): CandleDataConnection!
 
   "marketData for the given market"
   data: MarketData
@@ -3488,6 +3551,85 @@ type MarketDataConnection {
   totalCount: Int
   "The market data elements for the requested page"
   edges: [MarketDataEdge]
+  "The pagination information"
+  pageInfo: PageInfo
+}
+
+type RewardEdge {
+  node: Reward!
+  cursor: String!
+}
+
+type RewardsConnection {
+  "The total number of reward data items available with this connection"
+  totalCount: Int
+  "The rewards"
+  edges: [RewardEdge]
+  "The pagination information"
+  pageInfo: PageInfo
+}
+
+type CandleNode {
+  "Unix epoch+nanoseconds for when the candle occurred"
+  start: String!
+
+  "RFC3339Nano formatted date and time for the candle"
+  lastUpdate: String!
+
+  "High price (uint64)"
+  high: String!
+
+  "Low price (uint64)"
+  low: String!
+
+  "Open price (uint64)"
+  open: String!
+
+  "Close price (uint64)"
+  close: String!
+
+  "Volume price (uint64)"
+  volume: String!
+}
+
+type CandleEdge {
+  node: CandleNode!
+  cursor: String!
+}
+
+type CandleDataConnection {
+  "The total number of candles available with this connection"
+  totalCount: Int
+  "The candles"
+  edges: [CandleEdge]
+  "The pagination information"
+  pageInfo: PageInfo
+}
+
+type WithdrawalEdge {
+  node: Withdrawal!
+  cursor: String!
+}
+
+type WithdrawalsConnection {
+  "The total number of withdrawals available with this connection"
+  totalCount: Int
+  "The withdrawals"
+  edges: [WithdrawalEdge]
+  "The pagination information"
+  pageInfo: PageInfo
+}
+
+type DepositEdge {
+  node: Deposit!
+  cursor: String!
+}
+
+type DepositsConnection {
+  "The total number of deposits available with this connection"
+  totalCount: Int
+  "The deposits"
+  edges: [DepositEdge]
   "The pagination information"
   pageInfo: PageInfo
 }

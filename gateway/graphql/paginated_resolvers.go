@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/vegatime"
@@ -256,6 +257,11 @@ func (r *myPaginatedMarketResolver) RiskFactors(ctx context.Context, obj *types.
 	return rf.RiskFactor, nil
 }
 
+func (r *myPaginatedMarketResolver) CandlesConnection(ctx context.Context, market *types.Market, sinceRaw string, toRaw *string,
+	interval Interval, pagination *v2.Pagination) (*v2.CandleDataConnection, error) {
+	return handleCandleConnectionRequest(ctx, r.tradingDataClientV2, market, sinceRaw, toRaw, interval, pagination)
+}
+
 type myPaginatedPartyResolver VegaResolverRoot
 
 func (r *myPaginatedPartyResolver) Rewards(
@@ -278,6 +284,25 @@ func (r *myPaginatedPartyResolver) Rewards(
 	}
 	resp, err := r.tradingDataClient.GetRewards(ctx, req)
 	return resp.Rewards, err
+}
+
+func (r *myPaginatedPartyResolver) RewardsConnection(ctx context.Context, party *types.Party, asset *string, pagination *v2.Pagination) (*v2.RewardsConnection, error) {
+	var assetID string
+	if asset != nil {
+		assetID = *asset
+	}
+
+	req := v2.GetRewardsRequest{
+		PartyId:    party.Id,
+		AssetId:    assetID,
+		Pagination: pagination,
+	}
+	resp, err := r.tradingDataClientV2.GetRewards(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve rewards information: %w", err)
+	}
+
+	return resp.Rewards, nil
 }
 
 func (r *myPaginatedPartyResolver) RewardSummaries(
@@ -544,6 +569,10 @@ func (r *myPaginatedPartyResolver) Withdrawals(ctx context.Context, party *types
 	return res.Withdrawals, nil
 }
 
+func (r *myPaginatedPartyResolver) WithdrawalsConnection(ctx context.Context, party *types.Party) (*v2.WithdrawalsConnection, error) {
+	return handleWithdrawalsConnectionRequest(ctx, r.tradingDataClientV2, party)
+}
+
 func (r *myPaginatedPartyResolver) Deposits(ctx context.Context, party *types.Party) ([]*types.Deposit, error) {
 	res, err := r.tradingDataClient.Deposits(
 		ctx, &protoapi.DepositsRequest{PartyId: party.Id},
@@ -553,6 +582,10 @@ func (r *myPaginatedPartyResolver) Deposits(ctx context.Context, party *types.Pa
 	}
 
 	return res.Deposits, nil
+}
+
+func (r *myPaginatedPartyResolver) DepositsConnection(ctx context.Context, party *types.Party) (*v2.DepositsConnection, error) {
+	return handleDepositsConnectionRequest(ctx, r.tradingDataClientV2, party)
 }
 
 func (r *myPaginatedPartyResolver) Votes(ctx context.Context, party *types.Party) ([]*ProposalVote, error) {
@@ -737,3 +770,81 @@ func (r *myPaginatedOrderResolver) LiquidityProvision(ctx context.Context, obj *
 }
 
 // END: Paginated Order Resolver
+
+func handleCandleConnectionRequest(ctx context.Context, client TradingDataServiceClientV2, market *types.Market, sinceRaw string, toRaw *string,
+	interval Interval, pagination *v2.Pagination) (*v2.CandleDataConnection, error) {
+	pInterval, err := convertIntervalToProto(interval)
+	if err != nil {
+		return nil, fmt.Errorf("could not convert interval: %w", err)
+	}
+
+	since, err := vegatime.Parse(sinceRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	to := time.Unix(0, 0)
+	if toRaw != nil {
+		to, err = vegatime.Parse(*toRaw)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var mkt string
+	if market != nil {
+		mkt = market.Id
+	}
+
+	candlesForMktReq := v2.GetCandlesForMarketRequest{MarketId: mkt}
+	candlesForMktResp, err := client.GetCandlesForMarket(ctx, &candlesForMktReq)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve candles for market %s: %w", mkt, err)
+	}
+
+	candleID := ""
+
+	for _, c4m := range candlesForMktResp.IntervalToCandleId {
+		if c4m.Interval == string(interval) {
+			candleID = c4m.CandleId
+			break
+		}
+	}
+
+	if candleID == "" {
+		return nil, fmt.Errorf("could not find candle for market %s and interval %s", mkt, interval)
+	}
+
+	req := v2.GetCandleDataRequest{
+		CandleId:      candleID,
+		FromTimestamp: since.Unix(),
+		ToTimestamp:   to.Unix(),
+		Interval:      pInterval,
+		Pagination:    pagination,
+	}
+	resp, err := client.GetCandleData(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve candles for market %s: %w", mkt, err)
+	}
+
+	return resp.Candles, nil
+}
+
+func handleWithdrawalsConnectionRequest(ctx context.Context, client TradingDataServiceClientV2, party *types.Party) (*v2.WithdrawalsConnection, error) {
+	req := v2.GetWithdrawalsRequest{PartyId: party.Id}
+	resp, err := client.GetWithdrawals(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve withdrawals for party %s: %w", party.Id, err)
+	}
+	return resp.Withdrawals, nil
+}
+
+func handleDepositsConnectionRequest(ctx context.Context, client TradingDataServiceClientV2, party *types.Party) (*v2.DepositsConnection, error) {
+	req := v2.GetDepositsRequest{PartyId: party.Id}
+	resp, err := client.GetDeposits(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve deposits for party %s: %w", party.Id, err)
+	}
+	return resp.Deposits, nil
+}

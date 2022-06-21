@@ -32,13 +32,15 @@ var (
 var (
 	engineTime        *prometheus.CounterVec
 	eventHandlingTime *prometheus.CounterVec
+	flushHandlingTime *prometheus.CounterVec
 	eventCounter      *prometheus.CounterVec
 	sqlQueryTime      *prometheus.CounterVec
 	sqlQueryCounter   *prometheus.CounterVec
 	blockCounter      prometheus.Counter
-	orderCounter      *prometheus.CounterVec
-	evtForwardCounter *prometheus.CounterVec
-	orderGauge        *prometheus.GaugeVec
+	blockHandlingTime prometheus.Counter
+	blockHeight       prometheus.Gauge
+
+	publishedEventsCounter *prometheus.CounterVec
 
 	// Subscription gauge for each type
 	subscriptionGauge *prometheus.GaugeVec
@@ -331,7 +333,7 @@ func setupMetrics() error {
 	h, err := AddInstrument(
 		Counter,
 		"engine_seconds_total",
-		Namespace("vega"),
+		Namespace("datanode"),
 		Vectors("market", "engine", "fn"),
 	)
 	if err != nil {
@@ -343,11 +345,26 @@ func setupMetrics() error {
 	}
 	engineTime = est
 
+	h, err = AddInstrument(
+		Counter,
+		"flush_handling_seconds_total",
+		Namespace("datanode"),
+		Vectors("subscriber"),
+	)
+	if err != nil {
+		return err
+	}
+	fht, err := h.CounterVec()
+	if err != nil {
+		return err
+	}
+	flushHandlingTime = fht
+
 	//eventHandlingTime
 	h, err = AddInstrument(
 		Counter,
 		"event_handling_seconds_total",
-		Namespace("vega"),
+		Namespace("datanode"),
 		Vectors("type", "subscriber", "event"),
 	)
 	if err != nil {
@@ -359,11 +376,26 @@ func setupMetrics() error {
 	}
 	eventHandlingTime = eht
 
+	h, err = AddInstrument(
+		Counter,
+		"published_event_count_total",
+		Namespace("datanode"),
+		Vectors("event"),
+	)
+	if err != nil {
+		return err
+	}
+	sec, err := h.CounterVec()
+	if err != nil {
+		return err
+	}
+	publishedEventsCounter = sec
+
 	//eventCount
 	h, err = AddInstrument(
 		Counter,
 		"event_count_total",
-		Namespace("vega"),
+		Namespace("datanode"),
 		Vectors("event"),
 	)
 	if err != nil {
@@ -379,7 +411,7 @@ func setupMetrics() error {
 	h, err = AddInstrument(
 		Counter,
 		"sql_query_seconds_total",
-		Namespace("vega"),
+		Namespace("datanode"),
 		Vectors("store", "query"),
 	)
 	if err != nil {
@@ -395,7 +427,7 @@ func setupMetrics() error {
 	h, err = AddInstrument(
 		Counter,
 		"sql_query_count",
-		Namespace("vega"),
+		Namespace("datanode"),
 		Vectors("store", "query"),
 	)
 	if err != nil {
@@ -407,27 +439,26 @@ func setupMetrics() error {
 	}
 	sqlQueryCounter = qc
 
-	// order counter
 	h, err = AddInstrument(
 		Counter,
-		"orders_total",
-		Namespace("vega"),
-		Vectors("market", "valid"),
-		Help("Number of orders processed"),
+		"blocks_handling_time_seconds_total",
+		Namespace("datanode"),
+		Vectors(),
+		Help("Total time handling blocks"),
 	)
 	if err != nil {
 		return err
 	}
-	ot, err := h.CounterVec()
+	bht, err := h.Counter()
 	if err != nil {
 		return err
 	}
-	orderCounter = ot
+	blockHandlingTime = bht
 
 	h, err = AddInstrument(
 		Counter,
 		"blocks_total",
-		Namespace("vega"),
+		Namespace("datanode"),
 		Vectors(),
 		Help("Number of blocks processed"),
 	)
@@ -441,40 +472,20 @@ func setupMetrics() error {
 	blockCounter = bt
 
 	h, err = AddInstrument(
-		Counter,
-		"evt_forward_total",
-		Namespace("vega"),
-		Vectors("func", "res"),
-		Help("Number of call made forward/ack event from ethereum"),
-	)
-	if err != nil {
-		return err
-	}
-	evtFwd, err := h.CounterVec()
-	if err != nil {
-		return err
-	}
-	evtForwardCounter = evtFwd
-
-	// now add the orders gauge
-	h, err = AddInstrument(
 		Gauge,
-		"orders",
-		Namespace("vega"),
-		Vectors("market"),
-		Help("Number of orders currently being processed"),
+		"block_height",
+		Namespace("datanode"),
+		Vectors(),
+		Help("Current block height"),
 	)
 	if err != nil {
 		return err
 	}
-	g, err := h.GaugeVec()
+	bh, err := h.Gauge()
 	if err != nil {
 		return err
 	}
-	orderGauge = g
-	// example usage of this simple gauge:
-	// e.orderGauge.WithLabelValues(mkt.Name).Add(float64(len(orders)))
-	// e.orderGauge.WithLabelValues(mkt.Name).Sub(float64(len(completedOrders)))
+	blockHeight = bh
 
 	//
 	// API usage metrics start here
@@ -483,7 +494,7 @@ func setupMetrics() error {
 	if h, err = AddInstrument(
 		Gauge,
 		"active_subscriptions",
-		Namespace("vega"),
+		Namespace("datanode"),
 		Vectors("apiType", "subscribedToType"),
 		Help("Number of active subscriptions"),
 	); err != nil {
@@ -498,7 +509,7 @@ func setupMetrics() error {
 	h, err = AddInstrument(
 		Counter,
 		"request_count_total",
-		Namespace("vega"),
+		Namespace("datanode"),
 		Vectors("apiType", "requestType"),
 		Help("Count of API requests"),
 	)
@@ -515,7 +526,7 @@ func setupMetrics() error {
 	h, err = AddInstrument(
 		Counter,
 		"request_time_total",
-		Namespace("vega"),
+		Namespace("datanode"),
 		Vectors("apiType", "requestType"),
 		Help("Total time spent in each API request"),
 	)
@@ -531,15 +542,12 @@ func setupMetrics() error {
 	return nil
 }
 
-// OrderCounterInc increments the order counter
-func OrderCounterInc(labelValues ...string) {
-	if orderCounter == nil {
-		return
+func AddBlockHandlingTime(duration time.Duration) {
+	if blockHandlingTime != nil {
+		blockHandlingTime.Add(duration.Seconds())
 	}
-	orderCounter.WithLabelValues(labelValues...).Inc()
 }
 
-// BlockCounterInc increments the block counter
 func BlockCounterInc(labelValues ...string) {
 	if blockCounter == nil {
 		return
@@ -547,7 +555,6 @@ func BlockCounterInc(labelValues ...string) {
 	blockCounter.Inc()
 }
 
-// BlockCounterInc increments the block counter
 func EventCounterInc(labelValues ...string) {
 	if eventCounter == nil {
 		return
@@ -555,27 +562,19 @@ func EventCounterInc(labelValues ...string) {
 	eventCounter.WithLabelValues(labelValues...).Inc()
 }
 
-func SQLQueryCounterInc(labelValues ...string) {
-	if sqlQueryCounter == nil {
+func PublishedEventsAdd(event string, eventCount float64) {
+	if publishedEventsCounter == nil {
 		return
 	}
-	sqlQueryCounter.WithLabelValues(labelValues...).Inc()
+
+	publishedEventsCounter.WithLabelValues(event).Add(eventCount)
 }
 
-// EvtForwardInc increments the evt forward counter
-func EvtForwardInc(labelValues ...string) {
-	if evtForwardCounter == nil {
+func SetBlockHeight(height float64) {
+	if blockHeight == nil {
 		return
 	}
-	evtForwardCounter.WithLabelValues(labelValues...).Inc()
-}
-
-// OrderGaugeAdd increment the order gauge
-func OrderGaugeAdd(n int, labelValues ...string) {
-	if orderGauge == nil {
-		return
-	}
-	orderGauge.WithLabelValues(labelValues...).Add(float64(n))
+	blockHeight.Set(height)
 }
 
 // APIRequestAndTimeREST updates the metrics for REST API calls
@@ -585,16 +584,6 @@ func APIRequestAndTimeREST(request string, time float64) {
 	}
 	apiRequestCallCounter.WithLabelValues("REST", request).Inc()
 	apiRequestTimeCounter.WithLabelValues("REST", request).Add(time)
-}
-
-// APIRequestAndTimeGRPC updates the metrics for GRPC API calls
-func APIRequestAndTimeGRPC(request string, startTime time.Time) {
-	if apiRequestCallCounter == nil || apiRequestTimeCounter == nil {
-		return
-	}
-	apiRequestCallCounter.WithLabelValues("GRPC", request).Inc()
-	duration := time.Since(startTime).Seconds()
-	apiRequestTimeCounter.WithLabelValues("GRPC", request).Add(duration)
 }
 
 // APIRequestAndTimeGraphQL updates the metrics for GraphQL API calls

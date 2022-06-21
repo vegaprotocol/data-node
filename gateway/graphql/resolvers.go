@@ -90,6 +90,10 @@ func (r *VegaResolverRoot) Candle() CandleResolver {
 	return (*myCandleResolver)(r)
 }
 
+func (r *VegaResolverRoot) CandleNode() CandleNodeResolver {
+	return (*myCandleNodeResolver)(r)
+}
+
 // MarketDepth returns the market depth resolver
 func (r *VegaResolverRoot) MarketDepth() MarketDepthResolver {
 	return (*myMarketDepthResolver)(r)
@@ -1102,6 +1106,25 @@ func (r *myPartyResolver) Rewards(
 	return resp.Rewards, err
 }
 
+func (r *myPartyResolver) RewardsConnection(ctx context.Context, party *types.Party, asset *string, pagination *v2.Pagination) (*v2.RewardsConnection, error) {
+	var assetID string
+	if asset != nil {
+		assetID = *asset
+	}
+
+	req := v2.GetRewardsRequest{
+		PartyId:    party.Id,
+		AssetId:    assetID,
+		Pagination: pagination,
+	}
+	resp, err := r.tradingDataClientV2.GetRewards(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve rewards information: %w", err)
+	}
+
+	return resp.Rewards, nil
+}
+
 func (r *myPartyResolver) RewardSummaries(
 	ctx context.Context,
 	party *types.Party,
@@ -1395,6 +1418,10 @@ func (r *myPartyResolver) Withdrawals(ctx context.Context, party *types.Party) (
 	return res.Withdrawals, nil
 }
 
+func (r *myPartyResolver) WithdrawalsConnection(ctx context.Context, party *types.Party) (*v2.WithdrawalsConnection, error) {
+	return handleWithdrawalsConnectionRequest(ctx, r.tradingDataClientV2, party)
+}
+
 func (r *myPartyResolver) Deposits(ctx context.Context, party *types.Party) ([]*types.Deposit, error) {
 	res, err := r.tradingDataClient.Deposits(
 		ctx, &protoapi.DepositsRequest{PartyId: party.Id},
@@ -1404,6 +1431,10 @@ func (r *myPartyResolver) Deposits(ctx context.Context, party *types.Party) ([]*
 	}
 
 	return res.Deposits, nil
+}
+
+func (r *myPartyResolver) DepositsConnection(ctx context.Context, party *types.Party) (*v2.DepositsConnection, error) {
+	return handleDepositsConnectionRequest(ctx, r.tradingDataClientV2, party)
 }
 
 func (r *myPartyResolver) Votes(ctx context.Context, party *types.Party) ([]*ProposalVote, error) {
@@ -1984,6 +2015,24 @@ func (r *myCandleResolver) Interval(ctx context.Context, obj *types.Candle) (Int
 
 // END: Candle Resolver
 
+// BEGIN: CandleNode Resolver
+
+type myCandleNodeResolver VegaResolverRoot
+
+func (m *myCandleNodeResolver) Start(ctx context.Context, obj *v2.Candle) (string, error) {
+	return strconv.FormatInt(obj.Start, 10), nil
+}
+
+func (m *myCandleNodeResolver) LastUpdate(ctx context.Context, obj *v2.Candle) (string, error) {
+	return strconv.FormatInt(obj.LastUpdate, 10), nil
+}
+
+func (m *myCandleNodeResolver) Volume(ctx context.Context, obj *v2.Candle) (string, error) {
+	return strconv.FormatUint(obj.Volume, 10), nil
+}
+
+// END: CandleNode Resolver
+
 // BEGIN: Price Level Resolver
 
 type myPriceLevelResolver VegaResolverRoot
@@ -2235,6 +2284,42 @@ func (r *mySubscriptionResolver) Margins(ctx context.Context, partyID string, ma
 				break
 			}
 			ch <- m.MarginLevels
+		}
+	}()
+
+	return ch, nil
+}
+
+func (r *mySubscriptionResolver) MarketsData(ctx context.Context, marketID *string) (<-chan []*types.MarketData, error) {
+	var mktid string
+	if marketID != nil {
+		mktid = *marketID
+	}
+	req := &v2.MarketsDataSubscribeRequest{
+		MarketId: mktid,
+	}
+	stream, err := r.tradingDataClientV2.MarketsDataSubscribe(ctx, req)
+	if err != nil {
+		return nil, customErrorFromStatus(err)
+	}
+
+	ch := make(chan []*types.MarketData)
+	go func() {
+		defer func() {
+			stream.CloseSend()
+			close(ch)
+		}()
+		for {
+			m, err := stream.Recv()
+			if err == io.EOF {
+				r.log.Error("marketdata: stream closed by server", logging.Error(err))
+				break
+			}
+			if err != nil {
+				r.log.Error("marketdata: stream closed", logging.Error(err))
+				break
+			}
+			ch <- m.MarketData
 		}
 	}()
 

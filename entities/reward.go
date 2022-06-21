@@ -1,10 +1,12 @@
 package entities
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
 
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"code.vegaprotocol.io/protos/vega"
 	eventspb "code.vegaprotocol.io/protos/vega/events/v1"
 	"github.com/shopspring/decimal"
@@ -41,6 +43,22 @@ func (r *Reward) ToProto() *vega.Reward {
 	return &protoReward
 }
 
+func (r Reward) Cursor() *Cursor {
+	cursor := RewardCursor{
+		PartyID: r.PartyID.String(),
+		AssetID: r.AssetID.String(),
+		EpochID: r.EpochID,
+	}
+	return NewCursor(cursor.String())
+}
+
+func (r Reward) ToProtoEdge(_ ...any) *v2.RewardEdge {
+	return &v2.RewardEdge{
+		Node:   r.ToProto(),
+		Cursor: r.Cursor().Encode(),
+	}
+}
+
 func RewardFromProto(pr eventspb.RewardPayoutEvent, vegaTime time.Time) (Reward, error) {
 	epochID, err := strconv.ParseInt(pr.EpochSeq, 10, 64)
 	if err != nil {
@@ -72,4 +90,25 @@ func RewardFromProto(pr eventspb.RewardPayoutEvent, vegaTime time.Time) (Reward,
 	}
 
 	return reward, nil
+}
+
+type RewardCursor struct {
+	PartyID string `json:"party_id"`
+	AssetID string `json:"asset_id"`
+	EpochID int64  `json:"epoch_id"`
+}
+
+func (rc RewardCursor) String() string {
+	bs, err := json.Marshal(rc)
+	if err != nil {
+		return fmt.Sprintf(`{"party_id":"%s","asset_id":"%s","epoch_id":%d}`, rc.PartyID, rc.AssetID, rc.EpochID)
+	}
+	return string(bs)
+}
+
+func (rc *RewardCursor) Parse(cursorString string) error {
+	if cursorString == "" {
+		return nil
+	}
+	return json.Unmarshal([]byte(cursorString), rc)
 }
