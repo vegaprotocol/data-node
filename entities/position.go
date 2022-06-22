@@ -1,8 +1,9 @@
 package entities
 
 import (
-	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"time"
+
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 
 	"code.vegaprotocol.io/protos/vega"
 	"code.vegaprotocol.io/vega/events"
