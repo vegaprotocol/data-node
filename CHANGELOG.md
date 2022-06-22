@@ -15,7 +15,7 @@
 - [576](https://github.com/vegaprotocol/data-node/issues/569) - Add cursor based pagination for assets requests
 
 ### 🐛 Fixes
-- [](https://github.com/vegaprotocol/data-node/issues/xxx) -
+- [705](https://github.com/vegaprotocol/data-node/issues/705) - Market Depth returning incorrect book state
 
 ## 0.52.0
 
