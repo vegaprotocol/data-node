@@ -1,11 +1,11 @@
 package sqlstore
 
 import (
-	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"context"
 	"errors"
 	"fmt"
-
+	
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/metrics"
 	"github.com/georgysavva/scany/pgxscan"
