@@ -50,6 +50,7 @@ func deleteAll(log *logging.Logger, dir string) error {
 	if err != nil {
 		return err
 	}
+	defer d.Close()
 	files, err := d.Readdir(0)
 	if err != nil {
 		return err
