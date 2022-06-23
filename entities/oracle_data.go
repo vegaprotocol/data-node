@@ -16,7 +16,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
@@ -127,16 +126,8 @@ type OracleDataCursor struct {
 func (c OracleDataCursor) String() string {
 	bs, err := json.Marshal(c)
 	if err != nil {
-		builder := strings.Builder{}
-		builder.WriteString(fmt.Sprintf(`{"vegaTime":"%s","publicKeys":[`, c.VegaTime.Format(time.RFC3339Nano)))
-		for i, k := range c.PublicKeys {
-			if i > 0 {
-				builder.WriteString(`,`)
-			}
-			builder.WriteString(fmt.Sprintf(`"%s"`, k))
-		}
-		builder.WriteString(`]}`)
-		return builder.String()
+		// This really shouldn't happen.
+		panic(fmt.Errorf("couldn't marshal oracle data cursor: %w", err))
 	}
 
 	return string(bs)
