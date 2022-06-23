@@ -260,6 +260,7 @@ func testOracleDataGetBySpecNoPagination(t *testing.T) {
 	require.NoError(t, err)
 
 	got, pageInfo, err := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
+	require.NoError(t, err)
 	assert.Equal(t, data[4:], got)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     false,
@@ -281,6 +282,7 @@ func testOracleDataGetBySpecFirst(t *testing.T) {
 	require.NoError(t, err)
 
 	got, pageInfo, err := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
+	require.NoError(t, err)
 	assert.Equal(t, data[4:7], got)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     true,
@@ -302,6 +304,7 @@ func testOracleDataGetBySpecLast(t *testing.T) {
 	require.NoError(t, err)
 
 	got, pageInfo, err := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
+	require.NoError(t, err)
 	assert.Equal(t, data[8:], got)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     false,
@@ -324,6 +327,7 @@ func testOracleDataGetBySpecFirstAfter(t *testing.T) {
 	require.NoError(t, err)
 
 	got, pageInfo, err := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
+	require.NoError(t, err)
 	assert.Equal(t, data[7:10], got)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     true,
@@ -346,6 +350,7 @@ func testOracleDataGetBySpecLastBefore(t *testing.T) {
 	require.NoError(t, err)
 
 	got, pageInfo, err := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
+	require.NoError(t, err)
 	assert.Equal(t, data[5:8], got)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     true,
@@ -376,6 +381,7 @@ func testOracleDataListNoPagination(t *testing.T) {
 	require.NoError(t, err)
 
 	got, pageInfo, err := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, err)
 	assert.Equal(t, want, got)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     false,
@@ -399,6 +405,7 @@ func testOracleDataListFirst(t *testing.T) {
 	require.NoError(t, err)
 
 	got, pageInfo, err := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, err)
 	assert.Equal(t, want[0:3], got)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     true,
@@ -422,6 +429,7 @@ func testOracleDataListLast(t *testing.T) {
 	require.NoError(t, err)
 
 	got, pageInfo, err := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, err)
 	assert.Equal(t, want[7:], got)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     false,
@@ -446,6 +454,7 @@ func testOracleDataListFirstAfter(t *testing.T) {
 	require.NoError(t, err)
 
 	got, pageInfo, err := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, err)
 	assert.Equal(t, want[3:6], got)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     true,
@@ -470,6 +479,7 @@ func testOracleDataListLastBefore(t *testing.T) {
 	require.NoError(t, err)
 
 	got, pageInfo, err := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, err)
 	assert.Equal(t, want[4:7], got)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     true,
