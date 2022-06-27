@@ -2206,13 +2206,13 @@ func (r *myQueryResolver) PositionsByParty(ctx context.Context, partyID *string,
 }
 
 func (r *myQueryResolver) PositionsByPartyConnection(ctx context.Context, partyID *string, marketID string, pagination *v2.Pagination) (*v2.PositionConnection, error) {
-	req := v2.GetPositionsByPartyPagedRequest{
+	req := v2.GetPositionsByPartyConnectionRequest{
 		PartyId:    *partyID,
 		MarketId:   marketID,
 		Pagination: pagination,
 	}
 
-	res, err := r.tradingDataClientV2.GetPositionsByPartyPaged(ctx, &req)
+	res, err := r.tradingDataClientV2.GetPositionsByPartyConnection(ctx, &req)
 	if err != nil {
 		r.log.Error("tradingData client", logging.Error(err))
 		return nil, customErrorFromStatus(err)
