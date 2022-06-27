@@ -42,6 +42,7 @@ var (
 
 func TestMain(m *testing.M) {
 	testDBPort = getNextPort()
+	testDBPort = 30002
 	sqlConfig := NewTestConfig(testDBPort)
 
 	if sqlTestsEnabled {

@@ -150,8 +150,8 @@ func (b *sqlStoreBroker) processBlock(ctx context.Context, dbContext context.Con
 	blockTimer := blockTimer{}
 	blockTimer.startTimer()
 	defer func() {
-		blockTimer.stopTimer()
-		metrics.AddBlockHandlingTime(blockTimer.duration)
+		//	blockTimer.stopTimer()
+		//	metrics.AddBlockHandlingTime(blockTimer.duration)
 	}()
 
 	for _, subscriber := range b.subscribers {
@@ -173,6 +173,10 @@ func (b *sqlStoreBroker) processBlock(ctx context.Context, dbContext context.Con
 	if err = b.addBlock(blockCtx, block); err != nil {
 		return nil, fmt.Errorf("failed to add block:%w", err)
 	}
+
+	blockStart := time.Now()
+	eventCount := 0
+	typeToCount := map[events.Type]int{}
 
 	for {
 		// Do a pre-check on ctx.Done() since select() cases are randomized, this reduces
@@ -206,6 +210,18 @@ func (b *sqlStoreBroker) processBlock(ctx context.Context, dbContext context.Con
 				if err != nil {
 					return nil, fmt.Errorf("failed to commit transactional context:%w", err)
 				}
+
+				now := time.Now()
+				typeCount := ""
+				for t, c := range typeToCount {
+					typeCount += fmt.Sprintf(",EVENT%s=%d", t.String(), c)
+				}
+
+				blockTimer.stopTimer()
+				//metrics.AddBlockHandlingTime(blockTimer.duration)
+
+				fmt.Printf("Time=%s,Block=%d,VegaTime=%s,BlockProcessingTime:%s, OldBlockProcessingTime:%s, BlockEventCount=%d%s\n", now, e.BlockNr(),
+					timeUpdate.Time(), blockTimer.duration, now.Sub(blockStart), eventCount, typeCount)
 
 				return entities.BlockFromTimeUpdate(timeUpdate)
 			} else {

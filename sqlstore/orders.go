@@ -60,14 +60,21 @@ func (os *Orders) Flush(ctx context.Context, vegaTime time.Time) ([]entities.Ord
 		return []entities.Order{}, nil
 	}
 
+	// Step 1 if live add to live orders and move existing live into history, also if history
+	// exists for this order update the timestamp in history
+
+	// If not live, move any live order into history, add order to history with infinity time stamp
+
 	var liveOrderIdsToDelete [][]byte
 	liveOrdersBatcher := NewListBatcher[entities.Order]("orders_live", entities.OrderColumns)
-	historyOrdersBatcher := NewListBatcher[entities.Order]("orders_history", entities.OrderColumns)
+	//historyOrdersBatcher := NewListBatcher[entities.Order]("orders_history", entities.OrderColumns)
+	infinityHistoryOrdersBatcher := NewListBatcher[entities.Order]("orders_history", entities.OrderColumns)
 
 	for _, o := range os.ordersInBlock {
 		if o.IsLive() {
 			if _, alreadyLive := os.liveOrders[o.ID]; alreadyLive {
-				historyOrdersBatcher.Add(os.liveOrders[o.ID])
+				//		historyOrdersBatcher.Add(os.liveOrders[o.ID])
+				infinityHistoryOrdersBatcher.Add(os.liveOrders[o.ID])
 				bytes, _ := o.ID.Bytes()
 				liveOrderIdsToDelete = append(liveOrderIdsToDelete, bytes)
 				liveOrdersBatcher.Add(o)
@@ -78,12 +85,14 @@ func (os *Orders) Flush(ctx context.Context, vegaTime time.Time) ([]entities.Ord
 			}
 		} else {
 			if _, alreadyLive := os.liveOrders[o.ID]; alreadyLive {
-				historyOrdersBatcher.Add(o)
+				//	historyOrdersBatcher.Add(os.liveOrders[o.ID])
+				infinityHistoryOrdersBatcher.Add(os.liveOrders[o.ID])
+				infinityHistoryOrdersBatcher.Add(o)
 				bytes, _ := o.ID.Bytes()
 				liveOrderIdsToDelete = append(liveOrderIdsToDelete, bytes)
 				delete(os.liveOrders, o.ID)
 			} else {
-				historyOrdersBatcher.Add(o)
+				infinityHistoryOrdersBatcher.Add(o)
 			}
 		}
 	}
@@ -96,6 +105,11 @@ func (os *Orders) Flush(ctx context.Context, vegaTime time.Time) ([]entities.Ord
 		idbytes, _ := id.Bytes()
 		orderIds = append(orderIds, idbytes)
 	}
+
+	// Need to think this through again
+	//if _, err := historyOrdersBatcher.Flush(ctx, os.Connection); err != nil {
+	//	return []entities.Order{}, errors.Wrap(err, "failed to flush history orders")
+	//}
 
 	_, err := os.ConnectionSource.Connection.Exec(ctx, "UPDATE orders_history SET vega_time_to = $1 WHERE vega_time_to = 'infinity' and id = ANY ($2)", vegaTime, orderIds)
 	if err != nil {
@@ -115,8 +129,8 @@ func (os *Orders) Flush(ctx context.Context, vegaTime time.Time) ([]entities.Ord
 		return []entities.Order{}, errors.Wrap(err, "failed to flush live orders")
 	}
 
-	if _, err := historyOrdersBatcher.Flush(ctx, os.Connection); err != nil {
-		return []entities.Order{}, errors.Wrap(err, "failed to flush history orders")
+	if _, err := infinityHistoryOrdersBatcher.Flush(ctx, os.Connection); err != nil {
+		return []entities.Order{}, errors.Wrap(err, "failed to flush infinity history orders")
 	}
 
 	os.ordersInBlock = map[entities.OrderID]entities.Order{}
