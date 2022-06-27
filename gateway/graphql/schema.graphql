@@ -271,9 +271,6 @@ type Query {
   "An instrument that is trading on the VEGA network"
   market("Optional ID of a market" id: ID!): Market
 
-  "One or more positions that are held on the VEGA network"
-  positionsByParty("ID of the party" partyId: ID, "ID of the market" marketId: ID): [Position!]
-
   positionsByPartyConnection(
     partyId: ID
     marketId: ID!
