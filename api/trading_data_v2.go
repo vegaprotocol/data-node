@@ -751,7 +751,7 @@ func (t *tradingDataServiceV2) GetMarkets(ctx context.Context, in *v2.GetMarkets
 }
 
 // Get all Positions using a cursor based pagination model
-func (t *tradingDataServiceV2) GetPositionsByPartyPaged(ctx context.Context, in *v2.GetPositionsByPartyPagedRequest) (*v2.GetPositionsByPartyPagedResponse, error) {
+func (t *tradingDataServiceV2) GetPositionsByPartyConnection(ctx context.Context, in *v2.GetPositionsByPartyPagedRequest) (*v2.GetPositionsByPartyPagedResponse, error) {
 	if err := t.checkV2ApiEnabled(); err != nil {
 		return nil, err
 	}
@@ -761,14 +761,14 @@ func (t *tradingDataServiceV2) GetPositionsByPartyPaged(ctx context.Context, in 
 		return nil, apiError(codes.InvalidArgument, err)
 	}
 
-	positions, pageInfo, err := t.positionService.GetByPartyPaged(ctx, entities.NewPartyID(in.PartyId), entities.NewMarketID(in.MarketId), pagination)
+	positions, pageInfo, err := t.positionService.GetByPartyConnection(ctx, entities.NewPartyID(in.PartyId), entities.NewMarketID(in.MarketId), pagination)
 	if err != nil {
 		return nil, apiError(codes.Internal, err)
 	}
 
 	PositionsConnection := &v2.PositionConnection{
 		TotalCount: 0, // TODO: implement total count
-		Edges:      makePositionEdges(positions),
+		Edges:      makeEdges[*v2.PositionEdge](positions),
 		PageInfo:   pageInfo.ToProto(),
 	}
 
@@ -777,18 +777,6 @@ func (t *tradingDataServiceV2) GetPositionsByPartyPaged(ctx context.Context, in 
 	}
 
 	return resp, nil
-}
-
-func makePositionEdges(positions []entities.Position) []*v2.PositionEdge {
-	edges := make([]*v2.PositionEdge, len(positions))
-	for i, m := range positions {
-		PositionProto := m.ToProto()
-		edges[i] = &v2.PositionEdge{
-			Node:   PositionProto,
-			Cursor: m.Cursor().Encode(),
-		}
-	}
-	return edges
 }
 
 // Get Parties using a cursor based pagination model

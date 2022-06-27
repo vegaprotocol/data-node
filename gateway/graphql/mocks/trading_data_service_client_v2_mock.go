@@ -403,7 +403,7 @@ func (m *MockTradingDataServiceClientV2) GetPositionsByPartyPaged(arg0 context.C
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "GetPositionsByPartyPaged", varargs...)
+	ret := m.ctrl.Call(m, "GetPositionsByPartyConnection", varargs...)
 	ret0, _ := ret[0].(*v2.GetPositionsByPartyPagedResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
@@ -413,7 +413,7 @@ func (m *MockTradingDataServiceClientV2) GetPositionsByPartyPaged(arg0 context.C
 func (mr *MockTradingDataServiceClientV2MockRecorder) GetPositionsByPartyPaged(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPositionsByPartyPaged", reflect.TypeOf((*MockTradingDataServiceClientV2)(nil).GetPositionsByPartyPaged), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPositionsByPartyConnection", reflect.TypeOf((*MockTradingDataServiceClientV2)(nil).GetPositionsByPartyPaged), varargs...)
 }
 
 // GetRewardSummaries mocks base method.

@@ -118,10 +118,10 @@ func (m *MockPositionStore) GetByParty(arg0 context.Context, arg1 entities.Party
 	return ret0, ret1
 }
 
-// GetByPartyPaged mocks base method.
-func (m *MockPositionStore) GetByPartyPaged(arg0 context.Context, arg1 entities.PartyID, arg2 entities.MarketID, arg3 entities.CursorPagination) ([]entities.Position, entities.PageInfo, error) {
+// GetByPartyConnection mocks base method.
+func (m *MockPositionStore) GetByPartyConnection(arg0 context.Context, arg1 entities.PartyID, arg2 entities.MarketID, arg3 entities.CursorPagination) ([]entities.Position, entities.PageInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByPartyPaged", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetByPartyConnection", arg0, arg1)
 	ret0, _ := ret[0].([]entities.Position)
 	ret1, _ := ret[1].(entities.PageInfo)
 	ret2, _ := ret[2].(error)
@@ -135,8 +135,8 @@ func (mr *MockPositionStoreMockRecorder) GetByParty(arg0, arg1 interface{}) *gom
 }
 
 
-// GetByPartyPaged indicates an expected call of GetByPartyPaged.
-func (mr *MockPositionStoreMockRecorder) GetByPartyPaged(arg0, arg1 interface{}) *gomock.Call {
+// GetByPartyConnection indicates an expected call of GetByPartyConnection.
+func (mr *MockPositionStoreMockRecorder) GetByPartyConnection(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByPartyPaged", reflect.TypeOf((*MockPositionStore)(nil).GetByPartyPaged), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByPartyConnection", reflect.TypeOf((*MockPositionStore)(nil).GetByPartyConnection), arg0, arg1)
 }

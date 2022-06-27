@@ -74,7 +74,7 @@ func (ps *Positions) GetByParty(ctx context.Context, partyID entities.PartyID) (
 	return positions, err
 }
 
-func (ps *Positions) GetByPartyPaged(ctx context.Context, partyID entities.PartyID, marketID entities.MarketID, pagination entities.CursorPagination) ([]entities.Position, entities.PageInfo, error) {
+func (ps *Positions) GetByPartyConnection(ctx context.Context, partyID entities.PartyID, marketID entities.MarketID, pagination entities.CursorPagination) ([]entities.Position, entities.PageInfo, error) {
 	var query string
 	if marketID.String() != "" {
 		query = fmt.Sprintf(`select * from positions_current where party_id=%s`, partyID.String())

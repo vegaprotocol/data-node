@@ -1,6 +1,8 @@
 package entities
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
@@ -168,7 +170,13 @@ type PositionKey struct {
 }
 
 func (p Position) Cursor() *Cursor {
-	return NewCursor(p.VegaTime.Format(time.RFC3339Nano))
+	pc := PositionCursor{
+		MarketID: p.MarketID,
+		PartyID:  p.PartyID,
+		VegaTime: p.VegaTime,
+	}
+
+	return NewCursor(pc.String())
 }
 
 func (p Position) Key() PositionKey {
@@ -197,4 +205,25 @@ func (p Position) Equal(q Position) bool {
 		q.Loss.Equal(q.Loss) &&
 		q.Adjustment.Equal(q.Adjustment) &&
 		q.VegaTime.Equal(q.VegaTime)
+}
+
+type PositionCursor struct {
+	PartyID  PartyID   `json:"party_id"`
+	MarketID MarketID  `json:"market_id"`
+	VegaTime time.Time `json:"vega_time"`
+}
+
+func (rc PositionCursor) String() string {
+	bs, err := json.Marshal(rc)
+	if err != nil {
+		return fmt.Sprintf(`{"party_id":"%s","market_id":"%s","vega_time":%d}`, rc.PartyID, rc.MarketID, rc.VegaTime)
+	}
+	return string(bs)
+}
+
+func (rc *PositionCursor) Parse(cursorString string) error {
+	if cursorString == "" {
+		return nil
+	}
+	return json.Unmarshal([]byte(cursorString), rc)
 }

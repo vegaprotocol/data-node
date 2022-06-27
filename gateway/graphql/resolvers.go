@@ -2149,7 +2149,7 @@ func (r *myQueryResolver) PositionsByParty(ctx context.Context, partyID *string,
 	return res.Positions, nil
 }
 
-func (r *myQueryResolver) PositionsByPartyPaged(ctx context.Context, partyID *string, marketID string, pagination *v2.Pagination) (*v2.PositionConnection, error) {
+func (r *myQueryResolver) PositionsByPartyConnection(ctx context.Context, partyID *string, marketID string, pagination *v2.Pagination) (*v2.PositionConnection, error) {
 	req := v2.GetPositionsByPartyPagedRequest{
 		PartyId:    *partyID,
 		MarketId:   marketID,

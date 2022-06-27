@@ -274,7 +274,7 @@ type Query {
   "One or more positions that are held on the VEGA network"
   positionsByParty("ID of the party" partyId: ID, "ID of the market" marketId: ID): [Position!]
 
-  positionsByPartyPaged(
+  positionsByPartyConnection(
     partyId: ID
     marketId: ID!
     pagination: Pagination

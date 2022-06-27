@@ -982,7 +982,7 @@ type ComplexityRoot struct {
 		PartiesPaged                       func(childComplexity int, id *string, pagination *v2.Pagination) int
 		Party                              func(childComplexity int, id string) int
 		PositionsByParty                   func(childComplexity int, partyID *string, marketID *string) int
-		PositionsByPartyPaged              func(childComplexity int, partyID *string, marketID string, pagination *v2.Pagination) int
+		PositionsByPartyConnection         func(childComplexity int, partyID *string, marketID string, pagination *v2.Pagination) int
 		Proposal                           func(childComplexity int, id *string, reference *string) int
 		Proposals                          func(childComplexity int, inState *ProposalState) int
 		Statistics                         func(childComplexity int) int
@@ -1656,7 +1656,7 @@ type QueryResolver interface {
 	MarketsPaged(ctx context.Context, id *string, pagination *v2.Pagination) (*v2.MarketConnection, error)
 	Market(ctx context.Context, id string) (*vega.Market, error)
 	PositionsByParty(ctx context.Context, partyID *string, marketID *string) ([]*vega.Position, error)
-	PositionsByPartyPaged(ctx context.Context, partyID *string, marketID string, pagination *v2.Pagination) (*v2.PositionConnection, error)
+	PositionsByPartyConnection(ctx context.Context, partyID *string, marketID string, pagination *v2.Pagination) (*v2.PositionConnection, error)
 	Parties(ctx context.Context, id *string) ([]*vega.Party, error)
 	PartiesPaged(ctx context.Context, id *string, pagination *v2.Pagination) (*v2.PartyConnection, error)
 	Party(ctx context.Context, id string) (*vega.Party, error)
@@ -6093,17 +6093,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.PositionsByParty(childComplexity, args["partyId"].(*string), args["marketId"].(*string)), true
 
-	case "Query.positionsByPartyPaged":
-		if e.complexity.Query.PositionsByPartyPaged == nil {
+	case "Query.positionsByPartyConnection":
+		if e.complexity.Query.PositionsByPartyConnection == nil {
 			break
 		}
 
-		args, err := ec.field_Query_positionsByPartyPaged_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_positionsByPartyConnection_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.PositionsByPartyPaged(childComplexity, args["partyId"].(*string), args["marketId"].(string), args["pagination"].(*v2.Pagination)), true
+		return e.complexity.Query.PositionsByPartyConnection(childComplexity, args["partyId"].(*string), args["marketId"].(string), args["pagination"].(*v2.Pagination)), true
 
 	case "Query.proposal":
 		if e.complexity.Query.Proposal == nil {
@@ -7916,7 +7916,7 @@ type Query {
   "One or more positions that are held on the VEGA network"
   positionsByParty("ID of the party" partyId: ID, "ID of the market" marketId: ID): [Position!]
 
-  positionsByPartyPaged(
+  positionsByPartyConnection(
     partyId: ID
     marketId: ID!
     pagination: Pagination
@@ -13041,7 +13041,7 @@ func (ec *executionContext) field_Query_party_args(ctx context.Context, rawArgs 
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_positionsByPartyPaged_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_positionsByPartyConnection_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *string
@@ -31755,7 +31755,7 @@ func (ec *executionContext) _Query_positionsByParty(ctx context.Context, field g
 	return ec.marshalOPosition2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐPositionᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_positionsByPartyPaged(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_positionsByPartyConnection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -31772,7 +31772,7 @@ func (ec *executionContext) _Query_positionsByPartyPaged(ctx context.Context, fi
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_positionsByPartyPaged_args(ctx, rawArgs)
+	args, err := ec.field_Query_positionsByPartyConnection_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -31780,7 +31780,7 @@ func (ec *executionContext) _Query_positionsByPartyPaged(ctx context.Context, fi
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().PositionsByPartyPaged(rctx, args["partyId"].(*string), args["marketId"].(string), args["pagination"].(*v2.Pagination))
+		return ec.resolvers.Query().PositionsByPartyConnection(rctx, args["partyId"].(*string), args["marketId"].(string), args["pagination"].(*v2.Pagination))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -51049,7 +51049,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
-		case "positionsByPartyPaged":
+		case "positionsByPartyConnection":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -51058,7 +51058,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_positionsByPartyPaged(ctx, field)
+				res = ec._Query_positionsByPartyConnection(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
