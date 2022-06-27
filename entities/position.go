@@ -228,7 +228,8 @@ type PositionCursor struct {
 func (rc PositionCursor) String() string {
 	bs, err := json.Marshal(rc)
 	if err != nil {
-		return fmt.Sprintf(`{"party_id":"%s","market_id":"%s","vega_time":%d}`, rc.PartyID, rc.MarketID, rc.VegaTime)
+		// This should never happen.
+		panic(fmt.Errorf("could not marshal order cursor: %w", err))
 	}
 	return string(bs)
 }
