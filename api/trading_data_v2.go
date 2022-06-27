@@ -765,7 +765,7 @@ func (t *tradingDataServiceV2) GetMarkets(ctx context.Context, in *v2.GetMarkets
 }
 
 // Get all Positions using a cursor based pagination model
-func (t *tradingDataServiceV2) GetPositionsByPartyConnection(ctx context.Context, in *v2.GetPositionsByPartyPagedRequest) (*v2.GetPositionsByPartyPagedResponse, error) {
+func (t *tradingDataServiceV2) GetPositionsByPartyConnection(ctx context.Context, in *v2.GetPositionsByPartyConnectionRequest) (*v2.GetPositionsByPartyConnectionResponse, error) {
 	if err := t.checkV2ApiEnabled(); err != nil {
 		return nil, err
 	}
@@ -786,7 +786,7 @@ func (t *tradingDataServiceV2) GetPositionsByPartyConnection(ctx context.Context
 		PageInfo:   pageInfo.ToProto(),
 	}
 
-	resp := &v2.GetPositionsByPartyPagedResponse{
+	resp := &v2.GetPositionsByPartyConnectionResponse{
 		Positions: PositionsConnection,
 	}
 
