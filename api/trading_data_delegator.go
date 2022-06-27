@@ -1,3 +1,15 @@
+// Copyright (c) 2022 Gobalsky Labs Limited
+//
+// Use of this software is governed by the Business Source License included
+// in the LICENSE file and at https://www.mariadb.com/bsl11.
+//
+// Change Date: 18 months from the later of the date of the first publicly
+// available Distribution of this version of the repository, and 25 June 2022.
+//
+// On the date above, in accordance with the Business Source License, use
+// of this software will be governed by version 3 or later of the GNU General
+// Public License.
+
 package api
 
 import (
@@ -124,7 +136,6 @@ func (t *tradingDataDelegator) MarketDepthSubscribe(
 	req *protoapi.MarketDepthSubscribeRequest,
 	srv protoapi.TradingDataService_MarketDepthSubscribeServer,
 ) error {
-	defer metrics.StartActiveSubscriptionCountGRPC("MarketDepth")()
 
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
@@ -154,7 +165,6 @@ func (t *tradingDataDelegator) MarketDepthUpdatesSubscribe(
 	req *protoapi.MarketDepthUpdatesSubscribeRequest,
 	srv protoapi.TradingDataService_MarketDepthUpdatesSubscribeServer,
 ) error {
-	defer metrics.StartActiveSubscriptionCountGRPC("MarketDepthUpdates")()
 
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
@@ -222,7 +232,6 @@ func (t *tradingDataDelegator) PositionsSubscribe(
 	req *protoapi.PositionsSubscribeRequest,
 	srv protoapi.TradingDataService_PositionsSubscribeServer,
 ) error {
-	defer metrics.StartActiveSubscriptionCountGRPC("Positions")()
 
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
@@ -759,7 +768,6 @@ func (t *tradingDataDelegator) ObserveGovernance(
 	_ *protoapi.ObserveGovernanceRequest,
 	stream protoapi.TradingDataService_ObserveGovernanceServer,
 ) error {
-	defer metrics.StartActiveSubscriptionCountGRPC("Governance")()
 
 	ctx, cfunc := context.WithCancel(stream.Context())
 	defer cfunc()
@@ -783,7 +791,6 @@ func (t *tradingDataDelegator) ObservePartyProposals(
 	in *protoapi.ObservePartyProposalsRequest,
 	stream protoapi.TradingDataService_ObservePartyProposalsServer,
 ) error {
-	defer metrics.StartActiveSubscriptionCountGRPC("PartyProposals")()
 
 	ctx, cfunc := context.WithCancel(stream.Context())
 	defer cfunc()
@@ -807,7 +814,6 @@ func (t *tradingDataDelegator) ObservePartyVotes(
 	in *protoapi.ObservePartyVotesRequest,
 	stream protoapi.TradingDataService_ObservePartyVotesServer,
 ) error {
-	defer metrics.StartActiveSubscriptionCountGRPC("PartyVotes")()
 
 	ctx, cfunc := context.WithCancel(stream.Context())
 	defer cfunc()
@@ -827,7 +833,6 @@ func (t *tradingDataDelegator) ObserveProposalVotes(
 	in *protoapi.ObserveProposalVotesRequest,
 	stream protoapi.TradingDataService_ObserveProposalVotesServer,
 ) error {
-	defer metrics.StartActiveSubscriptionCountGRPC("ProposalVotes")()
 
 	ctx, cfunc := context.WithCancel(stream.Context())
 	defer cfunc()
@@ -946,7 +951,6 @@ func (t *tradingDataDelegator) ObserveDelegations(
 	req *protoapi.ObserveDelegationsRequest,
 	stream protoapi.TradingDataService_ObserveDelegationsServer,
 ) error {
-	defer metrics.StartActiveSubscriptionCountGRPC("Delegations")()
 
 	ctx, cfunc := context.WithCancel(stream.Context())
 	defer cfunc()
@@ -1031,7 +1035,6 @@ func (t *tradingDataDelegator) GetRewardSummaries(ctx context.Context,
 func (t *tradingDataDelegator) ObserveRewards(req *protoapi.ObserveRewardsRequest,
 	stream protoapi.TradingDataService_ObserveRewardsServer,
 ) error {
-	defer metrics.StartActiveSubscriptionCountGRPC("Rewards")()
 
 	ctx, cfunc := context.WithCancel(stream.Context())
 	defer cfunc()
@@ -1150,7 +1153,6 @@ func (t *tradingDataDelegator) LastTrade(ctx context.Context,
 func (t *tradingDataDelegator) TradesSubscribe(req *protoapi.TradesSubscribeRequest,
 	srv protoapi.TradingDataService_TradesSubscribeServer,
 ) error {
-	defer metrics.StartActiveSubscriptionCountGRPC("Trades")()
 
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
@@ -1563,7 +1565,6 @@ func (t *tradingDataDelegator) GlobalRewardPoolAccounts(ctx context.Context,
 func (t *tradingDataDelegator) AccountsSubscribe(req *protoapi.AccountsSubscribeRequest,
 	srv protoapi.TradingDataService_AccountsSubscribeServer,
 ) error {
-	defer metrics.StartActiveSubscriptionCountGRPC("Accounts")()
 
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
@@ -1625,7 +1626,6 @@ func (t *tradingDataDelegator) MarketsData(ctx context.Context, _ *protoapi.Mark
 func (t *tradingDataDelegator) MarketsDataSubscribe(req *protoapi.MarketsDataSubscribeRequest,
 	srv protoapi.TradingDataService_MarketsDataSubscribeServer,
 ) error {
-	defer metrics.StartActiveSubscriptionCountGRPC("MarketData")()
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
@@ -1733,7 +1733,6 @@ func (t *tradingDataDelegator) Deposits(ctx context.Context, req *protoapi.Depos
 /****************************** Market Data **************************************/
 
 func (t *tradingDataDelegator) MarginLevelsSubscribe(req *protoapi.MarginLevelsSubscribeRequest, srv protoapi.TradingDataService_MarginLevelsSubscribeServer) error {
-	defer metrics.StartActiveSubscriptionCountGRPC("MarginLevels")()
 
 	// Wrap context from the request into cancellable. We can close internal chan on error.
 	ctx, cancel := context.WithCancel(srv.Context())
@@ -2077,7 +2076,7 @@ func (t *tradingDataDelegator) OracleDataBySpec(ctx context.Context, req *protoa
 	if len(req.Id) <= 0 {
 		return nil, ErrMissingOracleSpecID
 	}
-	data, err := t.oracleDataServiceV2.GetOracleDataBySpecID(ctx, req.Id, entities.OffsetPagination{})
+	data, _, err := t.oracleDataServiceV2.GetOracleDataBySpecID(ctx, req.Id, entities.OffsetPagination{})
 	if err != nil {
 		return nil, apiError(codes.NotFound, err)
 	}
@@ -2092,7 +2091,7 @@ func (t *tradingDataDelegator) OracleDataBySpec(ctx context.Context, req *protoa
 
 func (t *tradingDataDelegator) ListOracleData(ctx context.Context, _ *protoapi.ListOracleDataRequest) (*protoapi.ListOracleDataResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("ListOracleData SQL")()
-	specs, err := t.oracleDataServiceV2.ListOracleData(ctx, entities.OffsetPagination{})
+	specs, _, err := t.oracleDataServiceV2.ListOracleData(ctx, entities.OffsetPagination{})
 	if err != nil {
 		return nil, apiError(codes.Internal, err)
 	}

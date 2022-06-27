@@ -1,3 +1,15 @@
+// Copyright (c) 2022 Gobalsky Labs Limited
+//
+// Use of this software is governed by the Business Source License included
+// in the LICENSE file and at https://www.mariadb.com/bsl11.
+//
+// Change Date: 18 months from the later of the date of the first publicly
+// available Distribution of this version of the repository, and 25 June 2022.
+//
+// On the date above, in accordance with the Business Source License, use
+// of this software will be governed by version 3 or later of the GNU General
+// Public License.
+
 package subscribers_test
 
 import (
@@ -34,22 +46,21 @@ func buildOrder(id string, side types.Side, orderType types.OrderType, price uin
 }
 
 type OrderEventWithVegaTime struct {
-	events.Event
-	order    *vega.Order
+	events.Order
 	vegaTime time.Time
 }
 
-func (oe OrderEventWithVegaTime) VegaTime() time.Time {
+func (oe *OrderEventWithVegaTime) VegaTime() time.Time {
 	return oe.vegaTime
 }
 
-func (oe OrderEventWithVegaTime) Order() *vega.Order {
-	return oe.order
+func (oe *OrderEventWithVegaTime) GetOrder() *vega.Order {
+	return oe.Order.Order()
 }
 
-func newOrderEvent(ctx context.Context, o *types.Order) OrderEventWithVegaTime {
+func newOrderEvent(ctx context.Context, o *types.Order) *OrderEventWithVegaTime {
 	oe := events.NewOrderEvent(ctx, o)
-	return OrderEventWithVegaTime{oe, oe.Order(), time.Now()}
+	return &OrderEventWithVegaTime{*oe, time.Now()}
 }
 
 func TestBuyPriceLevels(t *testing.T) {

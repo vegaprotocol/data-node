@@ -1,3 +1,15 @@
+// Copyright (c) 2022 Gobalsky Labs Limited
+//
+// Use of this software is governed by the Business Source License included
+// in the LICENSE file and at https://www.mariadb.com/bsl11.
+//
+// Change Date: 18 months from the later of the date of the first publicly
+// available Distribution of this version of the repository, and 25 June 2022.
+//
+// On the date above, in accordance with the Business Source License, use
+// of this software will be governed by version 3 or later of the GNU General
+// Public License.
+
 package subscribers
 
 import (
@@ -12,7 +24,7 @@ import (
 
 type OE interface {
 	events.Event
-	Order() *types.Order
+	GetOrder() *types.Order
 	VegaTime() time.Time
 }
 
@@ -76,7 +88,7 @@ func (o *OrderEvent) Push(evts ...events.Event) {
 // this function will be replaced - this is where the events will be normalised for a market event plugin to use
 func (o *OrderEvent) write(e OE) {
 	o.mu.Lock()
-	o.buf = append(o.buf, *e.Order())
+	o.buf = append(o.buf, *e.GetOrder())
 	o.mu.Unlock()
 	if o.log.GetLevel() <= logging.DebugLevel {
 		o.log.Debug("ORDER EVENT",

@@ -1,9 +1,21 @@
+// Copyright (c) 2022 Gobalsky Labs Limited
+//
+// Use of this software is governed by the Business Source License included
+// in the LICENSE file and at https://www.mariadb.com/bsl11.
+//
+// Change Date: 18 months from the later of the date of the first publicly
+// available Distribution of this version of the repository, and 25 June 2022.
+//
+// On the date above, in accordance with the Business Source License, use
+// of this software will be governed by version 3 or later of the GNU General
+// Public License.
+
 package entities
 
 import "google.golang.org/protobuf/proto"
 
 type PagedEntity[T proto.Message] interface {
-	Market | Party | Trade | Order | MarginLevels | MarketData | Reward | Candle | Deposit | Withdrawal | Position
+	Market | Party | Trade | Order | MarginLevels | MarketData | Reward | Candle | Deposit | Withdrawal | Asset | OracleSpec | OracleData | Position
 	// ToProtoEdge may need some optional arguments in order to generate the proto, for example margin levels
 	// requires an account source. This is not ideal, but we can come back to this later if a better solution can be found.
 	ToProtoEdge(...any) T

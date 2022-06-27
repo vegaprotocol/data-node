@@ -1,3 +1,15 @@
+// Copyright (c) 2022 Gobalsky Labs Limited
+//
+// Use of this software is governed by the Business Source License included
+// in the LICENSE file and at https://www.mariadb.com/bsl11.
+//
+// Change Date: 18 months from the later of the date of the first publicly
+// available Distribution of this version of the repository, and 25 June 2022.
+//
+// On the date above, in accordance with the Business Source License, use
+// of this software will be governed by version 3 or later of the GNU General
+// Public License.
+
 package entities
 
 import (
@@ -148,7 +160,8 @@ type MarginCursor struct {
 func (mc MarginCursor) String() string {
 	bs, err := json.Marshal(mc)
 	if err != nil {
-		return fmt.Sprintf(`{"vegaTime":"%s","accountID":%d}`, mc.VegaTime.In(time.UTC), mc.AccountID)
+		// This should never happen
+		panic(fmt.Errorf("failed to marshal margin cursor: %w", err))
 	}
 	return string(bs)
 }

@@ -13,9 +13,14 @@
 - [565](https://github.com/vegaprotocol/data-node/issues/565) - Add cursor based pagination for candles data requests
 - [568](https://github.com/vegaprotocol/data-node/issues/568) - Add cursor based pagination for deposits requests
 - [569](https://github.com/vegaprotocol/data-node/issues/569) - Add cursor based pagination for withdrawal requests
+- [723](https://github.com/vegaprotocol/data-node/issues/723) - Update contributor information
+- [576](https://github.com/vegaprotocol/data-node/issues/576) - Add cursor based pagination for assets requests
+- [571](https://github.com/vegaprotocol/data-node/issues/571) - Add cursor based pagination for Oracle Spec and Data requests
+
 
 ### 🐛 Fixes
 - [705](https://github.com/vegaprotocol/data-node/issues/705) - Market Depth returning incorrect book state
+- [730](https://github.com/vegaprotocol/data-node/issues/730) - Event bus subscriptions with party and market filter not working 
 
 ## 0.52.0
 
@@ -28,6 +33,7 @@
 - [675](https://github.com/vegaprotocol/data-node/issues/675) - Monitoring of subscriber count
 - [618](https://github.com/vegaprotocol/data-node/issues/618) - Fix positions cache
 - [567](https://github.com/vegaprotocol/data-node/issues/567) - Add cursor based pagination to rewards data requests
+- [708](https://github.com/vegaprotocol/data-node/issues/708) - Fix problem where querying `nodeData` would fail if there are no delegations
 
 ### 🐛 Fixes
 - [657](https://github.com/vegaprotocol/data-node/issues/657) - Add missing creation field in `ERC20` withdrawal bundle
@@ -37,6 +43,7 @@
 - [690](https://github.com/vegaprotocol/data-node/issues/690) - Fix deadlock in market data subscription, close subscriptions when data can't be written rather than silently dropping events.
 - [698](https://github.com/vegaprotocol/data-node/issues/698) - Fix bug that was preventing correct translation of reward type in `GraphQL`
 - [697](https://github.com/vegaprotocol/data-node/issues/697) - Fix bug that was causing misreporting of delegations in node queries
+- [697](https://github.com/vegaprotocol/data-node/issues/697) - Actually fix bug that was causing misreporting of delegations in node queries
 
 ## 0.51.1
 
