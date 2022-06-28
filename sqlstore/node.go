@@ -85,7 +85,8 @@ func (store *Node) AddNodeAnnoucedEvent(ctx context.Context, nodeID entities.Nod
 			epoch_seq,
 			added)
 		VALUES
-			($1, $2, $3)`,
+			($1, $2, $3)
+		ON CONFLICT (node_id, epoch_seq) DO UPDATE`,
 		nodeID,
 		aux.FromEpoch,
 		aux.Added,
