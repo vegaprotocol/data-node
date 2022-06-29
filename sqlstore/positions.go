@@ -21,6 +21,7 @@ import (
 	"code.vegaprotocol.io/data-node/metrics"
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgx/v4"
 )
 
 var ErrPositionNotFound = errors.New("party not found")
@@ -86,31 +87,43 @@ func (ps *Positions) GetByParty(ctx context.Context, partyID entities.PartyID) (
 	return positions, err
 }
 
-func (ps *Positions) GetByPartyConnection(ctx context.Context, partyID entities.PartyID, marketID entities.MarketID, pagination entities.CursorPagination) ([]entities.Position, entities.PageInfo, error) {
-	var query string
-	if marketID.String() != "" {
-		query = fmt.Sprintf(`select * from positions_current where party_id=%s`, partyID.String())
-	} else {
-		query = fmt.Sprintf(`select * from positions_current where party_id=%s and market_id=%s`,
-			partyID.String(), marketID.String())
-	}
+func (ps *Positions) GetByPartyConnection(ctx context.Context, partyID entities.PartyID, marketID entities.MarketID, pagination entities.CursorPagination) entities.ConnectionData[*v2.PositionEdge, entities.Position] {
+	var args []interface{}
 
-	positions := make([]entities.Position, 0)
-	args := make([]interface{}, 0)
-
-	var pagedPositions []entities.Position
-	var pageInfo entities.PageInfo
+	query := `select * from positions_current`
+	countQuery := `select count(*) from positions_current`
+	var where string
+	var cursorParams []CursorQueryParameter
 
 	sorting, cmp, cursor := extractPaginationInfo(pagination)
-	cursors := []CursorQueryParameter{NewCursorQueryParameter("vega_time", sorting, cmp, cursor)}
-	query, args = orderAndPaginateWithCursor(query, pagination, cursors, args...)
 
-	if err := pgxscan.Select(ctx, ps.Connection, &positions, query, args...); err != nil {
-		return nil, entities.PageInfo{}, err
+	positionCursor := &entities.PositionCursor{}
+	if err := positionCursor.Parse(cursor); err != nil {
+		return entities.ConnectionData[*v2.PositionEdge, entities.Position]{
+			Err: fmt.Errorf("invalid cursor: %w", err),
+		}
 	}
 
-	pagedPositions, pageInfo = entities.PageEntities[*v2.PositionEdge](positions, pagination)
-	return pagedPositions, pageInfo, nil
+	if marketID.String() == "" {
+		where = fmt.Sprintf(" where party_id=%s", nextBindVar(&args, partyID))
+		cursorParams = append(cursorParams, NewCursorQueryParameter("market_id", sorting, cmp,
+			entities.NewMarketID(positionCursor.MarketID)))
+	} else {
+		where = fmt.Sprintf(" where party_id=%s and market_id=%s", nextBindVar(&args, partyID), nextBindVar(&args, marketID))
+	}
+
+	query = fmt.Sprintf("%s %s", query, where)
+	countQuery = fmt.Sprintf("%s %s", countQuery, where)
+
+	batch := pgx.Batch{}
+	batch.Queue(countQuery, args...)
+
+	cursorParams = append(cursorParams, NewCursorQueryParameter("vega_time", sorting, cmp, positionCursor.VegaTime))
+	query, args = orderAndPaginateWithCursor(query, pagination, cursorParams, args...)
+
+	batch.Queue(query, args...)
+	connectionData := executePaginationBatch[*v2.PositionEdge, entities.Position](ctx, &batch, ps.Connection, pagination)
+	return connectionData
 }
 
 func (ps *Positions) GetAll(ctx context.Context) ([]entities.Position, error) {

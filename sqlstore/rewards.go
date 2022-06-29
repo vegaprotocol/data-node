@@ -20,6 +20,7 @@ import (
 	"code.vegaprotocol.io/data-node/metrics"
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgx/v4"
 )
 
 type Rewards struct {
@@ -63,18 +64,20 @@ func (rs *Rewards) GetByCursor(ctx context.Context,
 	partyIDHex *string,
 	assetIDHex *string,
 	pagination entities.CursorPagination,
-) ([]entities.Reward, entities.PageInfo, error) {
-	query, args, err := selectRewards(partyIDHex, assetIDHex)
-	if err != nil {
-		return nil, entities.PageInfo{}, err
-	}
+) entities.ConnectionData[*v2.RewardEdge, entities.Reward] {
+	var connectionData entities.ConnectionData[*v2.RewardEdge, entities.Reward]
+	selectQuery, countQuery, args := selectRewards(partyIDHex, assetIDHex)
+
+	batch := pgx.Batch{}
+	batch.Queue(countQuery, args...)
 
 	sorting, cmp, cursor := extractPaginationInfo(pagination)
 	rc := &entities.RewardCursor{}
 	if cursor != "" {
 		err := rc.Parse(cursor)
 		if err != nil {
-			return nil, entities.PageInfo{}, fmt.Errorf("parsing cursor: %w", err)
+			connectionData.Err = fmt.Errorf("parsing cursor: %w", err)
+			return connectionData
 		}
 	}
 	cursorParams := []CursorQueryParameter{
@@ -83,15 +86,12 @@ func (rs *Rewards) GetByCursor(ctx context.Context,
 		NewCursorQueryParameter("epoch_id", sorting, cmp, rc.EpochID),
 	}
 
-	query, args = orderAndPaginateWithCursor(query, pagination, cursorParams, args...)
+	selectQuery, args = orderAndPaginateWithCursor(selectQuery, pagination, cursorParams, args...)
 
-	rewards := []entities.Reward{}
-	if err := pgxscan.Select(ctx, rs.Connection, &rewards, query, args...); err != nil {
-		return nil, entities.PageInfo{}, fmt.Errorf("querying rewards: %w", err)
-	}
+	batch.Queue(selectQuery, args...)
 
-	pagedData, pageInfo := entities.PageEntities[*v2.RewardEdge](rewards, pagination)
-	return pagedData, pageInfo, nil
+	connectionData = executePaginationBatch[*v2.RewardEdge, entities.Reward](ctx, &batch, rs.Connection, pagination)
+	return connectionData
 }
 
 func (rs *Rewards) GetByOffset(ctx context.Context,
@@ -99,10 +99,7 @@ func (rs *Rewards) GetByOffset(ctx context.Context,
 	assetIDHex *string,
 	pagination *entities.OffsetPagination,
 ) ([]entities.Reward, error) {
-	query, args, err := selectRewards(partyIDHex, assetIDHex)
-	if err != nil {
-		return nil, err
-	}
+	query, _, args := selectRewards(partyIDHex, assetIDHex)
 
 	if pagination != nil {
 		order_cols := []string{"epoch_id", "party_id", "asset_id"}
@@ -111,21 +108,23 @@ func (rs *Rewards) GetByOffset(ctx context.Context,
 
 	rewards := []entities.Reward{}
 	defer metrics.StartSQLQuery("Rewards", "Get")()
-	err = pgxscan.Select(ctx, rs.Connection, &rewards, query, args...)
+	err := pgxscan.Select(ctx, rs.Connection, &rewards, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("querying rewards: %w", err)
 	}
 	return rewards, nil
 }
 
-func selectRewards(partyIDHex, assetIDHex *string) (string, []interface{}, error) {
-	query := `SELECT * from rewards`
-	args := []interface{}{}
-	if err := addRewardWhereClause(&query, &args, partyIDHex, assetIDHex); err != nil {
-		return "", nil, err
-	}
+func selectRewards(partyIDHex, assetIDHex *string) (string, string, []interface{}) {
+	var args []interface{}
+	var where string
 
-	return query, args, nil
+	where, args = getRewardsWhereClause(partyIDHex, assetIDHex, args...)
+
+	query := fmt.Sprintf(`SELECT * from rewards %s`, where)
+	countQuery := fmt.Sprintf(`SELECT count(*) from rewards %s`, where)
+
+	return query, countQuery, args
 }
 
 func (rs *Rewards) GetSummaries(ctx context.Context,
@@ -152,9 +151,20 @@ func (rs *Rewards) GetSummaries(ctx context.Context,
 
 func addRewardWhereClause(queryPtr *string, args *[]interface{}, partyIDHex, assetIDHex *string) error {
 	query := *queryPtr
+	where, newArgs := getRewardsWhereClause(partyIDHex, assetIDHex, *args...)
+
+	*queryPtr = fmt.Sprintf("%s %s", query, where)
+	*args = newArgs
+
+	return nil
+}
+
+func getRewardsWhereClause(partyIDHex, assetIDHex *string, args ...interface{}) (string, []interface{}) {
+	var where string
+
 	if partyIDHex != nil && *partyIDHex != "" {
 		partyID := entities.NewPartyID(*partyIDHex)
-		query = fmt.Sprintf("%s WHERE party_id=%s", query, nextBindVar(args, partyID))
+		where = fmt.Sprintf("WHERE party_id=%s", nextBindVar(&args, partyID))
 	}
 
 	if assetIDHex != nil && *assetIDHex != "" {
@@ -164,8 +174,8 @@ func addRewardWhereClause(queryPtr *string, args *[]interface{}, partyIDHex, ass
 		}
 
 		assetID := entities.ID(*assetIDHex)
-		query = fmt.Sprintf("%s %s asset_id=%s", query, clause, nextBindVar(args, assetID))
+		where = fmt.Sprintf("%s %s asset_id=%s", where, clause, nextBindVar(&args, assetID))
 	}
-	*queryPtr = query
-	return nil
+
+	return where, args
 }

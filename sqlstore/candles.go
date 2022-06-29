@@ -22,11 +22,11 @@ import (
 	"code.vegaprotocol.io/data-node/candlesv2"
 	"code.vegaprotocol.io/data-node/metrics"
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
+	"github.com/jackc/pgx/v4"
 
 	"github.com/shopspring/decimal"
 
 	"code.vegaprotocol.io/data-node/entities"
-	"github.com/georgysavva/scany/pgxscan"
 )
 
 const (
@@ -51,43 +51,53 @@ func NewCandles(ctx context.Context, connectionSource *ConnectionSource, config 
 
 // GetCandleDataForTimeSpan gets the candles for a given interval, from and to are optional
 func (cs *Candles) GetCandleDataForTimeSpan(ctx context.Context, candleId string, from *time.Time, to *time.Time,
-	p entities.CursorPagination) ([]entities.Candle, entities.PageInfo, error,
-) {
-	pageInfo := entities.PageInfo{}
+	p entities.CursorPagination) entities.ConnectionData[*v2.CandleEdge, entities.Candle] {
+	var connectionData entities.ConnectionData[*v2.CandleEdge, entities.Candle]
 
 	descriptor, err := candleDescriptorFromCandleId(candleId)
 	if err != nil {
-		return nil, pageInfo, fmt.Errorf("getting candle data for time span:%w", err)
+		connectionData.Err = fmt.Errorf("getting candle data for time span: %w", err)
+		return connectionData
 	}
 
 	exists, err := cs.CandleExists(ctx, descriptor.id)
 	if err != nil {
-		return nil, pageInfo, fmt.Errorf("getting candles for time span:%w", err)
+		connectionData.Err = fmt.Errorf("getting candles for time span: %w", err)
+		return connectionData
 	}
 
 	if !exists {
-		return nil, pageInfo, fmt.Errorf("no candle exists for candle id:%s", candleId)
+		connectionData.Err = fmt.Errorf("no candle exists for candle id: %s", candleId)
+		return connectionData
 	}
-
-	var candles []entities.Candle
 
 	query := fmt.Sprintf("SELECT period_start, open, close, high, low, volume, last_update_in_period FROM %s WHERE market_id = $1",
 		descriptor.view)
 
+	countQuery := fmt.Sprintf("SELECT count(*) FROM %s WHERE market_id = $1", descriptor.view)
+
 	marketAsBytes, err := hex.DecodeString(descriptor.market)
 	if err != nil {
-		return nil, pageInfo, fmt.Errorf("invalid market:%w", err)
+		connectionData.Err = fmt.Errorf("invalid market: %w", err)
+		return connectionData
 	}
 
 	args := []interface{}{marketAsBytes}
 
 	if from != nil {
-		query = fmt.Sprintf("%s AND period_start >= %s", query, nextBindVar(&args, from))
+		and := fmt.Sprintf("AND period_start >= %s", nextBindVar(&args, from))
+		query = fmt.Sprintf("%s %s", query, and)
+		countQuery = fmt.Sprintf("%s %s", countQuery, and)
 	}
 
 	if to != nil {
-		query = fmt.Sprintf("%s AND period_start < %s", query, nextBindVar(&args, to))
+		and := fmt.Sprintf("AND period_start < %s", nextBindVar(&args, to))
+		query = fmt.Sprintf("%s %s", query, and)
+		countQuery = fmt.Sprintf("%s %s", countQuery, and)
 	}
+
+	batch := pgx.Batch{}
+	batch.Queue(countQuery, args...)
 
 	sorting, cmp, cursor := extractPaginationInfo(p)
 
@@ -96,18 +106,12 @@ func (cs *Candles) GetCandleDataForTimeSpan(ctx context.Context, candleId string
 	}
 
 	query, args = orderAndPaginateWithCursor(query, p, cursorParams, args...)
+	batch.Queue(query, args...)
 
 	defer metrics.StartSQLQuery("Candles", "GetCandleDataForTimeSpan")()
-	err = pgxscan.Select(ctx, cs.Connection, &candles, query, args...)
-	if err != nil {
-		return nil, pageInfo, fmt.Errorf("querying candles: %w", err)
-	}
 
-	var pagedCandles []entities.Candle
-
-	pagedCandles, pageInfo = entities.PageEntities[*v2.CandleEdge](candles, p)
-
-	return pagedCandles, pageInfo, nil
+	connectionData = executePaginationBatch[*v2.CandleEdge, entities.Candle](ctx, &batch, cs.Connection, p)
+	return connectionData
 }
 
 // GetCandlesForMarket returns a map of existing intervals to candle ids for the given market

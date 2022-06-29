@@ -19,6 +19,7 @@ import (
 
 	"code.vegaprotocol.io/data-node/candlesv2"
 	"code.vegaprotocol.io/data-node/entities"
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 
 	"github.com/shopspring/decimal"
 
@@ -34,13 +35,22 @@ type testCandleSource struct {
 
 func (t *testCandleSource) GetCandleDataForTimeSpan(ctx context.Context, candleId string, from *time.Time, to *time.Time,
 	p entities.CursorPagination,
-) ([]entities.Candle, entities.PageInfo, error) {
-	pageInfo := entities.PageInfo{}
+) entities.ConnectionData[*v2.CandleEdge, entities.Candle] {
 	select {
 	case c := <-t.candles:
-		return c, pageInfo, nil
+		return entities.ConnectionData[*v2.CandleEdge, entities.Candle]{
+			TotalCount: 0,
+			Entities:   c,
+			PageInfo:   entities.PageInfo{},
+			Err:        nil,
+		}
 	default:
-		return nil, pageInfo, nil
+		return entities.ConnectionData[*v2.CandleEdge, entities.Candle]{
+			TotalCount: 0,
+			Entities:   nil,
+			PageInfo:   entities.PageInfo{},
+			Err:        nil,
+		}
 	}
 }
 

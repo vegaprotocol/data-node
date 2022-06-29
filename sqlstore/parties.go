@@ -17,6 +17,7 @@ import (
 	"fmt"
 
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
+	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
 
 	"code.vegaprotocol.io/data-node/entities"
@@ -91,40 +92,44 @@ func (ps *Parties) GetAll(ctx context.Context) ([]entities.Party, error) {
 	return parties, err
 }
 
-func (ps *Parties) GetAllPaged(ctx context.Context, partyID string, pagination entities.CursorPagination) ([]entities.Party, entities.PageInfo, error) {
+func (ps *Parties) GetAllPaged(ctx context.Context, partyID string, pagination entities.CursorPagination) entities.ConnectionData[*v2.PartyEdge, entities.Party] {
+	var connectionData entities.ConnectionData[*v2.PartyEdge, entities.Party]
+
 	if partyID != "" {
 		party, err := ps.GetByID(ctx, partyID)
 		if err != nil {
-			return nil, entities.PageInfo{}, err
+			connectionData.Err = err
+			return connectionData
 		}
 
-		return []entities.Party{party}, entities.PageInfo{
-			HasNextPage:     false,
-			HasPreviousPage: false,
-			StartCursor:     party.Cursor().Encode(),
-			EndCursor:       party.Cursor().Encode(),
-		}, nil
+		connectionData.TotalCount = 1
+		connectionData.Entities = append(connectionData.Entities, party)
+		connectionData.PageInfo = entities.PageInfo{
+			StartCursor: party.Cursor().Encode(),
+			EndCursor:   party.Cursor().Encode(),
+		}
+
+		return connectionData
 	}
 
-	parties := make([]entities.Party, 0)
 	args := make([]interface{}, 0)
+
+	countQuery := `SELECT COUNT(*) FROM parties`
+
+	batch := pgx.Batch{}
+	batch.Queue(countQuery)
 
 	query := `
 		SELECT id, vega_time
 		FROM parties
 	`
 
-	var pagedParties []entities.Party
-	var pageInfo entities.PageInfo
-
 	sorting, cmp, cursor := extractPaginationInfo(pagination)
 	cursors := []CursorQueryParameter{NewCursorQueryParameter("vega_time", sorting, cmp, cursor)}
 	query, args = orderAndPaginateWithCursor(query, pagination, cursors, args...)
 
-	if err := pgxscan.Select(ctx, ps.Connection, &parties, query, args...); err != nil {
-		return pagedParties, pageInfo, err
-	}
+	batch.Queue(query, args...)
 
-	pagedParties, pageInfo = entities.PageEntities[*v2.PartyEdge](parties, pagination)
-	return pagedParties, pageInfo, nil
+	connectionData = executePaginationBatch[*v2.PartyEdge, entities.Party](ctx, &batch, ps.Connection, pagination)
+	return connectionData
 }

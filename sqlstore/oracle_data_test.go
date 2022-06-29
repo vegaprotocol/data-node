@@ -96,9 +96,9 @@ func testGetOracleDataBySpecID(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, len(dataProtos), rowCount)
 
-	got, _, err := od.GetOracleDataBySpecID(ctx, "deadbeef02", entities.OffsetPagination{})
-	require.NoError(t, err)
-	assert.Equal(t, 2, len(got))
+	got := od.GetOracleDataBySpecID(ctx, "deadbeef02", entities.OffsetPagination{})
+	require.NoError(t, got.Err)
+	assert.Equal(t, 2, len(got.Entities))
 }
 
 func getTestOracleData() []*oraclespb.OracleData {
@@ -256,18 +256,19 @@ func testOracleDataGetBySpecNoPagination(t *testing.T) {
 	bs, ds, _ := setupOracleDataTest(t, ctx)
 	data := getTestPaginationOracleData(t, ctx, bs, ds)
 
-	pagination, err := entities.NewCursorPagination(nil, nil, nil, nil)
+	pagination, err := entities.NewCursorPagination(nil, nil, nil, nil, false)
 	require.NoError(t, err)
 
-	got, pageInfo, err := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
-	require.NoError(t, err)
-	assert.Equal(t, data[4:], got)
+	got := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(7), got.TotalCount)
+	assert.Equal(t, data[4:], got.Entities)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     false,
 		HasPreviousPage: false,
 		StartCursor:     data[4].Cursor().Encode(),
 		EndCursor:       data[10].Cursor().Encode(),
-	}, pageInfo)
+	}, got.PageInfo)
 }
 
 func testOracleDataGetBySpecFirst(t *testing.T) {
@@ -278,18 +279,19 @@ func testOracleDataGetBySpecFirst(t *testing.T) {
 	data := getTestPaginationOracleData(t, ctx, bs, ds)
 
 	first := int32(3)
-	pagination, err := entities.NewCursorPagination(&first, nil, nil, nil)
+	pagination, err := entities.NewCursorPagination(&first, nil, nil, nil, false)
 	require.NoError(t, err)
 
-	got, pageInfo, err := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
-	require.NoError(t, err)
-	assert.Equal(t, data[4:7], got)
+	got := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(7), got.TotalCount)
+	assert.Equal(t, data[4:7], got.Entities)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     true,
 		HasPreviousPage: false,
 		StartCursor:     data[4].Cursor().Encode(),
 		EndCursor:       data[6].Cursor().Encode(),
-	}, pageInfo)
+	}, got.PageInfo)
 }
 
 func testOracleDataGetBySpecLast(t *testing.T) {
@@ -300,18 +302,19 @@ func testOracleDataGetBySpecLast(t *testing.T) {
 	data := getTestPaginationOracleData(t, ctx, bs, ds)
 
 	last := int32(3)
-	pagination, err := entities.NewCursorPagination(nil, nil, &last, nil)
+	pagination, err := entities.NewCursorPagination(nil, nil, &last, nil, false)
 	require.NoError(t, err)
 
-	got, pageInfo, err := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
-	require.NoError(t, err)
-	assert.Equal(t, data[8:], got)
+	got := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(7), got.TotalCount)
+	assert.Equal(t, data[8:], got.Entities)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     false,
 		HasPreviousPage: true,
 		StartCursor:     data[8].Cursor().Encode(),
 		EndCursor:       data[10].Cursor().Encode(),
-	}, pageInfo)
+	}, got.PageInfo)
 }
 
 func testOracleDataGetBySpecFirstAfter(t *testing.T) {
@@ -323,18 +326,19 @@ func testOracleDataGetBySpecFirstAfter(t *testing.T) {
 
 	first := int32(3)
 	after := data[6].Cursor().Encode()
-	pagination, err := entities.NewCursorPagination(&first, &after, nil, nil)
+	pagination, err := entities.NewCursorPagination(&first, &after, nil, nil, false)
 	require.NoError(t, err)
 
-	got, pageInfo, err := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
-	require.NoError(t, err)
-	assert.Equal(t, data[7:10], got)
+	got := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(7), got.TotalCount)
+	assert.Equal(t, data[7:10], got.Entities)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     true,
 		HasPreviousPage: true,
 		StartCursor:     data[7].Cursor().Encode(),
 		EndCursor:       data[9].Cursor().Encode(),
-	}, pageInfo)
+	}, got.PageInfo)
 }
 
 func testOracleDataGetBySpecLastBefore(t *testing.T) {
@@ -346,18 +350,19 @@ func testOracleDataGetBySpecLastBefore(t *testing.T) {
 
 	last := int32(3)
 	before := data[8].Cursor().Encode()
-	pagination, err := entities.NewCursorPagination(nil, nil, &last, &before)
+	pagination, err := entities.NewCursorPagination(nil, nil, &last, &before, false)
 	require.NoError(t, err)
 
-	got, pageInfo, err := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
-	require.NoError(t, err)
-	assert.Equal(t, data[5:8], got)
+	got := ds.GetOracleDataBySpecID(ctx, "deadbeef04", pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(7), got.TotalCount)
+	assert.Equal(t, data[5:8], got.Entities)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     true,
 		HasPreviousPage: true,
 		StartCursor:     data[5].Cursor().Encode(),
 		EndCursor:       data[7].Cursor().Encode(),
-	}, pageInfo)
+	}, got.PageInfo)
 }
 
 func TestOracleData_ListOracleDataCursorPagination(t *testing.T) {
@@ -366,6 +371,12 @@ func TestOracleData_ListOracleDataCursorPagination(t *testing.T) {
 	t.Run("should return last page when last is provided", testOracleDataListLast)
 	t.Run("should return requested page when first and after is provided", testOracleDataListFirstAfter)
 	t.Run("should return requested page when last and before is provided", testOracleDataListLastBefore)
+
+	t.Run("should return all data when no pagination is provided - newest first", testOracleDataListNoPaginationNewestFirst)
+	t.Run("should return first page when first is provided - newest first", testOracleDataListFirstNewestFirst)
+	t.Run("should return last page when last is provided - newest first", testOracleDataListLastNewestFirst)
+	t.Run("should return requested page when first and after is provided - newest first", testOracleDataListFirstAfterNewestFirst)
+	t.Run("should return requested page when last and before is provided - newest first", testOracleDataListLastBeforeNewestFirst)
 }
 
 func testOracleDataListNoPagination(t *testing.T) {
@@ -377,18 +388,19 @@ func testOracleDataListNoPagination(t *testing.T) {
 	want := []entities.OracleData{data[0]}
 	want = append(want, data[2:]...)
 
-	pagination, err := entities.NewCursorPagination(nil, nil, nil, nil)
+	pagination, err := entities.NewCursorPagination(nil, nil, nil, nil, false)
 	require.NoError(t, err)
 
-	got, pageInfo, err := ds.ListOracleData(ctx, pagination)
-	require.NoError(t, err)
-	assert.Equal(t, want, got)
+	got := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(10), got.TotalCount)
+	assert.Equal(t, want, got.Entities)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     false,
 		HasPreviousPage: false,
 		StartCursor:     data[0].Cursor().Encode(),
 		EndCursor:       data[10].Cursor().Encode(),
-	}, pageInfo)
+	}, got.PageInfo)
 }
 
 func testOracleDataListFirst(t *testing.T) {
@@ -401,18 +413,19 @@ func testOracleDataListFirst(t *testing.T) {
 	want = append(want, data[2:]...)
 
 	first := int32(3)
-	pagination, err := entities.NewCursorPagination(&first, nil, nil, nil)
+	pagination, err := entities.NewCursorPagination(&first, nil, nil, nil, false)
 	require.NoError(t, err)
 
-	got, pageInfo, err := ds.ListOracleData(ctx, pagination)
-	require.NoError(t, err)
-	assert.Equal(t, want[0:3], got)
+	got := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(10), got.TotalCount)
+	assert.Equal(t, want[0:3], got.Entities)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     true,
 		HasPreviousPage: false,
 		StartCursor:     want[0].Cursor().Encode(),
 		EndCursor:       want[2].Cursor().Encode(),
-	}, pageInfo)
+	}, got.PageInfo)
 }
 
 func testOracleDataListLast(t *testing.T) {
@@ -425,18 +438,19 @@ func testOracleDataListLast(t *testing.T) {
 	want = append(want, data[2:]...)
 
 	last := int32(3)
-	pagination, err := entities.NewCursorPagination(nil, nil, &last, nil)
+	pagination, err := entities.NewCursorPagination(nil, nil, &last, nil, false)
 	require.NoError(t, err)
 
-	got, pageInfo, err := ds.ListOracleData(ctx, pagination)
-	require.NoError(t, err)
-	assert.Equal(t, want[7:], got)
+	got := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(10), got.TotalCount)
+	assert.Equal(t, want[7:], got.Entities)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     false,
 		HasPreviousPage: true,
 		StartCursor:     want[7].Cursor().Encode(),
 		EndCursor:       want[9].Cursor().Encode(),
-	}, pageInfo)
+	}, got.PageInfo)
 }
 
 func testOracleDataListFirstAfter(t *testing.T) {
@@ -450,18 +464,19 @@ func testOracleDataListFirstAfter(t *testing.T) {
 
 	first := int32(3)
 	after := want[2].Cursor().Encode()
-	pagination, err := entities.NewCursorPagination(&first, &after, nil, nil)
+	pagination, err := entities.NewCursorPagination(&first, &after, nil, nil, false)
 	require.NoError(t, err)
 
-	got, pageInfo, err := ds.ListOracleData(ctx, pagination)
-	require.NoError(t, err)
-	assert.Equal(t, want[3:6], got)
+	got := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(10), got.TotalCount)
+	assert.Equal(t, want[3:6], got.Entities)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     true,
 		HasPreviousPage: true,
 		StartCursor:     want[3].Cursor().Encode(),
 		EndCursor:       want[5].Cursor().Encode(),
-	}, pageInfo)
+	}, got.PageInfo)
 }
 
 func testOracleDataListLastBefore(t *testing.T) {
@@ -475,16 +490,143 @@ func testOracleDataListLastBefore(t *testing.T) {
 
 	last := int32(3)
 	before := want[7].Cursor().Encode()
-	pagination, err := entities.NewCursorPagination(nil, nil, &last, &before)
+	pagination, err := entities.NewCursorPagination(nil, nil, &last, &before, false)
 	require.NoError(t, err)
 
-	got, pageInfo, err := ds.ListOracleData(ctx, pagination)
-	require.NoError(t, err)
-	assert.Equal(t, want[4:7], got)
+	got := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(10), got.TotalCount)
+	assert.Equal(t, want[4:7], got.Entities)
 	assert.Equal(t, entities.PageInfo{
 		HasNextPage:     true,
 		HasPreviousPage: true,
 		StartCursor:     want[4].Cursor().Encode(),
 		EndCursor:       want[6].Cursor().Encode(),
-	}, pageInfo)
+	}, got.PageInfo)
+}
+
+func testOracleDataListNoPaginationNewestFirst(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	bs, ds, _ := setupOracleDataTest(t, ctx)
+	data := getTestPaginationOracleData(t, ctx, bs, ds)
+	want := []entities.OracleData{data[0]}
+	want = entities.ReverseSlice(append(want, data[2:]...))
+
+	pagination, err := entities.NewCursorPagination(nil, nil, nil, nil, true)
+	require.NoError(t, err)
+
+	got := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(10), got.TotalCount)
+	assert.Equal(t, want, got.Entities)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     false,
+		HasPreviousPage: false,
+		StartCursor:     want[0].Cursor().Encode(),
+		EndCursor:       want[9].Cursor().Encode(),
+	}, got.PageInfo)
+}
+
+func testOracleDataListFirstNewestFirst(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	bs, ds, _ := setupOracleDataTest(t, ctx)
+	data := getTestPaginationOracleData(t, ctx, bs, ds)
+	want := []entities.OracleData{data[0]}
+	want = entities.ReverseSlice(append(want, data[2:]...))
+
+	first := int32(3)
+	pagination, err := entities.NewCursorPagination(&first, nil, nil, nil, true)
+	require.NoError(t, err)
+
+	got := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(10), got.TotalCount)
+	assert.Equal(t, want[0:3], got.Entities)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     true,
+		HasPreviousPage: false,
+		StartCursor:     want[0].Cursor().Encode(),
+		EndCursor:       want[2].Cursor().Encode(),
+	}, got.PageInfo)
+}
+
+func testOracleDataListLastNewestFirst(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	bs, ds, _ := setupOracleDataTest(t, ctx)
+	data := getTestPaginationOracleData(t, ctx, bs, ds)
+	want := []entities.OracleData{data[0]}
+	want = entities.ReverseSlice(append(want, data[2:]...))
+
+	last := int32(3)
+	pagination, err := entities.NewCursorPagination(nil, nil, &last, nil, true)
+	require.NoError(t, err)
+
+	got := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(10), got.TotalCount)
+	assert.Equal(t, want[7:], got.Entities)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     false,
+		HasPreviousPage: true,
+		StartCursor:     want[7].Cursor().Encode(),
+		EndCursor:       want[9].Cursor().Encode(),
+	}, got.PageInfo)
+}
+
+func testOracleDataListFirstAfterNewestFirst(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	bs, ds, _ := setupOracleDataTest(t, ctx)
+	data := getTestPaginationOracleData(t, ctx, bs, ds)
+	want := []entities.OracleData{data[0]}
+	want = entities.ReverseSlice(append(want, data[2:]...))
+
+	first := int32(3)
+	after := want[2].Cursor().Encode()
+	pagination, err := entities.NewCursorPagination(&first, &after, nil, nil, true)
+	require.NoError(t, err)
+
+	got := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(10), got.TotalCount)
+	assert.Equal(t, want[3:6], got.Entities)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     true,
+		HasPreviousPage: true,
+		StartCursor:     want[3].Cursor().Encode(),
+		EndCursor:       want[5].Cursor().Encode(),
+	}, got.PageInfo)
+}
+
+func testOracleDataListLastBeforeNewestFirst(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	bs, ds, _ := setupOracleDataTest(t, ctx)
+	data := getTestPaginationOracleData(t, ctx, bs, ds)
+	want := []entities.OracleData{data[0]}
+	want = entities.ReverseSlice(append(want, data[2:]...))
+
+	last := int32(3)
+	before := want[7].Cursor().Encode()
+	pagination, err := entities.NewCursorPagination(nil, nil, &last, &before, true)
+	require.NoError(t, err)
+
+	got := ds.ListOracleData(ctx, pagination)
+	require.NoError(t, got.Err)
+	assert.Equal(t, int64(10), got.TotalCount)
+	assert.Equal(t, want[4:7], got.Entities)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     true,
+		HasPreviousPage: true,
+		StartCursor:     want[4].Cursor().Encode(),
+		EndCursor:       want[6].Cursor().Encode(),
+	}, got.PageInfo)
 }

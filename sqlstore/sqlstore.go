@@ -14,16 +14,21 @@ package sqlstore
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"fmt"
 	"io"
 
+	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/shared/paths"
 	embeddedpostgres "github.com/fergusstrange/embedded-postgres"
+	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/stdlib"
 	"github.com/pkg/errors"
 	"github.com/pressly/goose/v3"
+	"google.golang.org/protobuf/proto"
 )
 
 var ErrBadID = errors.New("Bad ID (must be hex string)")
@@ -116,4 +121,40 @@ func createEmbeddedPostgres(runtimePath *paths.StatePath, dataPath *paths.StateP
 	}
 
 	return embeddedpostgres.NewDatabase(dbConfig)
+}
+
+func executePaginationBatch[P proto.Message, T entities.PagedEntity[P]](ctx context.Context, batch *pgx.Batch, connection Connection, pagination entities.CursorPagination) entities.ConnectionData[P, T] {
+	var connectionData entities.ConnectionData[P, T]
+
+	results := connection.SendBatch(ctx, batch)
+	defer results.Close()
+
+	rowCountRows, err := results.Query()
+
+	if err != nil {
+		connectionData.Err = fmt.Errorf("error querying row count: %w", err)
+		return connectionData
+	}
+
+	if err := pgxscan.ScanOne(&connectionData.TotalCount, rowCountRows); err != nil {
+		connectionData.Err = fmt.Errorf("error scanning row count: %w", err)
+		return connectionData
+	}
+
+	rows, err := results.Query()
+	if err != nil {
+		connectionData.Err = fmt.Errorf("error querying results: %w", err)
+		return connectionData
+	}
+
+	var items []T
+
+	if err := pgxscan.ScanAll(&items, rows); err != nil {
+		connectionData.Err = fmt.Errorf("error scanning results: %w", err)
+		return connectionData
+	}
+
+	connectionData.Entities, connectionData.PageInfo = entities.PageEntities[P](items, pagination)
+
+	return connectionData
 }

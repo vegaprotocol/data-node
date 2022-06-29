@@ -5,11 +5,11 @@
 package mocks
 
 import (
-	context "context"
-	reflect "reflect"
-
-	entities "code.vegaprotocol.io/data-node/entities"
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
+	entities "code.vegaprotocol.io/data-node/entities"
+	context "context"
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 )
 
 // MockPositionStore is a mock of PositionStore interface.
@@ -118,25 +118,22 @@ func (m *MockPositionStore) GetByParty(arg0 context.Context, arg1 entities.Party
 	return ret0, ret1
 }
 
-// GetByPartyConnection mocks base method.
-func (m *MockPositionStore) GetByPartyConnection(arg0 context.Context, arg1 entities.PartyID, arg2 entities.MarketID, arg3 entities.CursorPagination) ([]entities.Position, entities.PageInfo, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByPartyConnection", arg0, arg1)
-	ret0, _ := ret[0].([]entities.Position)
-	ret1, _ := ret[1].(entities.PageInfo)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
 // GetByParty indicates an expected call of GetByParty.
 func (mr *MockPositionStoreMockRecorder) GetByParty(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByParty", reflect.TypeOf((*MockPositionStore)(nil).GetByParty), arg0, arg1)
 }
 
+// GetByPartyConnection mocks base method.
+func (m *MockPositionStore) GetByPartyConnection(arg0 context.Context, arg1 entities.PartyID, arg2 entities.MarketID, arg3 entities.CursorPagination) entities.ConnectionData[*v2.PositionEdge,entities.Position] {
+m.ctrl.T.Helper()
+ret := m.ctrl.Call(m, "GetByPartyConnection", arg0, arg1, arg2, arg3)
+ret0, _ := ret[0].(entities.ConnectionData[*v2.PositionEdge,entities.Position])
+return ret0
+}
 
 // GetByPartyConnection indicates an expected call of GetByPartyConnection.
-func (mr *MockPositionStoreMockRecorder) GetByPartyConnection(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockPositionStoreMockRecorder) GetByPartyConnection(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByPartyConnection", reflect.TypeOf((*MockPositionStore)(nil).GetByPartyConnection), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByPartyConnection", reflect.TypeOf((*MockPositionStore)(nil).GetByPartyConnection), arg0, arg1, arg2, arg3)
 }

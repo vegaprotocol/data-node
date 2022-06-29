@@ -21,6 +21,7 @@ import (
 	"code.vegaprotocol.io/data-node/metrics"
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgx/v4"
 )
 
 type Markets struct {
@@ -114,38 +115,45 @@ order by id, vega_time desc
 	return markets, err
 }
 
-func (m *Markets) GetAllPaged(ctx context.Context, marketID string, pagination entities.CursorPagination) ([]entities.Market, entities.PageInfo, error) {
+func (m *Markets) GetAllPaged(ctx context.Context, marketID string, pagination entities.CursorPagination) entities.ConnectionData[*v2.MarketEdge, entities.Market] {
+	var connectionData entities.ConnectionData[*v2.MarketEdge, entities.Market]
+
 	if marketID != "" {
 		market, err := m.GetByID(ctx, marketID)
 		if err != nil {
-			return nil, entities.PageInfo{}, err
+			connectionData.Err = fmt.Errorf("could not get market by id: %w", err)
+			return connectionData
 		}
 
-		return []entities.Market{market}, entities.PageInfo{
+		connectionData.TotalCount = 1
+		connectionData.Entities = append(connectionData.Entities, market)
+		connectionData.PageInfo = entities.PageInfo{
 			HasNextPage:     false,
 			HasPreviousPage: false,
 			StartCursor:     market.Cursor().Encode(),
 			EndCursor:       market.Cursor().Encode(),
-		}, nil
+		}
+
+		return connectionData
 	}
 
-	markets := make([]entities.Market, 0)
 	args := make([]interface{}, 0)
+
+	countQuery := `select count(*) from markets_current`
+
+	batch := pgx.Batch{}
+	batch.Queue(countQuery)
 
 	query := fmt.Sprintf(`select %s
 		from markets_current`, sqlMarketsColumns)
-
-	var pagedMarkets []entities.Market
-	var pageInfo entities.PageInfo
 
 	sorting, cmp, cursor := extractPaginationInfo(pagination)
 	cursors := []CursorQueryParameter{NewCursorQueryParameter("vega_time", sorting, cmp, cursor)}
 	query, args = orderAndPaginateWithCursor(query, pagination, cursors, args...)
 
-	if err := pgxscan.Select(ctx, m.Connection, &markets, query, args...); err != nil {
-		return pagedMarkets, pageInfo, err
-	}
+	batch.Queue(query, args...)
 
-	pagedMarkets, pageInfo = entities.PageEntities[*v2.MarketEdge](markets, pagination)
-	return pagedMarkets, pageInfo, nil
+	connectionData = executePaginationBatch[*v2.MarketEdge, entities.Market](ctx, &batch, m.Connection, pagination)
+
+	return connectionData
 }

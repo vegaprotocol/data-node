@@ -21,6 +21,7 @@ import (
 	"code.vegaprotocol.io/data-node/candlesv2/mocks"
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 
 	"github.com/golang/mock/gomock"
 
@@ -38,7 +39,11 @@ func TestCandleSubscribe(t *testing.T) {
 	expectedCandle := createCandle(time.Now(), time.Now(), 1, 2, 2, 1, 10)
 
 	store.EXPECT().GetCandleDataForTimeSpan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		Return([]entities.Candle{expectedCandle}, entities.PageInfo{}, nil).AnyTimes()
+		Return(entities.ConnectionData[*v2.CandleEdge, entities.Candle]{
+			TotalCount: 0,
+			Entities:   []entities.Candle{expectedCandle},
+			PageInfo:   entities.PageInfo{},
+			Err:        nil}).AnyTimes()
 
 	svc := candlesv2.NewService(context.Background(), logging.NewTestLogger(), candlesv2.NewDefaultConfig(), store)
 
@@ -90,6 +95,11 @@ type testStore struct {
 	candles chan []entities.Candle
 }
 
-func (t *testStore) GetCandleDataForTimeSpan(ctx context.Context, candleId string, from *time.Time, to *time.Time, p entities.CursorPagination) ([]entities.Candle, entities.PageInfo, error) {
-	return <-t.candles, entities.PageInfo{}, nil
+func (t *testStore) GetCandleDataForTimeSpan(ctx context.Context, candleId string, from *time.Time, to *time.Time, p entities.CursorPagination) entities.ConnectionData[*v2.CandleEdge, entities.Candle] {
+	return entities.ConnectionData[*v2.CandleEdge, entities.Candle]{
+		TotalCount: 0,
+		Entities:   <-t.candles,
+		PageInfo:   entities.PageInfo{},
+		Err:        nil,
+	}
 }

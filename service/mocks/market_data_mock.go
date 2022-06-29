@@ -10,6 +10,7 @@ import (
 	time "time"
 
 	entities "code.vegaprotocol.io/data-node/entities"
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -66,13 +67,11 @@ func (mr *MockMarketDataStoreMockRecorder) Flush(arg0 interface{}) *gomock.Call 
 }
 
 // GetBetweenDatesByID mocks base method.
-func (m *MockMarketDataStore) GetBetweenDatesByID(arg0 context.Context, arg1 string, arg2, arg3 time.Time, arg4 entities.Pagination) ([]entities.MarketData, entities.PageInfo, error) {
+func (m *MockMarketDataStore) GetBetweenDatesByID(arg0 context.Context, arg1 string, arg2, arg3 time.Time, arg4 entities.Pagination) entities.ConnectionData[*v2.MarketDataEdge, entities.MarketData] {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBetweenDatesByID", arg0, arg1, arg2, arg3, arg4)
-	ret0, _ := ret[0].([]entities.MarketData)
-	ret1, _ := ret[1].(entities.PageInfo)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(entities.ConnectionData[*v2.MarketDataEdge,entities.MarketData])
+	return ret0
 }
 
 // GetBetweenDatesByID indicates an expected call of GetBetweenDatesByID.
@@ -82,13 +81,11 @@ func (mr *MockMarketDataStoreMockRecorder) GetBetweenDatesByID(arg0, arg1, arg2,
 }
 
 // GetFromDateByID mocks base method.
-func (m *MockMarketDataStore) GetFromDateByID(arg0 context.Context, arg1 string, arg2 time.Time, arg3 entities.Pagination) ([]entities.MarketData, entities.PageInfo, error) {
+func (m *MockMarketDataStore) GetFromDateByID(arg0 context.Context, arg1 string, arg2 time.Time, arg3 entities.Pagination) entities.ConnectionData[*v2.MarketDataEdge,entities.MarketData] {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetFromDateByID", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].([]entities.MarketData)
-	ret1, _ := ret[1].(entities.PageInfo)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(entities.ConnectionData[*v2.MarketDataEdge,entities.MarketData])
+	return ret0
 }
 
 // GetFromDateByID indicates an expected call of GetFromDateByID.
@@ -128,13 +125,11 @@ func (mr *MockMarketDataStoreMockRecorder) GetMarketsData(arg0 interface{}) *gom
 }
 
 // GetToDateByID mocks base method.
-func (m *MockMarketDataStore) GetToDateByID(arg0 context.Context, arg1 string, arg2 time.Time, arg3 entities.Pagination) ([]entities.MarketData, entities.PageInfo, error) {
+func (m *MockMarketDataStore) GetToDateByID(arg0 context.Context, arg1 string, arg2 time.Time, arg3 entities.Pagination) entities.ConnectionData[*v2.MarketDataEdge,entities.MarketData] {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetToDateByID", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].([]entities.MarketData)
-	ret1, _ := ret[1].(entities.PageInfo)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(entities.ConnectionData[*v2.MarketDataEdge,entities.MarketData])
+	return ret0
 }
 
 // GetToDateByID indicates an expected call of GetToDateByID.

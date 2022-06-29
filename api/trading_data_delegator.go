@@ -423,14 +423,14 @@ func (t *tradingDataDelegator) Candles(ctx context.Context,
 			fmt.Errorf("candle does not exist for interval %s and market %s", interval, request.MarketId))
 	}
 
-	candles, _, err := t.candleServiceV2.GetCandleDataForTimeSpan(ctx, candleId, &from, nil, entities.CursorPagination{})
-	if err != nil {
+	connectionData := t.candleServiceV2.GetCandleDataForTimeSpan(ctx, candleId, &from, nil, entities.CursorPagination{})
+	if connectionData.Err != nil {
 		return nil, apiError(codes.Internal, ErrCandleServiceGetCandleData,
-			fmt.Errorf("failed to get candles for interval:%w", err))
+			fmt.Errorf("failed to get candles for interval:%w", connectionData.Err))
 	}
 
 	var protoCandles []*vega.Candle
-	for _, candle := range candles {
+	for _, candle := range connectionData.Entities {
 		proto, err := candle.ToV1CandleProto(request.Interval)
 		if err != nil {
 			return nil, apiError(codes.Internal, ErrCandleServiceGetCandleData,
@@ -1716,13 +1716,13 @@ func (t *tradingDataDelegator) Deposits(ctx context.Context, req *protoapi.Depos
 	}
 
 	// current API doesn't support pagination, but we will need to support it for v2
-	deposits, _, err := t.depositServiceV2.GetByParty(ctx, req.PartyId, false, entities.OffsetPagination{})
-	if err != nil {
-		return nil, apiError(codes.Internal, err)
+	deposits := t.depositServiceV2.GetByParty(ctx, req.PartyId, false, entities.OffsetPagination{})
+	if deposits.Err != nil {
+		return nil, apiError(codes.Internal, deposits.Err)
 	}
 
-	out := make([]*vega.Deposit, 0, len(deposits))
-	for _, v := range deposits {
+	out := make([]*vega.Deposit, 0, len(deposits.Entities))
+	for _, v := range deposits.Entities {
 		out = append(out, v.ToProto())
 	}
 	return &protoapi.DepositsResponse{
@@ -1949,12 +1949,12 @@ func (t *tradingDataDelegator) Withdrawals(ctx context.Context, req *protoapi.Wi
 	}
 
 	// current API doesn't support pagination, but we will need to support it for v2
-	withdrawals, _, err := t.withdrawalServiceV2.GetByParty(ctx, req.PartyId, false, entities.OffsetPagination{})
-	if err != nil {
-		return nil, apiError(codes.Internal, err)
+	withdrawals := t.withdrawalServiceV2.GetByParty(ctx, req.PartyId, false, entities.OffsetPagination{})
+	if withdrawals.Err != nil {
+		return nil, apiError(codes.Internal, withdrawals.Err)
 	}
-	out := make([]*vega.Withdrawal, 0, len(withdrawals))
-	for _, w := range withdrawals {
+	out := make([]*vega.Withdrawal, 0, len(withdrawals.Entities))
+	for _, w := range withdrawals.Entities {
 		out = append(out, w.ToProto())
 	}
 	return &protoapi.WithdrawalsResponse{
@@ -2076,12 +2076,12 @@ func (t *tradingDataDelegator) OracleDataBySpec(ctx context.Context, req *protoa
 	if len(req.Id) <= 0 {
 		return nil, ErrMissingOracleSpecID
 	}
-	data, _, err := t.oracleDataServiceV2.GetOracleDataBySpecID(ctx, req.Id, entities.OffsetPagination{})
-	if err != nil {
-		return nil, apiError(codes.NotFound, err)
+	data := t.oracleDataServiceV2.GetOracleDataBySpecID(ctx, req.Id, entities.OffsetPagination{})
+	if data.Err != nil {
+		return nil, apiError(codes.NotFound, data.Err)
 	}
-	out := make([]*oraclespb.OracleData, 0, len(data))
-	for _, v := range data {
+	out := make([]*oraclespb.OracleData, 0, len(data.Entities))
+	for _, v := range data.Entities {
 		out = append(out, v.ToProto())
 	}
 	return &protoapi.OracleDataBySpecResponse{
@@ -2091,13 +2091,13 @@ func (t *tradingDataDelegator) OracleDataBySpec(ctx context.Context, req *protoa
 
 func (t *tradingDataDelegator) ListOracleData(ctx context.Context, _ *protoapi.ListOracleDataRequest) (*protoapi.ListOracleDataResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("ListOracleData SQL")()
-	specs, _, err := t.oracleDataServiceV2.ListOracleData(ctx, entities.OffsetPagination{})
-	if err != nil {
-		return nil, apiError(codes.Internal, err)
+	specs := t.oracleDataServiceV2.ListOracleData(ctx, entities.OffsetPagination{})
+	if specs.Err != nil {
+		return nil, apiError(codes.Internal, specs.Err)
 	}
 
-	out := make([]*oraclespb.OracleData, 0, len(specs))
-	for _, v := range specs {
+	out := make([]*oraclespb.OracleData, 0, len(specs.Entities))
+	for _, v := range specs.Entities {
 		out = append(out, v.ToProto())
 	}
 

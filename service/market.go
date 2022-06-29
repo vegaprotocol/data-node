@@ -19,6 +19,7 @@ import (
 
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 )
 
 var nilPagination = entities.OffsetPagination{}
@@ -28,7 +29,7 @@ type MarketStore interface {
 	Upsert(ctx context.Context, market *entities.Market) error
 	GetByID(ctx context.Context, marketID string) (entities.Market, error)
 	GetAll(ctx context.Context, pagination entities.OffsetPagination) ([]entities.Market, error)
-	GetAllPaged(ctx context.Context, marketID string, pagination entities.CursorPagination) ([]entities.Market, entities.PageInfo, error)
+	GetAllPaged(ctx context.Context, marketID string, pagination entities.CursorPagination) entities.ConnectionData[*v2.MarketEdge, entities.Market]
 }
 
 type Markets struct {
@@ -96,6 +97,6 @@ func (m *Markets) GetAll(ctx context.Context, pagination entities.OffsetPaginati
 	return data, nil
 }
 
-func (m *Markets) GetAllPaged(ctx context.Context, marketID string, pagination entities.CursorPagination) ([]entities.Market, entities.PageInfo, error) {
+func (m *Markets) GetAllPaged(ctx context.Context, marketID string, pagination entities.CursorPagination) entities.ConnectionData[*v2.MarketEdge, entities.Market] {
 	return m.store.GetAllPaged(ctx, marketID, pagination)
 }

@@ -19,6 +19,7 @@ import (
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/utils"
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -29,7 +30,7 @@ type PositionStore interface {
 	GetByMarketAndParty(ctx context.Context, marketID entities.MarketID, partyID entities.PartyID) (entities.Position, error)
 	GetByMarket(ctx context.Context, marketID entities.MarketID) ([]entities.Position, error)
 	GetByParty(ctx context.Context, partyID entities.PartyID) ([]entities.Position, error)
-	GetByPartyConnection(ctx context.Context, partyID entities.PartyID, marketID entities.MarketID, pagination entities.CursorPagination) ([]entities.Position, entities.PageInfo, error)
+	GetByPartyConnection(ctx context.Context, partyID entities.PartyID, marketID entities.MarketID, pagination entities.CursorPagination) entities.ConnectionData[*v2.PositionEdge, entities.Position]
 	GetAll(ctx context.Context) ([]entities.Position, error)
 }
 
@@ -104,7 +105,7 @@ func (p *Position) GetByParty(ctx context.Context, partyID entities.PartyID) ([]
 	return p.store.GetByParty(ctx, partyID)
 }
 
-func (p *Position) GetByPartyConnection(ctx context.Context, partyID entities.PartyID, marketID entities.MarketID, pagination entities.CursorPagination) ([]entities.Position, entities.PageInfo, error) {
+func (p *Position) GetByPartyConnection(ctx context.Context, partyID entities.PartyID, marketID entities.MarketID, pagination entities.CursorPagination) entities.ConnectionData[*v2.PositionEdge, entities.Position] {
 	return p.store.GetByPartyConnection(ctx, partyID, marketID, pagination)
 }
 

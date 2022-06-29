@@ -14,7 +14,6 @@ package sqlstore
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"code.vegaprotocol.io/data-node/entities"
@@ -22,6 +21,7 @@ import (
 	"code.vegaprotocol.io/data-node/metrics"
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgx/v4"
 )
 
 const (
@@ -151,19 +151,23 @@ func (os *Orders) queryOrders(ctx context.Context, query string, args []interfac
 	return orders, nil
 }
 
-func (os *Orders) queryOrdersWithCursorPagination(ctx context.Context, query string, args []interface{},
+func (os *Orders) queryOrdersWithCursorPagination(ctx context.Context, countQuery, query string, args []interface{},
 	pagination entities.CursorPagination,
-) ([]entities.Order, entities.PageInfo, error) {
-	var err error
+) entities.ConnectionData[*v2.OrderEdge, entities.Order] {
+	var connectionData entities.ConnectionData[*v2.OrderEdge, entities.Order]
+
+	batch := pgx.Batch{}
+	batch.Queue(countQuery, args...)
 
 	sorting, cmp, cursor := extractPaginationInfo(pagination)
 	var builders CursorQueryParameters
 
 	oc := &entities.OrderCursor{}
 	if cursor != "" {
-		err = oc.Parse(cursor)
+		err := oc.Parse(cursor)
 		if err != nil {
-			return nil, entities.PageInfo{}, fmt.Errorf("parsing cursor: %w", err)
+			connectionData.Err = fmt.Errorf("parsing cursor: %w", err)
+			return connectionData
 		}
 	}
 
@@ -173,16 +177,10 @@ func (os *Orders) queryOrdersWithCursorPagination(ctx context.Context, query str
 	}
 
 	query, args = orderAndPaginateWithCursor(query, pagination, builders, args...)
-	var orders []entities.Order
-	var pageInfo entities.PageInfo
-	var pagedOrders []entities.Order
-	err = pgxscan.Select(ctx, os.Connection, &orders, query, args...)
-	if err != nil {
-		return nil, pageInfo, fmt.Errorf("querying orders: %w", err)
-	}
+	batch.Queue(query, args...)
 
-	pagedOrders, pageInfo = entities.PageEntities[*v2.OrderEdge](orders, pagination)
-	return pagedOrders, pageInfo, nil
+	connectionData = executePaginationBatch[*v2.OrderEdge, entities.Order](ctx, &batch, os.Connection, pagination)
+	return connectionData
 }
 
 func paginateOrderQuery(query string, args []interface{}, p entities.OffsetPagination) (string, []interface{}) {
@@ -202,46 +200,57 @@ func paginateOrderQuery(query string, args []interface{}, p entities.OffsetPagin
 	return query, args
 }
 
-func (os *Orders) GetByMarketPaged(ctx context.Context, marketIDStr string, p entities.CursorPagination) ([]entities.Order, entities.PageInfo, error) {
+func (os *Orders) GetByMarketPaged(ctx context.Context, marketIDStr string, p entities.CursorPagination) entities.ConnectionData[*v2.OrderEdge, entities.Order] {
 	if marketIDStr == "" {
-		return nil, entities.PageInfo{}, errors.New("marketID is required")
+		return entities.ConnectionData[*v2.OrderEdge, entities.Order]{
+			Err: fmt.Errorf("marketID is required"),
+		}
 	}
 
 	marketID := entities.NewMarketID(marketIDStr)
 
+	countQuery := `SELECT COUNT(*) FROM orders_current WHERE market_id=$1`
 	query := fmt.Sprintf(`SELECT %s from orders_current WHERE market_id=$1`, sqlOrderColumns)
 	defer metrics.StartSQLQuery("Orders", "GetByMarketPaged")()
 
-	return os.queryOrdersWithCursorPagination(ctx, query, []interface{}{marketID}, p)
+	return os.queryOrdersWithCursorPagination(ctx, countQuery, query, []interface{}{marketID}, p)
 }
 
-func (os *Orders) GetByPartyPaged(ctx context.Context, partyIDStr string, p entities.CursorPagination) ([]entities.Order, entities.PageInfo, error) {
+func (os *Orders) GetByPartyPaged(ctx context.Context, partyIDStr string, p entities.CursorPagination) entities.ConnectionData[*v2.OrderEdge, entities.Order] {
 	if partyIDStr == "" {
-		return nil, entities.PageInfo{}, errors.New("partyID is required")
+		return entities.ConnectionData[*v2.OrderEdge, entities.Order]{
+			Err: fmt.Errorf("partyID is required"),
+		}
 	}
 
 	partyID := entities.NewPartyID(partyIDStr)
 
+	countQuery := `SELECT COUNT(*) FROM orders_current WHERE party_id=$1`
 	query := fmt.Sprintf(`SELECT %s from orders_current WHERE party_id=$1`, sqlOrderColumns)
 	defer metrics.StartSQLQuery("Orders", "GetByPartyConnection")()
 
-	return os.queryOrdersWithCursorPagination(ctx, query, []interface{}{partyID}, p)
+	return os.queryOrdersWithCursorPagination(ctx, countQuery, query, []interface{}{partyID}, p)
 }
 
-func (os *Orders) GetOrderVersionsByIDPaged(ctx context.Context, orderIDStr string, p entities.CursorPagination) ([]entities.Order, entities.PageInfo, error) {
+func (os *Orders) GetOrderVersionsByIDPaged(ctx context.Context, orderIDStr string, p entities.CursorPagination) entities.ConnectionData[*v2.OrderEdge, entities.Order] {
 	if orderIDStr == "" {
-		return nil, entities.PageInfo{}, errors.New("orderID is required")
+		return entities.ConnectionData[*v2.OrderEdge, entities.Order]{
+			Err: fmt.Errorf("orderID is required"),
+		}
 	}
 	orderID := entities.NewOrderID(orderIDStr)
+	countQuery := `SELECT COUNT(*) FROM orders_current_versions WHERE id=$1`
 	query := fmt.Sprintf(`SELECT %s from orders_current_versions WHERE id=$1`, sqlOrderColumns)
 	defer metrics.StartSQLQuery("Orders", "GetByOrderIDPaged")()
 
-	return os.queryOrdersWithCursorPagination(ctx, query, []interface{}{orderID}, p)
+	return os.queryOrdersWithCursorPagination(ctx, countQuery, query, []interface{}{orderID}, p)
 }
 
-func (os *Orders) GetByPartyAndMarketPaged(ctx context.Context, partyIDStr, marketIDStr string, p entities.CursorPagination) ([]entities.Order, entities.PageInfo, error) {
+func (os *Orders) GetByPartyAndMarketPaged(ctx context.Context, partyIDStr, marketIDStr string, p entities.CursorPagination) entities.ConnectionData[*v2.OrderEdge, entities.Order] {
 	if partyIDStr == "" {
-		return nil, entities.PageInfo{}, errors.New("partyID is required")
+		return entities.ConnectionData[*v2.OrderEdge, entities.Order]{
+			Err: fmt.Errorf("partyID is required"),
+		}
 	}
 
 	partyID := entities.NewPartyID(partyIDStr)
@@ -249,15 +258,17 @@ func (os *Orders) GetByPartyAndMarketPaged(ctx context.Context, partyIDStr, mark
 	args := make([]interface{}, 0)
 	args = append(args, partyID)
 
+	countQuery := `SELECT COUNT(*) FROM orders_current WHERE party_id=$1`
 	query := fmt.Sprintf(`SELECT %s from orders_current WHERE party_id=$1`, sqlOrderColumns)
 
 	if marketIDStr != "" {
 		marketID := entities.NewMarketID(marketIDStr)
 		args = append(args, marketID)
+		countQuery = fmt.Sprintf("%s AND market_id=$2", countQuery)
 		query = fmt.Sprintf("%s AND market_id=$2", query)
 	}
 
 	defer metrics.StartSQLQuery("Orders", "GetByPartyAndMarketID")()
 
-	return os.queryOrdersWithCursorPagination(ctx, query, args, p)
+	return os.queryOrdersWithCursorPagination(ctx, countQuery, query, args, p)
 }

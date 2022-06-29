@@ -15,11 +15,13 @@ package sqlstore
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/metrics"
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgx/v4"
 )
 
 type OracleData struct {
@@ -48,22 +50,22 @@ func (od *OracleData) Add(ctx context.Context, data *entities.OracleData) error 
 	return nil
 }
 
-func (od *OracleData) GetOracleDataBySpecID(ctx context.Context, id string, pagination entities.Pagination) ([]entities.OracleData, entities.PageInfo, error) {
+func (od *OracleData) GetOracleDataBySpecID(ctx context.Context, id string, pagination entities.Pagination) entities.ConnectionData[*v2.OracleDataEdge, entities.OracleData] {
 	switch p := pagination.(type) {
 	case entities.OffsetPagination:
 		return getOracleDataBySpecIDOffsetPagination(ctx, od.Connection, id, p)
 	case entities.CursorPagination:
 		return getOracleDataBySpecIDCursorPagination(ctx, od.Connection, id, p)
 	default:
-		return nil, entities.PageInfo{}, fmt.Errorf("unrecognised pagination: %v", p)
+		return entities.ConnectionData[*v2.OracleDataEdge, entities.OracleData]{
+			Err: fmt.Errorf("unrecognised pagination: %v", p),
+		}
 	}
 }
 
-func getOracleDataBySpecIDOffsetPagination(ctx context.Context, conn Connection, id string, pagination entities.OffsetPagination) (
-	[]entities.OracleData, entities.PageInfo, error) {
+func getOracleDataBySpecIDOffsetPagination(ctx context.Context, conn Connection, id string, pagination entities.OffsetPagination) entities.ConnectionData[*v2.OracleDataEdge, entities.OracleData] {
 	specID := entities.NewSpecID(id)
 	var bindVars []interface{}
-	var pageInfo entities.PageInfo
 
 	query := fmt.Sprintf(`select %s
 	from oracle_data where %s = ANY(matched_spec_ids)`, sqlOracleDataColumns, nextBindVar(&bindVars, specID))
@@ -74,18 +76,45 @@ func getOracleDataBySpecIDOffsetPagination(ctx context.Context, conn Connection,
 	defer metrics.StartSQLQuery("OracleData", "GetBySpecID")()
 	err := pgxscan.Select(ctx, conn, &oracleData, query, bindVars...)
 
-	return oracleData, pageInfo, err
+	if err != nil {
+		connectionData := entities.ConnectionData[*v2.OracleDataEdge, entities.OracleData]{
+			Err: err,
+		}
+
+		return connectionData
+	}
+
+	connectionData := entities.ConnectionData[*v2.OracleDataEdge, entities.OracleData]{
+		TotalCount: int64(len(oracleData)),
+		Entities:   oracleData,
+		PageInfo: entities.PageInfo{
+			HasNextPage:     false,
+			HasPreviousPage: false,
+			StartCursor:     oracleData[0].Cursor().Encode(),
+			EndCursor:       oracleData[len(oracleData)-1].Cursor().Encode(),
+		},
+	}
+
+	return connectionData
 }
 
-func getOracleDataBySpecIDCursorPagination(ctx context.Context, conn Connection, id string, pagination entities.CursorPagination) (
-	[]entities.OracleData, entities.PageInfo, error) {
-	var oracleData []entities.OracleData
-	var pageInfo entities.PageInfo
+func getOracleDataBySpecIDCursorPagination(ctx context.Context, conn Connection, id string, pagination entities.CursorPagination) entities.ConnectionData[*v2.OracleDataEdge, entities.OracleData] {
 	var bindVars []interface{}
 
 	specID := entities.NewSpecID(id)
-	query := fmt.Sprintf(`select %s
-	from oracle_data where %s = ANY(matched_spec_ids)`, sqlOracleDataColumns, nextBindVar(&bindVars, specID))
+	queryBuilder := strings.Builder{}
+	queryBuilder.WriteString(fmt.Sprintf(`select %s from oracle_data`, sqlOracleDataColumns))
+
+	countBuilder := strings.Builder{}
+	countBuilder.WriteString(`select count(*) from oracle_data`)
+
+	where := fmt.Sprintf(` where %s = ANY(matched_spec_ids)`, nextBindVar(&bindVars, specID))
+
+	queryBuilder.WriteString(where)
+	countBuilder.WriteString(where)
+
+	batch := pgx.Batch{}
+	batch.Queue(countBuilder.String(), bindVars...)
 
 	sorting, cmp, cursor := extractPaginationInfo(pagination)
 
@@ -93,7 +122,9 @@ func getOracleDataBySpecIDCursorPagination(ctx context.Context, conn Connection,
 	if cursor != "" {
 		err := dc.Parse(cursor)
 		if err != nil {
-			return nil, pageInfo, fmt.Errorf("parsing cursor information: %w", err)
+			return entities.ConnectionData[*v2.OracleDataEdge, entities.OracleData]{
+				Err: fmt.Errorf("parsing cursor information: %w", err),
+			}
 		}
 	}
 
@@ -102,60 +133,76 @@ func getOracleDataBySpecIDCursorPagination(ctx context.Context, conn Connection,
 		NewCursorQueryParameter("matched_spec_ids", sorting, cmp, nil),
 	}
 
+	query := queryBuilder.String()
 	query, bindVars = orderAndPaginateWithCursor(query, pagination, cursorParams, bindVars...)
 
-	defer metrics.StartSQLQuery("OracleData", "ListOracleData")()
-	if err := pgxscan.Select(ctx, conn, &oracleData, query, bindVars...); err != nil {
-		return oracleData, pageInfo, err
-	}
+	batch.Queue(query, bindVars...)
 
-	oracleData, pageInfo = entities.PageEntities[*v2.OracleDataEdge](oracleData, pagination)
-	return oracleData, pageInfo, nil
+	defer metrics.StartSQLQuery("OracleData", "ListOracleData")()
+
+	connectionData := executePaginationBatch[*v2.OracleDataEdge, entities.OracleData](ctx, &batch, conn, pagination)
+	return connectionData
 }
 
-func (od *OracleData) ListOracleData(ctx context.Context, pagination entities.Pagination) ([]entities.OracleData, entities.PageInfo, error) {
+func (od *OracleData) ListOracleData(ctx context.Context, pagination entities.Pagination) entities.ConnectionData[*v2.OracleDataEdge, entities.OracleData] {
 	switch p := pagination.(type) {
 	case entities.OffsetPagination:
 		return listOracleDataOffsetPagination(ctx, od.Connection, p)
 	case entities.CursorPagination:
 		return listOracleDataCursorPagination(ctx, od.Connection, p)
 	default:
-		return nil, entities.PageInfo{}, fmt.Errorf("unrecognised pagination: %v", p)
+		return entities.ConnectionData[*v2.OracleDataEdge, entities.OracleData]{Err: fmt.Errorf("unrecognised pagination: %v", p)}
 	}
 }
 
-func listOracleDataOffsetPagination(ctx context.Context, conn Connection, pagination entities.OffsetPagination) (
-	[]entities.OracleData, entities.PageInfo, error) {
+func listOracleDataOffsetPagination(ctx context.Context, conn Connection, pagination entities.OffsetPagination) entities.ConnectionData[*v2.OracleDataEdge, entities.OracleData] {
 
 	var data []entities.OracleData
-	var pageInfo entities.PageInfo
-
-	query := fmt.Sprintf(`%s
-order by vega_time desc, matched_spec_id`, selectOracleData())
+	query, _ := selectOracleData()
+	query = fmt.Sprintf(`%s
+order by vega_time desc, matched_spec_id`, query)
 
 	var bindVars []interface{}
 	query, bindVars = orderAndPaginateQuery(query, nil, pagination, bindVars...)
 	defer metrics.StartSQLQuery("OracleData", "ListOracleData")()
 	err := pgxscan.Select(ctx, conn, &data, query, bindVars...)
-	return data, pageInfo, err
+
+	if err != nil {
+		return entities.ConnectionData[*v2.OracleDataEdge, entities.OracleData]{
+			Err: err,
+		}
+	}
+
+	connectionData := entities.ConnectionData[*v2.OracleDataEdge, entities.OracleData]{
+		TotalCount: int64(len(data)),
+		Entities:   data,
+		PageInfo: entities.PageInfo{
+			HasNextPage:     false,
+			HasPreviousPage: false,
+			StartCursor:     data[0].Cursor().Encode(),
+			EndCursor:       data[len(data)-1].Cursor().Encode(),
+		},
+		Err: nil,
+	}
+
+	return connectionData
 }
 
-func listOracleDataCursorPagination(ctx context.Context, conn Connection, pagination entities.CursorPagination) (
-	[]entities.OracleData, entities.PageInfo, error) {
-
-	var data []entities.OracleData
-	var pageInfo entities.PageInfo
-
-	query := selectOracleData()
+func listOracleDataCursorPagination(ctx context.Context, conn Connection, pagination entities.CursorPagination) entities.ConnectionData[*v2.OracleDataEdge, entities.OracleData] {
+	query, countQuery := selectOracleData()
 	var bindVars []interface{}
+
+	batch := pgx.Batch{}
+	batch.Queue(countQuery, bindVars...)
 
 	sorting, cmp, cursor := extractPaginationInfo(pagination)
 
 	dc := &entities.OracleDataCursor{}
 	if cursor != "" {
-		err := dc.Parse(cursor)
-		if err != nil {
-			return nil, pageInfo, fmt.Errorf("parsing cursor information: %w", err)
+		if err := dc.Parse(cursor); err != nil {
+			return entities.ConnectionData[*v2.OracleDataEdge, entities.OracleData]{
+				Err: fmt.Errorf("parsing cursor information: %w", err),
+			}
 		}
 	}
 
@@ -165,17 +212,16 @@ func listOracleDataCursorPagination(ctx context.Context, conn Connection, pagina
 	}
 
 	query, bindVars = orderAndPaginateWithCursor(query, pagination, cursorParams, bindVars...)
+	batch.Queue(query, bindVars...)
 
-	defer metrics.StartSQLQuery("OracleData", "ListOracleData")()
-	if err := pgxscan.Select(ctx, conn, &data, query, bindVars...); err != nil {
-		return data, pageInfo, err
-	}
-
-	data, pageInfo = entities.PageEntities[*v2.OracleDataEdge](data, pagination)
-	return data, pageInfo, nil
+	connectionData := executePaginationBatch[*v2.OracleDataEdge, entities.OracleData](ctx, &batch, conn, pagination)
+	return connectionData
 }
 
-func selectOracleData() string {
-	return fmt.Sprintf(`select %s
+func selectOracleData() (string, string) {
+	query := fmt.Sprintf(`select %s
 from oracle_data_current`, sqlOracleDataColumns)
+	countQuery := fmt.Sprintf(`select count(*)
+from oracle_data_current`)
+	return query, countQuery
 }

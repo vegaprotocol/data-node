@@ -18,13 +18,14 @@ import (
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/utils"
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 )
 
 type MarginLevelsStore interface {
 	Add(marginLevel entities.MarginLevels) error
 	Flush(ctx context.Context) ([]entities.MarginLevels, error)
 	GetMarginLevelsByID(ctx context.Context, partyID, marketID string, pagination entities.OffsetPagination) ([]entities.MarginLevels, error)
-	GetMarginLevelsByIDWithCursorPagination(ctx context.Context, partyID, marketID string, pagination entities.CursorPagination) ([]entities.MarginLevels, entities.PageInfo, error)
+	GetMarginLevelsByIDWithCursorPagination(ctx context.Context, partyID, marketID string, pagination entities.CursorPagination) entities.ConnectionData[*v2.MarginEdge, entities.MarginLevels]
 }
 
 type AccountSource interface {
@@ -64,7 +65,7 @@ func (r *Risk) GetMarginLevelsByID(ctx context.Context, partyID, marketID string
 	return r.mlStore.GetMarginLevelsByID(ctx, partyID, marketID, pagination)
 }
 
-func (r *Risk) GetMarginLevelsByIDWithCursorPagination(ctx context.Context, partyID, marketID string, pagination entities.CursorPagination) ([]entities.MarginLevels, entities.PageInfo, error) {
+func (r *Risk) GetMarginLevelsByIDWithCursorPagination(ctx context.Context, partyID, marketID string, pagination entities.CursorPagination) entities.ConnectionData[*v2.MarginEdge, entities.MarginLevels] {
 	return r.mlStore.GetMarginLevelsByIDWithCursorPagination(ctx, partyID, marketID, pagination)
 }
 

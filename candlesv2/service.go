@@ -20,13 +20,14 @@ import (
 
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 )
 
 // CandleStore ...
 //go:generate go run github.com/golang/mock/mockgen -destination mocks/candle_store_mock.go -package mocks code.vegaprotocol.io/data-node/candlesv2 CandleStore
 type CandleStore interface {
 	GetCandleDataForTimeSpan(ctx context.Context, candleId string, from *time.Time, to *time.Time,
-		p entities.CursorPagination) ([]entities.Candle, entities.PageInfo, error)
+		p entities.CursorPagination) entities.ConnectionData[*v2.CandleEdge, entities.Candle]
 	GetCandlesForMarket(ctx context.Context, market string) (map[string]string, error)
 	CandleExists(ctx context.Context, candleId string) (bool, error)
 	GetCandleIdForIntervalAndMarket(ctx context.Context, interval string, market string) (bool, string, error)

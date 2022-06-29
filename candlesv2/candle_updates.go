@@ -20,11 +20,12 @@ import (
 
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 )
 
 type candleSource interface {
 	GetCandleDataForTimeSpan(ctx context.Context, candleId string, from *time.Time, to *time.Time,
-		p entities.CursorPagination) ([]entities.Candle, entities.PageInfo, error)
+		p entities.CursorPagination) entities.ConnectionData[*v2.CandleEdge, entities.Candle]
 }
 
 type subscribeRequest struct {
@@ -134,32 +135,32 @@ func (s *candleUpdates) getCandleUpdates(ctx context.Context, lastCandle *entiti
 	defer cancelFn()
 
 	var updates []entities.Candle
-	var err error
 	if lastCandle != nil {
 		start := lastCandle.PeriodStart
-		var candles []entities.Candle
-		candles, _, err = s.candleSource.GetCandleDataForTimeSpan(ctx, s.candleId, &start, nil, entities.CursorPagination{})
+		connectionData := s.candleSource.GetCandleDataForTimeSpan(ctx, s.candleId, &start, nil, entities.CursorPagination{})
 
-		if err != nil {
-			return nil, fmt.Errorf("getting candle updates:%w", err)
+		if connectionData.Err != nil {
+			return nil, fmt.Errorf("getting candle updates:%w", connectionData.Err)
 		}
 
-		for _, candle := range candles {
+		for _, candle := range connectionData.Entities {
 			if candle.LastUpdateInPeriod.After(lastCandle.LastUpdateInPeriod) {
 				updates = append(updates, candle)
 			}
 		}
 	} else {
 		last := int32(1)
-		pagination, err := entities.NewCursorPagination(nil, nil, &last, nil)
+		pagination, err := entities.NewCursorPagination(nil, nil, &last, nil, true)
 		if err != nil {
 			return nil, err
 		}
-		updates, _, err = s.candleSource.GetCandleDataForTimeSpan(ctx, s.candleId, nil, nil, pagination)
+		connectionData := s.candleSource.GetCandleDataForTimeSpan(ctx, s.candleId, nil, nil, pagination)
 
-		if err != nil {
-			return nil, fmt.Errorf("getting candle updates:%w", err)
+		if connectionData.Err != nil {
+			return nil, fmt.Errorf("getting candle updates:%w", connectionData.Err)
 		}
+
+		updates = connectionData.Entities
 	}
 
 	return updates, nil

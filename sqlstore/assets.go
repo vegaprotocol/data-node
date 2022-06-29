@@ -14,13 +14,13 @@ package sqlstore
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/metrics"
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgx/v4"
 )
 
 type Assets struct {
@@ -81,14 +81,12 @@ func (as *Assets) GetByID(ctx context.Context, id string) (entities.Asset, error
 func (as *Assets) GetAll(ctx context.Context) ([]entities.Asset, error) {
 	assets := []entities.Asset{}
 	defer metrics.StartSQLQuery("Assets", "GetAll")()
-	err := pgxscan.Select(ctx, as.Connection, &assets, getAssetQuery())
+	query, _ := getAssetQuery()
+	err := pgxscan.Select(ctx, as.Connection, &assets, query)
 	return assets, err
 }
 
-func (as *Assets) GetAllWithCursorPagination(ctx context.Context, pagination entities.CursorPagination) (
-	[]entities.Asset, entities.PageInfo, error) {
-	var assets []entities.Asset
-	var pageInfo entities.PageInfo
+func (as *Assets) GetAllWithCursorPagination(ctx context.Context, pagination entities.CursorPagination) entities.ConnectionData[*v2.AssetEdge, entities.Asset] {
 	var args []interface{}
 
 	sorting, cmp, cursor := extractPaginationInfo(pagination)
@@ -97,21 +95,25 @@ func (as *Assets) GetAllWithCursorPagination(ctx context.Context, pagination ent
 		NewCursorQueryParameter("id", sorting, cmp, entities.NewAssetID(cursor)),
 	}
 
-	query := getAssetQuery()
+	batch := pgx.Batch{}
+	query, countQuery := getAssetQuery()
+
+	batch.Queue(countQuery, args...)
+
 	query, args = orderAndPaginateWithCursor(query, pagination, cursorParams, args...)
+
+	batch.Queue(query, args...)
 
 	defer metrics.StartSQLQuery("Assets", "GetAllWithCursorPagination")()
 
-	if err := pgxscan.Select(ctx, as.Connection, &assets, query, args...); err != nil {
-		return nil, pageInfo, fmt.Errorf("could not get assets: %w", err)
-	}
-
-	assets, pageInfo = entities.PageEntities[*v2.AssetEdge](assets, pagination)
-
-	return assets, pageInfo, nil
+	connectionData := executePaginationBatch[*v2.AssetEdge, entities.Asset](ctx, &batch, as.Connection, pagination)
+	return connectionData
 }
 
-func getAssetQuery() string {
-	return `SELECT id, name, symbol, total_supply, decimals, quantum, source, erc20_contract, lifetime_limit, withdraw_threshold, vega_time
+func getAssetQuery() (string, string) {
+	selectQuery := `SELECT id, name, symbol, total_supply, decimals, quantum, source, erc20_contract, lifetime_limit, withdraw_threshold, vega_time
 		FROM assets`
+	countQuery := `SELECT COUNT(*) FROM assets`
+
+	return selectQuery, countQuery
 }

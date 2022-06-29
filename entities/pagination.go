@@ -17,6 +17,7 @@ import (
 
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 type Pagination interface{}
@@ -79,8 +80,9 @@ func OffsetPaginationFromProto(pp *v2.OffsetPagination) OffsetPagination {
 
 type CursorPagination struct {
 	Pagination
-	Forward  *offset
-	Backward *offset
+	Forward     *offset
+	Backward    *offset
+	NewestFirst bool
 }
 
 func (p CursorPagination) HasForward() bool {
@@ -91,12 +93,13 @@ func (p CursorPagination) HasBackward() bool {
 	return p.Backward != nil
 }
 
-func NewCursorPagination(first *int32, after *string, last *int32, before *string) (CursorPagination, error) {
+func NewCursorPagination(first *int32, after *string, last *int32, before *string, newestFirst bool) (CursorPagination, error) {
 	return CursorPaginationFromProto(&v2.Pagination{
-		First:  first,
-		After:  after,
-		Last:   last,
-		Before: before,
+		First:       first,
+		After:       after,
+		Last:        last,
+		Before:      before,
+		NewestFirst: &newestFirst,
 	})
 }
 
@@ -134,9 +137,16 @@ func CursorPaginationFromProto(cp *v2.Pagination) (CursorPagination, error) {
 		}
 	}
 
+	// Default the sort order to return the newest records first if no sort order is provided
+	newestFirst := true
+	if cp.NewestFirst != nil {
+		newestFirst = *cp.NewestFirst
+	}
+
 	pagination := CursorPagination{
-		Forward:  forwardOffset,
-		Backward: backwardOffset,
+		Forward:     forwardOffset,
+		Backward:    backwardOffset,
+		NewestFirst: newestFirst,
 	}
 
 	if err = validatePagination(pagination); err != nil {
@@ -197,4 +207,11 @@ func (p PageInfo) ToProto() *v2.PageInfo {
 		StartCursor:     p.StartCursor,
 		EndCursor:       p.EndCursor,
 	}
+}
+
+type ConnectionData[P proto.Message, T PagedEntity[P]] struct {
+	TotalCount int64
+	Entities   []T
+	PageInfo   PageInfo
+	Err        error
 }

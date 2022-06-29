@@ -21,6 +21,7 @@ import (
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/utils"
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 )
 
 //go:generate go run github.com/golang/mock/mockgen -destination mocks/market_data_mock.go -package mocks code.vegaprotocol.io/data-node/service MarketDataStore
@@ -29,9 +30,9 @@ type MarketDataStore interface {
 	Flush(ctx context.Context) ([]*entities.MarketData, error)
 	GetMarketDataByID(ctx context.Context, marketID string) (entities.MarketData, error)
 	GetMarketsData(ctx context.Context) ([]entities.MarketData, error)
-	GetBetweenDatesByID(ctx context.Context, marketID string, start, end time.Time, pagination entities.Pagination) ([]entities.MarketData, entities.PageInfo, error)
-	GetFromDateByID(ctx context.Context, marketID string, start time.Time, pagination entities.Pagination) ([]entities.MarketData, entities.PageInfo, error)
-	GetToDateByID(ctx context.Context, marketID string, end time.Time, pagination entities.Pagination) ([]entities.MarketData, entities.PageInfo, error)
+	GetBetweenDatesByID(ctx context.Context, marketID string, start, end time.Time, pagination entities.Pagination) entities.ConnectionData[*v2.MarketDataEdge, entities.MarketData]
+	GetFromDateByID(ctx context.Context, marketID string, start time.Time, pagination entities.Pagination) entities.ConnectionData[*v2.MarketDataEdge, entities.MarketData]
+	GetToDateByID(ctx context.Context, marketID string, end time.Time, pagination entities.Pagination) entities.ConnectionData[*v2.MarketDataEdge, entities.MarketData]
 }
 
 type MarketData struct {
@@ -106,15 +107,15 @@ func (m *MarketData) GetMarketsData(ctx context.Context) ([]entities.MarketData,
 	return data, nil
 }
 
-func (m *MarketData) GetBetweenDatesByID(ctx context.Context, marketID string, start, end time.Time, pagination entities.Pagination) ([]entities.MarketData, entities.PageInfo, error) {
+func (m *MarketData) GetBetweenDatesByID(ctx context.Context, marketID string, start, end time.Time, pagination entities.Pagination) entities.ConnectionData[*v2.MarketDataEdge, entities.MarketData] {
 	return m.store.GetBetweenDatesByID(ctx, marketID, start, end, pagination)
 }
 
-func (m *MarketData) GetFromDateByID(ctx context.Context, marketID string, start time.Time, pagination entities.Pagination) ([]entities.MarketData, entities.PageInfo, error) {
+func (m *MarketData) GetFromDateByID(ctx context.Context, marketID string, start time.Time, pagination entities.Pagination) entities.ConnectionData[*v2.MarketDataEdge, entities.MarketData] {
 	return m.store.GetFromDateByID(ctx, marketID, start, pagination)
 }
 
-func (m *MarketData) GetToDateByID(ctx context.Context, marketID string, end time.Time, pagination entities.Pagination) ([]entities.MarketData, entities.PageInfo, error) {
+func (m *MarketData) GetToDateByID(ctx context.Context, marketID string, end time.Time, pagination entities.Pagination) entities.ConnectionData[*v2.MarketDataEdge, entities.MarketData] {
 	return m.store.GetToDateByID(ctx, marketID, end, pagination)
 }
 

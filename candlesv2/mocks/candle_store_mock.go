@@ -6,11 +6,11 @@ package mocks
 
 import (
 	context "context"
+	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 	time "time"
-
 	entities "code.vegaprotocol.io/data-node/entities"
-	gomock "github.com/golang/mock/gomock"
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 )
 
 // MockCandleStore is a mock of CandleStore interface.
@@ -52,13 +52,11 @@ func (mr *MockCandleStoreMockRecorder) CandleExists(arg0, arg1 interface{}) *gom
 }
 
 // GetCandleDataForTimeSpan mocks base method.
-func (m *MockCandleStore) GetCandleDataForTimeSpan(arg0 context.Context, arg1 string, arg2, arg3 *time.Time, arg4 entities.CursorPagination) ([]entities.Candle, entities.PageInfo, error) {
+func (m *MockCandleStore) GetCandleDataForTimeSpan(arg0 context.Context, arg1 string, arg2, arg3 *time.Time, arg4 entities.CursorPagination) entities.ConnectionData[*v2.CandleEdge,entities.Candle] {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCandleDataForTimeSpan", arg0, arg1, arg2, arg3, arg4)
-	ret0, _ := ret[0].([]entities.Candle)
-	ret1, _ := ret[1].(entities.PageInfo)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(entities.ConnectionData[*v2.CandleEdge,entities.Candle])
+	return ret0
 }
 
 // GetCandleDataForTimeSpan indicates an expected call of GetCandleDataForTimeSpan.

@@ -110,15 +110,12 @@ func (ts *Trades) GetByMarket(ctx context.Context, market string, p entities.Off
 	return trades, nil
 }
 
-func (ts *Trades) GetByMarketWithCursor(ctx context.Context, market string, pagination entities.CursorPagination) ([]entities.Trade, entities.PageInfo, error) {
+func (ts *Trades) GetByMarketWithCursor(ctx context.Context, market string, pagination entities.CursorPagination) entities.ConnectionData[*v2.TradeEdge, entities.Trade] {
 	query := `SELECT * from trades WHERE market_id=$1`
-	args := []interface{}{entities.NewMarketID(market)}
-	trades, pageInfo, err := ts.queryTradesWithCursorPagination(ctx, query, args, pagination)
-	if err != nil {
-		return nil, pageInfo, fmt.Errorf("failed to get trade by market:%w", err)
-	}
+	countQuery := `SELECT count(*) from trades WHERE market_id=$1`
 
-	return trades, pageInfo, nil
+	args := []interface{}{entities.NewMarketID(market)}
+	return ts.queryTradesWithCursorPagination(ctx, query, countQuery, args, pagination)
 }
 
 func (ts *Trades) GetByParty(ctx context.Context, party string, market *string, pagination entities.OffsetPagination) ([]entities.Trade, error) {
@@ -129,11 +126,12 @@ func (ts *Trades) GetByParty(ctx context.Context, party string, market *string, 
 	return ts.queryTradesWithMarketFilter(ctx, query, args, market, pagination)
 }
 
-func (ts *Trades) GetByPartyWithCursor(ctx context.Context, party string, market *string, pagination entities.CursorPagination) ([]entities.Trade, entities.PageInfo, error) {
+func (ts *Trades) GetByPartyWithCursor(ctx context.Context, party string, market *string, pagination entities.CursorPagination) entities.ConnectionData[*v2.TradeEdge, entities.Trade] {
 	args := []interface{}{entities.NewPartyID(party)}
 	query := `SELECT * from trades WHERE (buyer=$1 or seller=$1)`
+	countQuery := `SELECT count(*) from trades WHERE (buyer=$1 or seller=$1)`
 
-	return ts.queryTradesWithMarketFilterAndCursorPagination(ctx, query, args, market, pagination)
+	return ts.queryTradesWithMarketFilterAndCursorPagination(ctx, query, countQuery, args, market, pagination)
 }
 
 func (ts *Trades) GetByOrderID(ctx context.Context, order string, market *string, pagination entities.OffsetPagination) ([]entities.Trade, error) {
@@ -144,12 +142,13 @@ func (ts *Trades) GetByOrderID(ctx context.Context, order string, market *string
 	return ts.queryTradesWithMarketFilter(ctx, query, args, market, pagination)
 }
 
-func (ts *Trades) GetByOrderIDWithCursor(ctx context.Context, order string, market *string, pagination entities.CursorPagination) ([]entities.Trade, entities.PageInfo, error) {
+func (ts *Trades) GetByOrderIDWithCursor(ctx context.Context, order string, market *string, pagination entities.CursorPagination) entities.ConnectionData[*v2.TradeEdge, entities.Trade] {
 	args := []interface{}{entities.NewOrderID(order)}
 	query := `SELECT * from trades WHERE buy_order=$1 or sell_order=$1`
+	countQuery := `SELECT count(*) from trades WHERE buy_order=$1 or sell_order=$1`
 
 	defer metrics.StartSQLQuery("Trades", "GetByOrderID")()
-	return ts.queryTradesWithMarketFilterAndCursorPagination(ctx, query, args, market, pagination)
+	return ts.queryTradesWithMarketFilterAndCursorPagination(ctx, query, countQuery, args, market, pagination)
 }
 
 func (ts *Trades) queryTradesWithMarketFilter(ctx context.Context, query string, args []interface{}, market *string, p entities.OffsetPagination) ([]entities.Trade, error) {
@@ -166,20 +165,16 @@ func (ts *Trades) queryTradesWithMarketFilter(ctx context.Context, query string,
 	return trades, nil
 }
 
-func (ts *Trades) queryTradesWithMarketFilterAndCursorPagination(ctx context.Context, query string, args []interface{},
-	market *string, cursor entities.CursorPagination,
-) ([]entities.Trade, entities.PageInfo, error) {
+func (ts *Trades) queryTradesWithMarketFilterAndCursorPagination(ctx context.Context, query string, countQuery string,
+	args []interface{}, market *string, cursor entities.CursorPagination,
+) entities.ConnectionData[*v2.TradeEdge, entities.Trade] {
 	if market != nil && *market != "" {
 		marketID := nextBindVar(&args, entities.NewMarketID(*market))
 		query += ` AND market_id=` + marketID
+		countQuery += ` AND market_id=` + marketID
 	}
 
-	trades, pageInfo, err := ts.queryTradesWithCursorPagination(ctx, query, args, cursor)
-	if err != nil {
-		return nil, pageInfo, fmt.Errorf("failed to query trades:%w", err)
-	}
-
-	return trades, pageInfo, nil
+	return ts.queryTradesWithCursorPagination(ctx, query, countQuery, args, cursor)
 }
 
 func (ts *Trades) queryTrades(ctx context.Context, query string, args []interface{}, p *entities.OffsetPagination) ([]entities.Trade, error) {
@@ -195,23 +190,20 @@ func (ts *Trades) queryTrades(ctx context.Context, query string, args []interfac
 	return trades, nil
 }
 
-func (ts *Trades) queryTradesWithCursorPagination(ctx context.Context, query string, args []interface{}, pagination entities.CursorPagination) ([]entities.Trade, entities.PageInfo, error) {
-	var err error
+func (ts *Trades) queryTradesWithCursorPagination(ctx context.Context, query string, countQuery string, args []interface{},
+	pagination entities.CursorPagination) entities.ConnectionData[*v2.TradeEdge, entities.Trade] {
+	var connectionData entities.ConnectionData[*v2.TradeEdge, entities.Trade]
 
 	sorting, cmp, cursor := extractPaginationInfo(pagination)
 	cursors := []CursorQueryParameter{NewCursorQueryParameter("synthetic_time", sorting, cmp, cursor)}
 
+	batch := pgx.Batch{}
+	batch.Queue(countQuery, args...)
+
 	query, args = orderAndPaginateWithCursor(query, pagination, cursors, args...)
+	batch.Queue(query, args...)
 
-	var trades []entities.Trade
-	var pageInfo entities.PageInfo
-	var pagedTrades []entities.Trade
+	connectionData = executePaginationBatch[*v2.TradeEdge, entities.Trade](ctx, &batch, ts.Connection, pagination)
 
-	err = pgxscan.Select(ctx, ts.Connection, &trades, query, args...)
-	if err != nil {
-		return pagedTrades, pageInfo, fmt.Errorf("querying trades: %w", err)
-	}
-
-	pagedTrades, pageInfo = entities.PageEntities[*v2.TradeEdge](trades, pagination)
-	return pagedTrades, pageInfo, nil
+	return connectionData
 }

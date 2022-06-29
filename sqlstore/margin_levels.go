@@ -20,6 +20,7 @@ import (
 	"code.vegaprotocol.io/data-node/metrics"
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgx/v4"
 )
 
 type AccountSource interface {
@@ -102,13 +103,21 @@ func buildAccountWhereClause(partyID, marketID string) (string, []interface{}) {
 	return fmt.Sprintf("where all_margin_levels.account_id  in (select id from accounts %s)", accountsWhereClause), bindVars
 }
 
-func (ml *MarginLevels) GetMarginLevelsByIDWithCursorPagination(ctx context.Context, partyID, marketID string, pagination entities.CursorPagination) ([]entities.MarginLevels, entities.PageInfo, error) {
+func (ml *MarginLevels) GetMarginLevelsByIDWithCursorPagination(ctx context.Context, partyID, marketID string, pagination entities.CursorPagination) entities.ConnectionData[*v2.MarginEdge, entities.MarginLevels] {
 	whereClause, bindVars := buildAccountWhereClause(partyID, marketID)
+	var connectionData entities.ConnectionData[*v2.MarginEdge, entities.MarginLevels]
+
+	batch := pgx.Batch{}
 
 	query := fmt.Sprintf(`select distinct on (account_id) %s
 		from all_margin_levels
 		%s`, sqlMarginLevelColumns,
 		whereClause)
+
+	countQuery := fmt.Sprintf(`select count(sq.*) from (
+		%s) sq`, query)
+
+	batch.Queue(countQuery, bindVars...)
 
 	sorting, cmp, cursor := extractPaginationInfo(pagination)
 	var err error
@@ -117,7 +126,8 @@ func (ml *MarginLevels) GetMarginLevelsByIDWithCursorPagination(ctx context.Cont
 	if cursor != "" {
 		err = mc.Parse(cursor)
 		if err != nil {
-			return nil, entities.PageInfo{}, fmt.Errorf("parsing cursor: %w", err)
+			connectionData.Err = fmt.Errorf("parsing cursor: %w", err)
+			return connectionData
 		}
 	}
 
@@ -127,12 +137,9 @@ func (ml *MarginLevels) GetMarginLevelsByIDWithCursorPagination(ctx context.Cont
 	}
 
 	query, bindVars = orderAndPaginateWithCursor(query, pagination, builders, bindVars...)
-	var marginLevels []entities.MarginLevels
 
-	if err := pgxscan.Select(ctx, ml.Connection, &marginLevels, query, bindVars...); err != nil {
-		return nil, entities.PageInfo{}, err
-	}
+	batch.Queue(query, bindVars...)
 
-	pagedMargins, pageInfo := entities.PageEntities[*v2.MarginEdge](marginLevels, pagination)
-	return pagedMargins, pageInfo, nil
+	connectionData = executePaginationBatch[*v2.MarginEdge, entities.MarginLevels](ctx, &batch, ml.Connection, pagination)
+	return connectionData
 }

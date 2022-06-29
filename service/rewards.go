@@ -18,13 +18,14 @@ import (
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/logging"
 	"code.vegaprotocol.io/data-node/utils"
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 )
 
 type rewardStore interface {
 	Add(ctx context.Context, r entities.Reward) error
 	GetAll(ctx context.Context) ([]entities.Reward, error)
 	GetByOffset(ctx context.Context, partyID *string, assetID *string, p *entities.OffsetPagination) ([]entities.Reward, error)
-	GetByCursor(ctx context.Context, partyID *string, assetID *string, p entities.CursorPagination) ([]entities.Reward, entities.PageInfo, error)
+	GetByCursor(ctx context.Context, partyID *string, assetID *string, p entities.CursorPagination) entities.ConnectionData[*v2.RewardEdge, entities.Reward]
 	GetSummaries(ctx context.Context, partyID *string, assetID *string) ([]entities.RewardSummary, error)
 }
 
@@ -59,7 +60,7 @@ func (r *Reward) GetByOffset(ctx context.Context, partyID *string, assetID *stri
 	return r.store.GetByOffset(ctx, partyID, assetID, p)
 }
 
-func (r *Reward) GetByCursor(ctx context.Context, partyID, assetID *string, p entities.CursorPagination) ([]entities.Reward, entities.PageInfo, error) {
+func (r *Reward) GetByCursor(ctx context.Context, partyID, assetID *string, p entities.CursorPagination) entities.ConnectionData[*v2.RewardEdge, entities.Reward] {
 	return r.store.GetByCursor(ctx, partyID, assetID, p)
 }
 

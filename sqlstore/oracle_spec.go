@@ -20,6 +20,7 @@ import (
 	"code.vegaprotocol.io/data-node/metrics"
 	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgx/v4"
 )
 
 type OracleSpec struct {
@@ -78,8 +79,7 @@ func (os *OracleSpec) GetSpecs(ctx context.Context, pagination entities.OffsetPa
 	return specs, err
 }
 
-func (os *OracleSpec) GetSpecsWithCursorPagination(ctx context.Context, specID string, pagination entities.CursorPagination) (
-	[]entities.OracleSpec, entities.PageInfo, error) {
+func (os *OracleSpec) GetSpecsWithCursorPagination(ctx context.Context, specID string, pagination entities.CursorPagination) entities.ConnectionData[*v2.OracleSpecEdge, entities.OracleSpec] {
 	if specID != "" {
 		return os.getSingleSpecWithPageInfo(ctx, specID)
 	}
@@ -87,25 +87,29 @@ func (os *OracleSpec) GetSpecsWithCursorPagination(ctx context.Context, specID s
 	return os.getSpecsWithPageInfo(ctx, pagination)
 }
 
-func (os *OracleSpec) getSingleSpecWithPageInfo(ctx context.Context, specID string) ([]entities.OracleSpec, entities.PageInfo, error) {
+func (os *OracleSpec) getSingleSpecWithPageInfo(ctx context.Context, specID string) entities.ConnectionData[*v2.OracleSpecEdge, entities.OracleSpec] {
+	var connectionData entities.ConnectionData[*v2.OracleSpecEdge, entities.OracleSpec]
 	spec, err := os.GetSpecByID(ctx, specID)
 	if err != nil {
-		return nil, entities.PageInfo{}, err
+		connectionData.Err = err
+		return connectionData
 	}
 
-	return []entities.OracleSpec{spec}, entities.PageInfo{
+	connectionData.TotalCount = 1
+	connectionData.Entities = []entities.OracleSpec{
+		spec,
+	}
+	connectionData.PageInfo = entities.PageInfo{
 		HasNextPage:     false,
 		HasPreviousPage: false,
 		StartCursor:     spec.Cursor().Encode(),
 		EndCursor:       spec.Cursor().Encode(),
-	}, nil
+	}
+
+	return connectionData
 }
 
-func (os *OracleSpec) getSpecsWithPageInfo(ctx context.Context, pagination entities.CursorPagination) (
-	[]entities.OracleSpec, entities.PageInfo, error) {
-	var specs []entities.OracleSpec
-	var pageInfo entities.PageInfo
-
+func (os *OracleSpec) getSpecsWithPageInfo(ctx context.Context, pagination entities.CursorPagination) entities.ConnectionData[*v2.OracleSpecEdge, entities.OracleSpec] {
 	sorting, cmp, cursor := extractPaginationInfo(pagination)
 	cursorParams := []CursorQueryParameter{
 		NewCursorQueryParameter("id", sorting, cmp, entities.NewSpecID(cursor)),
@@ -114,16 +118,16 @@ func (os *OracleSpec) getSpecsWithPageInfo(ctx context.Context, pagination entit
 
 	var args []interface{}
 	query := getOracleSpecsQuery()
+	countQuery := fmt.Sprintf(`select count(sp.*) from (%s) sp`, query)
+
+	batch := pgx.Batch{}
+	batch.Queue(countQuery, args...)
+
 	query, args = orderAndPaginateWithCursor(query, pagination, cursorParams, args...)
+	batch.Queue(query, args...)
 
-	specs = []entities.OracleSpec{}
-	if err := pgxscan.Select(ctx, os.Connection, &specs, query, args...); err != nil {
-		return nil, pageInfo, fmt.Errorf("querying oracle specs: %w", err)
-	}
-
-	specs, pageInfo = entities.PageEntities[*v2.OracleSpecEdge](specs, pagination)
-
-	return specs, pageInfo, nil
+	connectionData := executePaginationBatch[*v2.OracleSpecEdge, entities.OracleSpec](ctx, &batch, os.Connection, pagination)
+	return connectionData
 }
 
 func getOracleSpecsQuery() string {

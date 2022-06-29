@@ -19,7 +19,6 @@ import (
 
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/sqlstore"
-	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/shopspring/decimal"
@@ -287,6 +286,12 @@ func TestRewardsPagination(t *testing.T) {
 	t.Run("should return the last page when the last limit is provided with no before cursor", testRewardsCursorPaginationLastPage)
 	t.Run("should return the page specified by the first limit and after cursor", testRewardsCursorPaginationFirstPageAfter)
 	t.Run("should return the page specified by the last limit and before cursor", testRewardsCursorPaginationLastPageBefore)
+
+	t.Run("should return all the rewards when no paging is provided", testRewardsCursorPaginationNoPaginationNewestFirst)
+	t.Run("should return the first page when the first limit is provided with no after cursor", testRewardsCursorPaginationFirstPageNewestFirst)
+	t.Run("should return the last page when the last limit is provided with no before cursor", testRewardsCursorPaginationLastPageNewestFirst)
+	t.Run("should return the page specified by the first limit and after cursor", testRewardsCursorPaginationFirstPageAfterNewestFirst)
+	t.Run("should return the page specified by the last limit and before cursor", testRewardsCursorPaginationLastPageBeforeNewestFirst)
 }
 
 func testRewardsCursorPaginationNoPagination(t *testing.T) {
@@ -294,20 +299,23 @@ func testRewardsCursorPaginationNoPagination(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	populateTestRewards(ctx, t, bs, ps, as, rs)
-	pagination, err := entities.CursorPaginationFromProto(&v2.Pagination{})
+	pagination, err := entities.NewCursorPagination(nil, nil, nil, nil, false)
 	require.NoError(t, err)
 	partyID := "89c701d1ae2819263e45538d0b25022988bc2508a02c654462d22e0afb626a7d"
 	assetID := "8aa92225c32adb54e527fcb1aee2930cbadb4df6f068ab2c2d667eb057ef00fa"
 
-	rewards, pageInfo, err := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
-	assert.NoError(t, err)
-	assert.Equal(t, 10, len(rewards))
-	assert.Equal(t, int64(637), rewards[0].EpochID)
-	assert.Equal(t, int64(1027), rewards[len(rewards)-1].EpochID)
-	assert.Equal(t, entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 637}.String()).Encode(), pageInfo.StartCursor)
-	assert.Equal(t, entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 1027}.String()).Encode(), pageInfo.EndCursor)
-	assert.False(t, pageInfo.HasPreviousPage)
-	assert.False(t, pageInfo.HasNextPage)
+	connectionData := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
+	assert.NoError(t, connectionData.Err)
+	assert.Equal(t, int64(10), connectionData.TotalCount)
+	assert.Equal(t, 10, len(connectionData.Entities))
+	assert.Equal(t, int64(637), connectionData.Entities[0].EpochID)
+	assert.Equal(t, int64(1027), connectionData.Entities[len(connectionData.Entities)-1].EpochID)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     false,
+		HasPreviousPage: false,
+		StartCursor:     entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 637}.String()).Encode(),
+		EndCursor:       entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 1027}.String()).Encode(),
+	}, connectionData.PageInfo)
 }
 
 func testRewardsCursorPaginationFirstPage(t *testing.T) {
@@ -316,22 +324,23 @@ func testRewardsCursorPaginationFirstPage(t *testing.T) {
 	defer cancel()
 	populateTestRewards(ctx, t, bs, ps, as, rs)
 	first := int32(3)
-	pagination, err := entities.CursorPaginationFromProto(&v2.Pagination{
-		First: &first,
-	})
+	pagination, err := entities.NewCursorPagination(&first, nil, nil, nil, false)
 	require.NoError(t, err)
 	partyID := "89c701d1ae2819263e45538d0b25022988bc2508a02c654462d22e0afb626a7d"
 	assetID := "8aa92225c32adb54e527fcb1aee2930cbadb4df6f068ab2c2d667eb057ef00fa"
 
-	rewards, pageInfo, err := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(rewards))
-	assert.Equal(t, int64(637), rewards[0].EpochID)
-	assert.Equal(t, int64(643), rewards[len(rewards)-1].EpochID)
-	assert.Equal(t, entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 637}.String()).Encode(), pageInfo.StartCursor)
-	assert.Equal(t, entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 643}.String()).Encode(), pageInfo.EndCursor)
-	assert.False(t, pageInfo.HasPreviousPage)
-	assert.True(t, pageInfo.HasNextPage)
+	connectionData := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
+	assert.NoError(t, connectionData.Err)
+	assert.Equal(t, int64(10), connectionData.TotalCount)
+	assert.Equal(t, 3, len(connectionData.Entities))
+	assert.Equal(t, int64(637), connectionData.Entities[0].EpochID)
+	assert.Equal(t, int64(643), connectionData.Entities[len(connectionData.Entities)-1].EpochID)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     true,
+		HasPreviousPage: false,
+		StartCursor:     entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 637}.String()).Encode(),
+		EndCursor:       entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 643}.String()).Encode(),
+	}, connectionData.PageInfo)
 }
 
 func testRewardsCursorPaginationLastPage(t *testing.T) {
@@ -340,22 +349,23 @@ func testRewardsCursorPaginationLastPage(t *testing.T) {
 	defer cancel()
 	populateTestRewards(ctx, t, bs, ps, as, rs)
 	last := int32(3)
-	pagination, err := entities.CursorPaginationFromProto(&v2.Pagination{
-		Last: &last,
-	})
+	pagination, err := entities.NewCursorPagination(nil, nil, &last, nil, false)
 	require.NoError(t, err)
 	partyID := "89c701d1ae2819263e45538d0b25022988bc2508a02c654462d22e0afb626a7d"
 	assetID := "8aa92225c32adb54e527fcb1aee2930cbadb4df6f068ab2c2d667eb057ef00fa"
 
-	rewards, pageInfo, err := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(rewards))
-	assert.Equal(t, int64(757), rewards[0].EpochID)
-	assert.Equal(t, int64(1027), rewards[len(rewards)-1].EpochID)
-	assert.Equal(t, entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 757}.String()).Encode(), pageInfo.StartCursor)
-	assert.Equal(t, entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 1027}.String()).Encode(), pageInfo.EndCursor)
-	assert.True(t, pageInfo.HasPreviousPage)
-	assert.False(t, pageInfo.HasNextPage)
+	connectionData := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
+	assert.NoError(t, connectionData.Err)
+	assert.Equal(t, int64(10), connectionData.TotalCount)
+	assert.Equal(t, 3, len(connectionData.Entities))
+	assert.Equal(t, int64(757), connectionData.Entities[0].EpochID)
+	assert.Equal(t, int64(1027), connectionData.Entities[len(connectionData.Entities)-1].EpochID)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     false,
+		HasPreviousPage: true,
+		StartCursor:     entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 757}.String()).Encode(),
+		EndCursor:       entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 1027}.String()).Encode(),
+	}, connectionData.PageInfo)
 }
 
 func testRewardsCursorPaginationFirstPageAfter(t *testing.T) {
@@ -368,21 +378,21 @@ func testRewardsCursorPaginationFirstPageAfter(t *testing.T) {
 
 	first := int32(3)
 	after := entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 643}.String()).Encode()
-	pagination, err := entities.CursorPaginationFromProto(&v2.Pagination{
-		First: &first,
-		After: &after,
-	})
+	pagination, err := entities.NewCursorPagination(&first, &after, nil, nil, false)
 	require.NoError(t, err)
 
-	rewards, pageInfo, err := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(rewards))
-	assert.Equal(t, int64(737), rewards[0].EpochID)
-	assert.Equal(t, int64(744), rewards[len(rewards)-1].EpochID)
-	assert.Equal(t, entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 737}.String()).Encode(), pageInfo.StartCursor)
-	assert.Equal(t, entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 744}.String()).Encode(), pageInfo.EndCursor)
-	assert.True(t, pageInfo.HasPreviousPage)
-	assert.True(t, pageInfo.HasNextPage)
+	connectionData := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
+	assert.NoError(t, connectionData.Err)
+	assert.Equal(t, int64(10), connectionData.TotalCount)
+	assert.Equal(t, 3, len(connectionData.Entities))
+	assert.Equal(t, int64(737), connectionData.Entities[0].EpochID)
+	assert.Equal(t, int64(744), connectionData.Entities[len(connectionData.Entities)-1].EpochID)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     true,
+		HasPreviousPage: true,
+		StartCursor:     entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 737}.String()).Encode(),
+		EndCursor:       entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 744}.String()).Encode(),
+	}, connectionData.PageInfo)
 }
 
 func testRewardsCursorPaginationLastPageBefore(t *testing.T) {
@@ -395,18 +405,145 @@ func testRewardsCursorPaginationLastPageBefore(t *testing.T) {
 
 	last := int32(3)
 	before := entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 757}.String()).Encode()
-	pagination, err := entities.CursorPaginationFromProto(&v2.Pagination{
-		Last:   &last,
-		Before: &before,
-	})
+	pagination, err := entities.NewCursorPagination(nil, nil, &last, &before, false)
 	require.NoError(t, err)
-	rewards, pageInfo, err := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(rewards))
-	assert.Equal(t, int64(741), rewards[0].EpochID)
-	assert.Equal(t, int64(747), rewards[len(rewards)-1].EpochID)
-	assert.Equal(t, entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 741}.String()).Encode(), pageInfo.StartCursor)
-	assert.Equal(t, entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 747}.String()).Encode(), pageInfo.EndCursor)
-	assert.True(t, pageInfo.HasPreviousPage)
-	assert.True(t, pageInfo.HasNextPage)
+	connectionData := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
+	assert.NoError(t, connectionData.Err)
+	assert.Equal(t, int64(10), connectionData.TotalCount)
+	assert.Equal(t, 3, len(connectionData.Entities))
+	assert.Equal(t, int64(741), connectionData.Entities[0].EpochID)
+	assert.Equal(t, int64(747), connectionData.Entities[len(connectionData.Entities)-1].EpochID)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     true,
+		HasPreviousPage: true,
+		StartCursor:     entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 741}.String()).Encode(),
+		EndCursor:       entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 747}.String()).Encode(),
+	}, connectionData.PageInfo)
+}
+
+func testRewardsCursorPaginationNoPaginationNewestFirst(t *testing.T) {
+	bs, rs, ps, as, _ := setupRewardsTest(t)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	populateTestRewards(ctx, t, bs, ps, as, rs)
+	pagination, err := entities.NewCursorPagination(nil, nil, nil, nil, true)
+	require.NoError(t, err)
+	partyID := "89c701d1ae2819263e45538d0b25022988bc2508a02c654462d22e0afb626a7d"
+	assetID := "8aa92225c32adb54e527fcb1aee2930cbadb4df6f068ab2c2d667eb057ef00fa"
+
+	connectionData := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
+	assert.NoError(t, connectionData.Err)
+	assert.Equal(t, int64(10), connectionData.TotalCount)
+	assert.Equal(t, 10, len(connectionData.Entities))
+	assert.Equal(t, int64(1027), connectionData.Entities[0].EpochID)
+	assert.Equal(t, int64(637), connectionData.Entities[len(connectionData.Entities)-1].EpochID)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     false,
+		HasPreviousPage: false,
+		StartCursor:     entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 1027}.String()).Encode(),
+		EndCursor:       entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 637}.String()).Encode(),
+	}, connectionData.PageInfo)
+}
+
+func testRewardsCursorPaginationFirstPageNewestFirst(t *testing.T) {
+	bs, rs, ps, as, _ := setupRewardsTest(t)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	populateTestRewards(ctx, t, bs, ps, as, rs)
+	first := int32(3)
+	pagination, err := entities.NewCursorPagination(&first, nil, nil, nil, true)
+	require.NoError(t, err)
+	partyID := "89c701d1ae2819263e45538d0b25022988bc2508a02c654462d22e0afb626a7d"
+	assetID := "8aa92225c32adb54e527fcb1aee2930cbadb4df6f068ab2c2d667eb057ef00fa"
+
+	connectionData := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
+	assert.NoError(t, connectionData.Err)
+	assert.Equal(t, int64(10), connectionData.TotalCount)
+	assert.Equal(t, 3, len(connectionData.Entities))
+	assert.Equal(t, int64(1027), connectionData.Entities[0].EpochID)
+	assert.Equal(t, int64(757), connectionData.Entities[len(connectionData.Entities)-1].EpochID)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     true,
+		HasPreviousPage: false,
+		StartCursor:     entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 1027}.String()).Encode(),
+		EndCursor:       entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 757}.String()).Encode(),
+	}, connectionData.PageInfo)
+}
+
+func testRewardsCursorPaginationLastPageNewestFirst(t *testing.T) {
+	bs, rs, ps, as, _ := setupRewardsTest(t)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	populateTestRewards(ctx, t, bs, ps, as, rs)
+	last := int32(3)
+	pagination, err := entities.NewCursorPagination(nil, nil, &last, nil, true)
+	require.NoError(t, err)
+	partyID := "89c701d1ae2819263e45538d0b25022988bc2508a02c654462d22e0afb626a7d"
+	assetID := "8aa92225c32adb54e527fcb1aee2930cbadb4df6f068ab2c2d667eb057ef00fa"
+
+	connectionData := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
+	assert.NoError(t, connectionData.Err)
+	assert.Equal(t, int64(10), connectionData.TotalCount)
+	assert.Equal(t, 3, len(connectionData.Entities))
+	assert.Equal(t, int64(643), connectionData.Entities[0].EpochID)
+	assert.Equal(t, int64(637), connectionData.Entities[len(connectionData.Entities)-1].EpochID)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     false,
+		HasPreviousPage: true,
+		StartCursor:     entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 643}.String()).Encode(),
+		EndCursor:       entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 637}.String()).Encode(),
+	}, connectionData.PageInfo)
+}
+
+func testRewardsCursorPaginationFirstPageAfterNewestFirst(t *testing.T) {
+	bs, rs, ps, as, _ := setupRewardsTest(t)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	populateTestRewards(ctx, t, bs, ps, as, rs)
+	partyID := "89c701d1ae2819263e45538d0b25022988bc2508a02c654462d22e0afb626a7d"
+	assetID := "8aa92225c32adb54e527fcb1aee2930cbadb4df6f068ab2c2d667eb057ef00fa"
+
+	first := int32(3)
+	after := entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 757}.String()).Encode()
+	pagination, err := entities.NewCursorPagination(&first, &after, nil, nil, true)
+	require.NoError(t, err)
+
+	connectionData := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
+	assert.NoError(t, connectionData.Err)
+	assert.Equal(t, int64(10), connectionData.TotalCount)
+	assert.Equal(t, 3, len(connectionData.Entities))
+	assert.Equal(t, int64(747), connectionData.Entities[0].EpochID)
+	assert.Equal(t, int64(741), connectionData.Entities[len(connectionData.Entities)-1].EpochID)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     true,
+		HasPreviousPage: true,
+		StartCursor:     entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 747}.String()).Encode(),
+		EndCursor:       entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 741}.String()).Encode(),
+	}, connectionData.PageInfo)
+}
+
+func testRewardsCursorPaginationLastPageBeforeNewestFirst(t *testing.T) {
+	bs, rs, ps, as, _ := setupRewardsTest(t)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	populateTestRewards(ctx, t, bs, ps, as, rs)
+	partyID := "89c701d1ae2819263e45538d0b25022988bc2508a02c654462d22e0afb626a7d"
+	assetID := "8aa92225c32adb54e527fcb1aee2930cbadb4df6f068ab2c2d667eb057ef00fa"
+
+	last := int32(3)
+	before := entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 643}.String()).Encode()
+	pagination, err := entities.NewCursorPagination(nil, nil, &last, &before, true)
+	require.NoError(t, err)
+	connectionData := rs.GetByCursor(ctx, &partyID, &assetID, pagination)
+	assert.NoError(t, connectionData.Err)
+	assert.Equal(t, int64(10), connectionData.TotalCount)
+	assert.Equal(t, 3, len(connectionData.Entities))
+	assert.Equal(t, int64(744), connectionData.Entities[0].EpochID)
+	assert.Equal(t, int64(737), connectionData.Entities[len(connectionData.Entities)-1].EpochID)
+	assert.Equal(t, entities.PageInfo{
+		HasNextPage:     true,
+		HasPreviousPage: true,
+		StartCursor:     entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 744}.String()).Encode(),
+		EndCursor:       entities.NewCursor(entities.RewardCursor{PartyID: partyID, AssetID: assetID, EpochID: 737}.String()).Encode(),
+	}, connectionData.PageInfo)
 }
