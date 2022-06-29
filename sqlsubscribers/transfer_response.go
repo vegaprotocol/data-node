@@ -121,13 +121,10 @@ func (t *TransferResponse) addLedgerEntry(ctx context.Context, vle *vega.LedgerE
 }
 
 // Parse the vega account ID; if that account already exists in the db, fetch it; else create it.
-func (t *TransferResponse) obtainAccountWithID(ctx context.Context, id string, vegaTime time.Time) (entities.Account, error) {
-	a, err := entities.AccountFromAccountID(id)
-	if err != nil {
-		return entities.Account{}, errors.Wrapf(err, "parsing account id: %s", id)
-	}
+func (t *TransferResponse) obtainAccountWithID(ctx context.Context, id *vega.AccountId, vegaTime time.Time) (entities.Account, error) {
+	a := entities.AccountFromAccountID(id)
 	a.VegaTime = vegaTime
-	err = t.accounts.Obtain(ctx, &a)
+	err := t.accounts.Obtain(ctx, &a)
 	if err != nil {
 		return entities.Account{}, errors.Wrapf(err, "obtaining account for id: %s", id)
 	}

@@ -2,6 +2,9 @@ module code.vegaprotocol.io/data-node
 
 go 1.18
 
+replace code.vegaprotocol.io/protos => ../protos
+replace code.vegaprotocol.io/vega =>   ../vega_account_id/vega
+
 require (
 	code.vegaprotocol.io/protos v0.52.1-0.20220623091237-e393ec0eff9e
 	code.vegaprotocol.io/quant v0.2.5

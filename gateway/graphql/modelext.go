@@ -211,8 +211,8 @@ func transfersFromProto(transfers []*types.LedgerEntry) []*LedgerEntry {
 	gql := make([]*LedgerEntry, 0, len(transfers))
 	for _, t := range transfers {
 		gql = append(gql, &LedgerEntry{
-			FromAccount: t.FromAccount,
-			ToAccount:   t.ToAccount,
+			FromAccount: t.FromAccount.ID,
+			ToAccount:   t.ToAccount.ID,
 			Amount:      t.Amount,
 			Reference:   t.Reference,
 			Type:        t.Type,
