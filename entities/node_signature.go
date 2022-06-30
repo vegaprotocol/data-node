@@ -16,10 +16,10 @@ import (
 	commandspb "code.vegaprotocol.io/protos/vega/commands/v1"
 )
 
-type NodeSignatureID struct{ ID }
+type NodeSignatureID struct{ OldID }
 
 func NewNodeSignatureID(id string) NodeSignatureID {
-	return NodeSignatureID{ID: ID(id)}
+	return NodeSignatureID{OldID: OldID(id)}
 }
 
 type NodeSignature struct {

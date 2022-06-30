@@ -446,7 +446,7 @@ func TestPositionSpecSuite(t *testing.T) {
 			ps := tc.pos
 			sub, store := getSubscriberAndStore(t)
 			sub.Push(context.Background(), ps)
-			pp, err := store.GetByMarket(ctx, entities.NewMarketID(market))
+			pp, err := store.GetByMarket(ctx, entities.ID[entities.Market](market))
 			assert.NoError(t, err)
 			assert.NotZero(t, len(pp))
 			// average entry price should be 1k
@@ -470,11 +470,11 @@ func getSubscriberAndStore(t *testing.T) (*sqlsubscribers.Position, sqlsubscribe
 		return nil
 	}
 
-	getByMarket := func(_ context.Context, _ entities.MarketID) ([]entities.Position, error) {
+	getByMarket := func(_ context.Context, _ entities.ID[entities.Market]) ([]entities.Position, error) {
 		return []entities.Position{lastPos}, nil
 	}
 
-	getByMarketAndParty := func(_ context.Context, _ entities.MarketID, _ entities.PartyID) (entities.Position, error) {
+	getByMarketAndParty := func(_ context.Context, _ entities.ID[entities.Market], _ entities.PartyID) (entities.Position, error) {
 		return lastPos, nil
 	}
 

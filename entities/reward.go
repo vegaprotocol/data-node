@@ -27,7 +27,7 @@ import (
 type Reward struct {
 	PartyID        PartyID
 	AssetID        AssetID
-	MarketID       MarketID
+	MarketID       ID[Market]
 	EpochID        int64
 	Amount         decimal.Decimal
 	PercentOfTotal float64
@@ -96,7 +96,7 @@ func RewardFromProto(pr eventspb.RewardPayoutEvent, vegaTime time.Time) (Reward,
 		Amount:         amount,
 		PercentOfTotal: percentOfTotal,
 		Timestamp:      NanosToPostgresTimestamp(pr.Timestamp),
-		MarketID:       NewMarketID(pr.Market),
+		MarketID:       ID[Market](pr.Market),
 		RewardType:     pr.RewardType,
 		VegaTime:       vegaTime,
 	}

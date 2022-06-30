@@ -40,7 +40,7 @@ type settleDestressed interface {
 }
 
 type Position struct {
-	MarketID          MarketID
+	MarketID          ID[Market]
 	PartyID           PartyID
 	OpenVolume        int64
 	RealisedPnl       decimal.Decimal
@@ -51,7 +51,7 @@ type Position struct {
 	VegaTime          time.Time
 }
 
-func NewEmptyPosition(marketID MarketID, partyID PartyID) Position {
+func NewEmptyPosition(marketID ID[Market], partyID PartyID) Position {
 	return Position{
 		MarketID:          marketID,
 		PartyID:           partyID,
@@ -176,7 +176,7 @@ func updateVWAP(vwap num.Decimal, volume int64, addVolume int64, addPrice *num.U
 }
 
 type PositionKey struct {
-	MarketID MarketID
+	MarketID ID[Market]
 	PartyID  PartyID
 	VegaTime time.Time
 }
@@ -220,9 +220,9 @@ func (p Position) Equal(q Position) bool {
 }
 
 type PositionCursor struct {
-	PartyID  PartyID   `json:"party_id"`
-	MarketID MarketID  `json:"market_id"`
-	VegaTime time.Time `json:"vega_time"`
+	PartyID  PartyID    `json:"party_id"`
+	MarketID ID[Market] `json:"market_id"`
+	VegaTime time.Time  `json:"vega_time"`
 }
 
 func (rc PositionCursor) String() string {

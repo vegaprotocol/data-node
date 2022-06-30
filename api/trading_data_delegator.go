@@ -201,11 +201,11 @@ func (t *tradingDataDelegator) PositionsByParty(ctx context.Context, request *pr
 	} else if request.MarketId == "" {
 		positions, err = t.positionServiceV2.GetByParty(ctx, entities.NewPartyID(request.PartyId))
 	} else if request.PartyId == "" {
-		positions, err = t.positionServiceV2.GetByMarket(ctx, entities.NewMarketID(request.MarketId))
+		positions, err = t.positionServiceV2.GetByMarket(ctx, entities.ID[entities.Market](request.MarketId))
 	} else {
 		positions = make([]entities.Position, 1)
 		positions[0], err = t.positionServiceV2.GetByMarketAndParty(ctx,
-			entities.NewMarketID(request.MarketId),
+			entities.ID[entities.Market](request.MarketId),
 			entities.NewPartyID(request.PartyId))
 
 		// Don't error if there's no position for this party/market
@@ -347,14 +347,14 @@ func (t *tradingDataDelegator) Transfers(ctx context.Context, req *protoapi.Tran
 	} else if req.IsFrom || req.IsTo {
 
 		if req.IsFrom {
-			transfers, err = t.transferServiceV2.GetTransfersFromParty(ctx, entities.PartyID{ID: entities.ID(req.Pubkey)})
+			transfers, err = t.transferServiceV2.GetTransfersFromParty(ctx, entities.PartyID{OldID: entities.OldID(req.Pubkey)})
 			if err != nil {
 				return nil, apiError(codes.Internal, err)
 			}
 		}
 
 		if req.IsTo {
-			transfers, err = t.transferServiceV2.GetTransfersToParty(ctx, entities.PartyID{ID: entities.ID(req.Pubkey)})
+			transfers, err = t.transferServiceV2.GetTransfersToParty(ctx, entities.PartyID{OldID: entities.OldID(req.Pubkey)})
 			if err != nil {
 				return nil, apiError(codes.Internal, err)
 			}
@@ -1485,7 +1485,7 @@ func toAccountsFilterMarkets(marketIDs ...string) []entities.Market {
 		if idStr == "" {
 			continue
 		}
-		market := entities.Market{ID: entities.NewMarketID(idStr)}
+		market := entities.Market{ID: entities.ID[entities.Market](idStr)}
 		markets = append(markets, market)
 	}
 
@@ -2110,7 +2110,7 @@ func (t *tradingDataDelegator) LiquidityProvisions(ctx context.Context, req *pro
 	defer metrics.StartAPIRequestAndTimeGRPC("LiquidityProvisions")()
 
 	partyID := entities.NewPartyID(req.Party)
-	marketID := entities.NewMarketID(req.Market)
+	marketID := entities.ID[entities.Market](req.Market)
 
 	lps, err := t.liquidityProvisionServiceV2.Get(ctx, partyID, marketID, entities.OffsetPagination{})
 	if err != nil {

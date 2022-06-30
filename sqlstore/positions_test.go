@@ -65,8 +65,8 @@ func TestPosition(t *testing.T) {
 	block2 := addTestBlockForTime(t, bs, time.Now().Add((-26*time.Hour)-(1*time.Second)))
 	block3 := addTestBlockForTime(t, bs, time.Now().Add(-26*time.Hour))
 
-	market1 := entities.Market{ID: entities.NewMarketID("dead")}
-	market2 := entities.Market{ID: entities.NewMarketID("beef")}
+	market1 := entities.Market{ID: entities.ID[entities.Market]("dead")}
+	market2 := entities.Market{ID: entities.ID[entities.Market]("beef")}
 	party1 := addTestParty(t, qs, block1)
 	party2 := addTestParty(t, qs, block1)
 

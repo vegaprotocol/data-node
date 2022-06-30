@@ -37,7 +37,7 @@ func AccountFilterFromProto(pbFilter *v2.AccountFilter) (AccountFilter, error) {
 		filter.AccountTypes = append(filter.AccountTypes, pbFilter.AccountTypes...)
 
 		for _, marketID := range pbFilter.MarketIds {
-			filter.Markets = append(filter.Markets, Market{ID: NewMarketID(marketID)})
+			filter.Markets = append(filter.Markets, Market{ID: ID[Market](marketID)})
 		}
 	}
 	return filter, nil

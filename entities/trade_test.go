@@ -39,7 +39,7 @@ func TestProtoFromTrade(t *testing.T) {
 	trade := entities.Trade{
 		VegaTime:                vegaTime,
 		ID:                      entities.NewTradeID(idString),
-		MarketID:                entities.NewMarketID(marketIdString),
+		MarketID:                entities.ID[entities.Market](marketIdString),
 		Price:                   price,
 		Size:                    size,
 		Buyer:                   entities.NewPartyID(buyerIdString),

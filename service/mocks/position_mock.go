@@ -80,7 +80,7 @@ func (mr *MockPositionStoreMockRecorder) GetAll(arg0 interface{}) *gomock.Call {
 }
 
 // GetByMarket mocks base method.
-func (m *MockPositionStore) GetByMarket(arg0 context.Context, arg1 entities.MarketID) ([]entities.Position, error) {
+func (m *MockPositionStore) GetByMarket(arg0 context.Context, arg1 entities.ID[entities.Market]) ([]entities.Position, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByMarket", arg0, arg1)
 	ret0, _ := ret[0].([]entities.Position)
@@ -95,7 +95,7 @@ func (mr *MockPositionStoreMockRecorder) GetByMarket(arg0, arg1 interface{}) *go
 }
 
 // GetByMarketAndParty mocks base method.
-func (m *MockPositionStore) GetByMarketAndParty(arg0 context.Context, arg1 entities.MarketID, arg2 entities.PartyID) (entities.Position, error) {
+func (m *MockPositionStore) GetByMarketAndParty(arg0 context.Context, arg1 entities.ID[entities.Market], arg2 entities.PartyID) (entities.Position, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByMarketAndParty", arg0, arg1, arg2)
 	ret0, _ := ret[0].(entities.Position)
@@ -125,7 +125,7 @@ func (mr *MockPositionStoreMockRecorder) GetByParty(arg0, arg1 interface{}) *gom
 }
 
 // GetByPartyConnection mocks base method.
-func (m *MockPositionStore) GetByPartyConnection(arg0 context.Context, arg1 entities.PartyID, arg2 entities.MarketID, arg3 entities.CursorPagination) ([]entities.Position, entities.PageInfo, error) {
+func (m *MockPositionStore) GetByPartyConnection(arg0 context.Context, arg1 entities.PartyID, arg2 entities.ID[entities.Market], arg3 entities.CursorPagination) ([]entities.Position, entities.PageInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByPartyConnection", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].([]entities.Position)

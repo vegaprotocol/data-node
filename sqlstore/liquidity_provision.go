@@ -28,7 +28,7 @@ type LiquidityProvision struct {
 }
 
 const (
-	sqlOracleLiquidityProvisionColumns = `id, party_id, created_at, updated_at, market_id, 
+	sqlOracleLiquidityProvisionColumns = `id, party_id, created_at, updated_at, market_id,
 		commitment_amount, fee, sells, buys, version, status, reference, vega_time`
 )
 
@@ -51,10 +51,10 @@ func (lp *LiquidityProvision) Upsert(ctx context.Context, liquidityProvision ent
 	return nil
 }
 
-func (lp *LiquidityProvision) Get(ctx context.Context, partyID entities.PartyID, marketID entities.MarketID,
+func (lp *LiquidityProvision) Get(ctx context.Context, partyID entities.PartyID, marketID entities.ID[entities.Market],
 	pagination entities.OffsetPagination,
 ) ([]entities.LiquidityProvision, error) {
-	if len(partyID.ID) == 0 && len(marketID.ID) == 0 {
+	if len(partyID.OldID) == 0 && len(marketID) == 0 {
 		return nil, errors.New("market or party filters are required")
 	}
 
@@ -65,15 +65,15 @@ from liquidity_provisions`, sqlOracleLiquidityProvisionColumns)
 
 	where := "where"
 
-	if partyID.ID != "" {
+	if partyID.OldID != "" {
 		where = fmt.Sprintf("%s party_id=%s", where, nextBindVar(&bindVars, partyID))
 	}
 
-	if partyID.ID != "" && marketID.ID != "" {
+	if partyID.OldID != "" && marketID != "" {
 		where = fmt.Sprintf("%s and", where)
 	}
 
-	if marketID.ID != "" {
+	if marketID != "" {
 		where = fmt.Sprintf("%s market_id=%s", where, nextBindVar(&bindVars, marketID))
 	}
 

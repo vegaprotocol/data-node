@@ -22,10 +22,10 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-type NodeID struct{ ID }
+type NodeID struct{ OldID }
 
 func NewNodeID(id string) NodeID {
-	return NodeID{ID: ID(id)}
+	return NodeID{OldID: OldID(id)}
 }
 
 type Node struct {

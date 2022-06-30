@@ -30,7 +30,7 @@ import (
 func addTestReward(t *testing.T, rs *sqlstore.Rewards,
 	party entities.Party,
 	asset entities.Asset,
-	marketID entities.MarketID,
+	marketID entities.ID[entities.Market],
 	epochID int64,
 	rewardType string,
 	timestamp time.Time,
@@ -81,8 +81,8 @@ func TestRewards(t *testing.T) {
 	asset1 := addTestAsset(t, as, block)
 	asset2 := addTestAsset(t, as, block)
 
-	market1 := entities.MarketID{ID: "deadbeef"}
-	market2 := entities.MarketID{ID: ""}
+	market1 := entities.ID[entities.Market]("deadbeef")
+	market2 := entities.ID[entities.Market]("")
 	party1 := addTestParty(t, ps, block)
 	party2 := addTestParty(t, ps, block)
 

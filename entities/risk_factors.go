@@ -22,7 +22,7 @@ import (
 )
 
 type RiskFactor struct {
-	MarketID MarketID
+	MarketID ID[Market]
 	Short    decimal.Decimal
 	Long     decimal.Decimal
 	VegaTime time.Time
@@ -41,7 +41,7 @@ func RiskFactorFromProto(factor *vega.RiskFactor, vegaTime time.Time) (*RiskFact
 	}
 
 	return &RiskFactor{
-		MarketID: NewMarketID(factor.Market),
+		MarketID: ID[Market](factor.Market),
 		Short:    short,
 		Long:     long,
 		VegaTime: vegaTime,

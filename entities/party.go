@@ -19,10 +19,10 @@ import (
 	"code.vegaprotocol.io/vega/types"
 )
 
-type PartyID struct{ ID }
+type PartyID struct{ OldID }
 
 func NewPartyID(id string) PartyID {
-	return PartyID{ID: ID(id)}
+	return PartyID{OldID: OldID(id)}
 }
 
 type Party struct {

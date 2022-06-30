@@ -22,12 +22,12 @@ import (
 )
 
 type StakeLinkingID struct {
-	ID
+	OldID
 }
 
 func NewStakeLinkingID(id string) StakeLinkingID {
 	return StakeLinkingID{
-		ID: ID(id),
+		OldID: OldID(id),
 	}
 }
 

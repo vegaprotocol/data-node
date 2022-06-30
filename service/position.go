@@ -26,15 +26,15 @@ import (
 type PositionStore interface {
 	Flush(ctx context.Context) ([]entities.Position, error)
 	Add(ctx context.Context, p entities.Position) error
-	GetByMarketAndParty(ctx context.Context, marketID entities.MarketID, partyID entities.PartyID) (entities.Position, error)
-	GetByMarket(ctx context.Context, marketID entities.MarketID) ([]entities.Position, error)
+	GetByMarketAndParty(ctx context.Context, marketID entities.ID[entities.Market], partyID entities.PartyID) (entities.Position, error)
+	GetByMarket(ctx context.Context, marketID entities.ID[entities.Market]) ([]entities.Position, error)
 	GetByParty(ctx context.Context, partyID entities.PartyID) ([]entities.Position, error)
-	GetByPartyConnection(ctx context.Context, partyID entities.PartyID, marketID entities.MarketID, pagination entities.CursorPagination) ([]entities.Position, entities.PageInfo, error)
+	GetByPartyConnection(ctx context.Context, partyID entities.PartyID, marketID entities.ID[entities.Market], pagination entities.CursorPagination) ([]entities.Position, entities.PageInfo, error)
 	GetAll(ctx context.Context) ([]entities.Position, error)
 }
 
 type positionCacheKey struct {
-	MarketID entities.MarketID
+	MarketID entities.ID[entities.Market]
 	PartyID  entities.PartyID
 }
 type Position struct {
@@ -72,7 +72,7 @@ func (p *Position) Add(ctx context.Context, pos entities.Position) error {
 	return p.store.Add(ctx, pos)
 }
 
-func (p *Position) GetByMarketAndParty(ctx context.Context, marketID entities.MarketID, partyID entities.PartyID) (entities.Position, error) {
+func (p *Position) GetByMarketAndParty(ctx context.Context, marketID entities.ID[entities.Market], partyID entities.PartyID) (entities.Position, error) {
 	key := positionCacheKey{marketID, partyID}
 	value, ok := p.cache.Get(key)
 	if !ok {
@@ -96,7 +96,7 @@ func (p *Position) GetByMarketAndParty(ctx context.Context, marketID entities.Ma
 	}
 }
 
-func (p *Position) GetByMarket(ctx context.Context, marketID entities.MarketID) ([]entities.Position, error) {
+func (p *Position) GetByMarket(ctx context.Context, marketID entities.ID[entities.Market]) ([]entities.Position, error) {
 	return p.store.GetByMarket(ctx, marketID)
 }
 
@@ -104,7 +104,7 @@ func (p *Position) GetByParty(ctx context.Context, partyID entities.PartyID) ([]
 	return p.store.GetByParty(ctx, partyID)
 }
 
-func (p *Position) GetByPartyConnection(ctx context.Context, partyID entities.PartyID, marketID entities.MarketID, pagination entities.CursorPagination) ([]entities.Position, entities.PageInfo, error) {
+func (p *Position) GetByPartyConnection(ctx context.Context, partyID entities.PartyID, marketID entities.ID[entities.Market], pagination entities.CursorPagination) ([]entities.Position, entities.PageInfo, error) {
 	return p.store.GetByPartyConnection(ctx, partyID, marketID, pagination)
 }
 

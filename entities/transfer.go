@@ -27,10 +27,10 @@ type AccountSource interface {
 	GetByID(id int64) (Account, error)
 }
 
-type TransferID struct{ ID }
+type TransferID struct{ OldID }
 
 func NewTransferID(id string) TransferID {
-	return TransferID{ID: ID(id)}
+	return TransferID{OldID: OldID(id)}
 }
 
 type Transfer struct {
@@ -112,8 +112,8 @@ func TransferFromProto(ctx context.Context, t *eventspb.Transfer, vegaTime time.
 
 	fromAcc := Account{
 		ID:       0,
-		PartyID:  PartyID{ID(t.From)},
-		AssetID:  AssetID{ID(t.Asset)},
+		PartyID:  PartyID{OldID(t.From)},
+		AssetID:  AssetID{OldID(t.Asset)},
 		Type:     t.FromAccountType,
 		VegaTime: vegaTime,
 	}
@@ -126,8 +126,8 @@ func TransferFromProto(ctx context.Context, t *eventspb.Transfer, vegaTime time.
 
 	toAcc := Account{
 		ID:       0,
-		PartyID:  PartyID{ID: ID(t.To)},
-		AssetID:  AssetID{ID: ID(t.Asset)},
+		PartyID:  PartyID{OldID: OldID(t.To)},
+		AssetID:  AssetID{OldID: OldID(t.Asset)},
 		Type:     t.ToAccountType,
 		VegaTime: vegaTime,
 	}

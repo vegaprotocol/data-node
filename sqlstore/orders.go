@@ -90,7 +90,7 @@ func (os *Orders) GetByOrderID(ctx context.Context, orderIdStr string, version *
 // GetByMarket returns the last update of the all the orders in a particular market
 func (os *Orders) GetByMarket(ctx context.Context, marketIdStr string, p entities.OffsetPagination) ([]entities.Order, error) {
 	defer metrics.StartSQLQuery("Orders", "GetByMarket")()
-	marketId := entities.NewMarketID(marketIdStr)
+	marketId := entities.ID[entities.Market](marketIdStr)
 
 	query := fmt.Sprintf(`SELECT %s from orders_current WHERE market_id=$1`, sqlOrderColumns)
 	args := []interface{}{marketId}
@@ -207,7 +207,7 @@ func (os *Orders) GetByMarketPaged(ctx context.Context, marketIDStr string, p en
 		return nil, entities.PageInfo{}, errors.New("marketID is required")
 	}
 
-	marketID := entities.NewMarketID(marketIDStr)
+	marketID := entities.ID[entities.Market](marketIDStr)
 
 	query := fmt.Sprintf(`SELECT %s from orders_current WHERE market_id=$1`, sqlOrderColumns)
 	defer metrics.StartSQLQuery("Orders", "GetByMarketPaged")()
@@ -252,7 +252,7 @@ func (os *Orders) GetByPartyAndMarketPaged(ctx context.Context, partyIDStr, mark
 	query := fmt.Sprintf(`SELECT %s from orders_current WHERE party_id=$1`, sqlOrderColumns)
 
 	if marketIDStr != "" {
-		marketID := entities.NewMarketID(marketIDStr)
+		marketID := entities.ID[entities.Market](marketIDStr)
 		args = append(args, marketID)
 		query = fmt.Sprintf("%s AND market_id=$2", query)
 	}

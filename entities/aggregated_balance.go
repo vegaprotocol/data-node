@@ -31,7 +31,7 @@ type AggregatedBalance struct {
 	AccountID *int64
 	PartyID   *PartyID
 	AssetID   *AssetID
-	MarketID  *MarketID
+	MarketID  *ID[Market]
 	Type      *types.AccountType
 }
 

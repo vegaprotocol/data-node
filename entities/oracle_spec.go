@@ -23,12 +23,12 @@ import (
 )
 
 type SpecID struct {
-	ID
+	OldID
 }
 
 func NewSpecID(id string) SpecID {
 	return SpecID{
-		ID: ID(id),
+		OldID: OldID(id),
 	}
 }
 

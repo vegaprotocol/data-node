@@ -23,10 +23,10 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-type WithdrawalID struct{ ID }
+type WithdrawalID struct{ OldID }
 
 func NewWithdrawalID(id string) WithdrawalID {
-	return WithdrawalID{ID: ID(id)}
+	return WithdrawalID{OldID: OldID(id)}
 }
 
 type Withdrawal struct {

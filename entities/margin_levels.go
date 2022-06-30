@@ -76,7 +76,7 @@ func GetAccountFromMarginLevel(ctx context.Context, margin *vega.MarginLevels, a
 		ID:       0,
 		PartyID:  NewPartyID(margin.PartyId),
 		AssetID:  NewAssetID(margin.Asset),
-		MarketID: NewMarketID(margin.MarketId),
+		MarketID: ID[Market](margin.MarketId),
 		Type:     vega.AccountType_ACCOUNT_TYPE_MARGIN,
 		VegaTime: vegaTime,
 	}

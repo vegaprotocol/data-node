@@ -51,7 +51,7 @@ func (ps *Positions) Add(ctx context.Context, p entities.Position) error {
 }
 
 func (ps *Positions) GetByMarketAndParty(ctx context.Context,
-	marketID entities.MarketID,
+	marketID entities.ID[entities.Market],
 	partyID entities.PartyID,
 ) (entities.Position, error) {
 	position := entities.Position{}
@@ -68,7 +68,7 @@ func (ps *Positions) GetByMarketAndParty(ctx context.Context,
 	return position, err
 }
 
-func (ps *Positions) GetByMarket(ctx context.Context, marketID entities.MarketID) ([]entities.Position, error) {
+func (ps *Positions) GetByMarket(ctx context.Context, marketID entities.ID[entities.Market]) ([]entities.Position, error) {
 	defer metrics.StartSQLQuery("Positions", "GetByMarket")()
 	positions := []entities.Position{}
 	err := pgxscan.Select(ctx, ps.Connection, &positions,
@@ -86,7 +86,7 @@ func (ps *Positions) GetByParty(ctx context.Context, partyID entities.PartyID) (
 	return positions, err
 }
 
-func (ps *Positions) GetByPartyConnection(ctx context.Context, partyID entities.PartyID, marketID entities.MarketID, pagination entities.CursorPagination) ([]entities.Position, entities.PageInfo, error) {
+func (ps *Positions) GetByPartyConnection(ctx context.Context, partyID entities.PartyID, marketID entities.ID[entities.Market], pagination entities.CursorPagination) ([]entities.Position, entities.PageInfo, error) {
 	var query string
 	if marketID.String() != "" {
 		query = fmt.Sprintf(`select * from positions_current where party_id=%s`, partyID.String())

@@ -21,10 +21,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type AssetID struct{ ID }
+type AssetID struct{ OldID }
 
 func NewAssetID(id string) AssetID {
-	return AssetID{ID: ID(id)}
+	return AssetID{OldID: OldID(id)}
 }
 
 type Asset struct {

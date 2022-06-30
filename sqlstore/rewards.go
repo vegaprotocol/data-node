@@ -163,7 +163,7 @@ func addRewardWhereClause(queryPtr *string, args *[]interface{}, partyIDHex, ass
 			clause = "AND"
 		}
 
-		assetID := entities.ID(*assetIDHex)
+		assetID := entities.OldID(*assetIDHex)
 		query = fmt.Sprintf("%s %s asset_id=%s", query, clause, nextBindVar(args, assetID))
 	}
 	*queryPtr = query

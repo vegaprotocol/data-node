@@ -22,10 +22,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type TradeID struct{ ID }
+type TradeID struct{ OldID }
 
 func NewTradeID(id string) TradeID {
-	return TradeID{ID: ID(id)}
+	return TradeID{OldID: OldID(id)}
 }
 
 type Trade struct {
@@ -33,7 +33,7 @@ type Trade struct {
 	VegaTime                time.Time
 	SeqNum                  uint64
 	ID                      TradeID
-	MarketID                MarketID
+	MarketID                ID[Market]
 	Price                   decimal.Decimal
 	Size                    uint64
 	Buyer                   PartyID
@@ -144,7 +144,7 @@ func TradeFromProto(t *vega.Trade, vegaTime time.Time, sequenceNumber uint64) (*
 		VegaTime:                vegaTime,
 		SeqNum:                  sequenceNumber,
 		ID:                      NewTradeID(t.Id),
-		MarketID:                NewMarketID(t.MarketId),
+		MarketID:                ID[Market](t.MarketId),
 		Price:                   price,
 		Size:                    t.Size,
 		Buyer:                   NewPartyID(t.Buyer),

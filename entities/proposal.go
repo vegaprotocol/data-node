@@ -29,10 +29,10 @@ var (
 	ProposalTypeNewFreeform            = ProposalType("newFreeform")
 )
 
-type ProposalID struct{ ID }
+type ProposalID struct{ OldID }
 
 func NewProposalID(id string) ProposalID {
-	return ProposalID{ID: ID(id)}
+	return ProposalID{OldID: OldID(id)}
 }
 
 type Proposal struct {

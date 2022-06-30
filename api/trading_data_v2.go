@@ -775,7 +775,7 @@ func (t *tradingDataServiceV2) GetPositionsByPartyConnection(ctx context.Context
 		return nil, apiError(codes.InvalidArgument, err)
 	}
 
-	positions, pageInfo, err := t.positionService.GetByPartyConnection(ctx, entities.NewPartyID(in.PartyId), entities.NewMarketID(in.MarketId), pagination)
+	positions, pageInfo, err := t.positionService.GetByPartyConnection(ctx, entities.NewPartyID(in.PartyId), entities.ID[entities.Market](in.MarketId), pagination)
 	if err != nil {
 		return nil, apiError(codes.Internal, err)
 	}

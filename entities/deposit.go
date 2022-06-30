@@ -22,10 +22,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type DepositID struct{ ID }
+type DepositID struct{ OldID }
 
 func NewDepositID(id string) DepositID {
-	return DepositID{ID: ID(id)}
+	return DepositID{OldID: OldID(id)}
 }
 
 type Deposit struct {

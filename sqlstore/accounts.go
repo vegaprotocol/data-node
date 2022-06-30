@@ -41,14 +41,14 @@ func NewAccounts(connectionSource *ConnectionSource) *Accounts {
 type accountCacheKey struct {
 	PartyID  entities.PartyID
 	AssetID  entities.AssetID
-	MarketID entities.MarketID
+	MarketID entities.ID[entities.Market]
 	Type     vega.AccountType
 }
 
 func (as *Accounts) checkCache(
 	partyID entities.PartyID,
 	assetID entities.AssetID,
-	marketID entities.MarketID,
+	marketID entities.ID[entities.Market],
 	accType vega.AccountType,
 ) (entities.Account, bool) {
 	key := accountCacheKey{partyID, assetID, marketID, accType}

@@ -38,7 +38,7 @@ type MarketData struct {
 	store     MarketDataStore
 	log       *logging.Logger
 	observer  utils.Observer[*entities.MarketData]
-	cache     map[entities.MarketID]*entities.MarketData
+	cache     map[entities.ID[entities.Market]]*entities.MarketData
 	cacheLock sync.RWMutex
 }
 
@@ -47,7 +47,7 @@ func NewMarketData(store MarketDataStore, log *logging.Logger) *MarketData {
 		log:      log,
 		store:    store,
 		observer: utils.NewObserver[*entities.MarketData]("market_data", log, 0, 0),
-		cache:    make(map[entities.MarketID]*entities.MarketData),
+		cache:    make(map[entities.ID[entities.Market]]*entities.MarketData),
 	}
 }
 
@@ -88,7 +88,7 @@ func (m *MarketData) GetMarketDataByID(ctx context.Context, marketID string) (en
 	m.cacheLock.RLock()
 	defer m.cacheLock.RUnlock()
 
-	data, ok := m.cache[entities.NewMarketID(marketID)]
+	data, ok := m.cache[entities.ID[entities.Market](marketID)]
 	if !ok {
 		return entities.MarketData{}, fmt.Errorf("no market data for market: %v", marketID)
 	}

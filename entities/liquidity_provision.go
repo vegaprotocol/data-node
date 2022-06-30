@@ -23,12 +23,12 @@ import (
 )
 
 type LiquidityProvisionID struct {
-	ID
+	OldID
 }
 
 func NewLiquidityProvisionID(id string) LiquidityProvisionID {
 	return LiquidityProvisionID{
-		ID: ID(id),
+		OldID: OldID(id),
 	}
 }
 
@@ -53,7 +53,7 @@ type LiquidityProvision struct {
 	PartyID          PartyID
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
-	MarketID         MarketID
+	MarketID         ID[Market]
 	CommitmentAmount decimal.Decimal
 	Fee              decimal.Decimal
 	Sells            []LiquidityOrderReference
@@ -67,7 +67,7 @@ type LiquidityProvision struct {
 func LiquidityProvisionFromProto(lpProto *vega.LiquidityProvision, vegaTime time.Time) (LiquidityProvision, error) {
 	lpID := NewLiquidityProvisionID(lpProto.Id)
 	partyID := NewPartyID(lpProto.PartyId)
-	marketID := NewMarketID(lpProto.MarketId)
+	marketID := ID[Market](lpProto.MarketId)
 
 	commitmentAmount, err := decimal.NewFromString(lpProto.CommitmentAmount)
 	if err != nil {

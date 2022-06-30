@@ -23,14 +23,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type MarketID struct{ ID }
-
-func NewMarketID(id string) MarketID {
-	return MarketID{ID: ID(id)}
-}
-
 type Market struct {
-	ID                            MarketID
+	ID                            ID[Market]
 	VegaTime                      time.Time
 	InstrumentID                  string
 	TradableInstrument            TradableInstrument
@@ -86,7 +80,7 @@ func NewMarketFromProto(market *vega.Market, vegaTime time.Time) (*Market, error
 	positionDps := int(market.PositionDecimalPlaces)
 
 	return &Market{
-		ID:                            NewMarketID(market.Id),
+		ID:                            ID[Market](market.Id),
 		VegaTime:                      vegaTime,
 		InstrumentID:                  market.TradableInstrument.Instrument.Id,
 		TradableInstrument:            TradableInstrument{market.TradableInstrument},

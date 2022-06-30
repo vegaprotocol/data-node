@@ -34,7 +34,7 @@ type MarketStore interface {
 type Markets struct {
 	store     MarketStore
 	log       *logging.Logger
-	cache     map[entities.MarketID]*entities.Market
+	cache     map[entities.ID[entities.Market]]*entities.Market
 	cacheLock sync.RWMutex
 }
 
@@ -42,7 +42,7 @@ func NewMarkets(store MarketStore, log *logging.Logger) *Markets {
 	return &Markets{
 		store: store,
 		log:   log,
-		cache: make(map[entities.MarketID]*entities.Market),
+		cache: make(map[entities.ID[entities.Market]]*entities.Market),
 	}
 }
 
@@ -74,7 +74,7 @@ func (m *Markets) GetByID(ctx context.Context, marketID string) (entities.Market
 	m.cacheLock.RLock()
 	defer m.cacheLock.RUnlock()
 
-	data, ok := m.cache[entities.NewMarketID(marketID)]
+	data, ok := m.cache[entities.ID[entities.Market](marketID)]
 	if !ok {
 		return entities.Market{}, fmt.Errorf("no such market: %v", marketID)
 	}

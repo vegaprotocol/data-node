@@ -272,43 +272,43 @@ func populateTestMarkets(ctx context.Context, t *testing.T, bs *sqlstore.Blocks,
 
 	markets := []entities.Market{
 		{
-			ID:           entities.NewMarketID("02a16077"),
+			ID:           entities.ID[entities.Market]("02a16077"),
 			InstrumentID: "AAA",
 		},
 		{
-			ID:           entities.NewMarketID("44eea1bc"),
+			ID:           entities.ID[entities.Market]("44eea1bc"),
 			InstrumentID: "BBB",
 		},
 		{
-			ID:           entities.NewMarketID("65be62cd"),
+			ID:           entities.ID[entities.Market]("65be62cd"),
 			InstrumentID: "CCC",
 		},
 		{
-			ID:           entities.NewMarketID("7a797e0e"),
+			ID:           entities.ID[entities.Market]("7a797e0e"),
 			InstrumentID: "DDD",
 		},
 		{
-			ID:           entities.NewMarketID("7bb2356e"),
+			ID:           entities.ID[entities.Market]("7bb2356e"),
 			InstrumentID: "EEE",
 		},
 		{
-			ID:           entities.NewMarketID("b7c84b8e"),
+			ID:           entities.ID[entities.Market]("b7c84b8e"),
 			InstrumentID: "FFF",
 		},
 		{
-			ID:           entities.NewMarketID("c612300d"),
+			ID:           entities.ID[entities.Market]("c612300d"),
 			InstrumentID: "GGG",
 		},
 		{
-			ID:           entities.NewMarketID("c8744329"),
+			ID:           entities.ID[entities.Market]("c8744329"),
 			InstrumentID: "HHH",
 		},
 		{
-			ID:           entities.NewMarketID("da8d1803"),
+			ID:           entities.ID[entities.Market]("da8d1803"),
 			InstrumentID: "III",
 		},
 		{
-			ID:           entities.NewMarketID("fb1528a5"),
+			ID:           entities.ID[entities.Market]("fb1528a5"),
 			InstrumentID: "JJJ",
 		},
 	}

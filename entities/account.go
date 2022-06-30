@@ -30,7 +30,7 @@ type Account struct {
 	ID       int64
 	PartyID  PartyID
 	AssetID  AssetID
-	MarketID MarketID
+	MarketID ID[Market]
 	Type     vega.AccountType
 	VegaTime time.Time
 }
@@ -43,7 +43,7 @@ func AccountFromProto(va *vega.Account) (Account, error) {
 	account := Account{
 		PartyID:  NewPartyID(va.Owner),
 		AssetID:  NewAssetID(va.Asset),
-		MarketID: NewMarketID(va.MarketId),
+		MarketID: ID[Market](va.MarketId),
 		Type:     va.Type,
 	}
 	return account, nil
@@ -62,12 +62,12 @@ func AccountFromAccountID(id string) (Account, error) {
 	// Market ID is first, '!' indicates no market
 	if id[offset] == noMarketByte {
 		offset++
-		a.MarketID = NewMarketID(noMarketStr)
+		a.MarketID = ID[Market](noMarketStr)
 	} else {
 		if len(id) < 64 {
 			return Account{}, fmt.Errorf("account id too short: %v", id)
 		}
-		a.MarketID = NewMarketID(id[0:64])
+		a.MarketID = ID[Market](id[0:64])
 		if err := a.MarketID.Error(); err != nil {
 			return Account{}, fmt.Errorf("account id: %w", err)
 		}

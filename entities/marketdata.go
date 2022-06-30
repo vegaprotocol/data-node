@@ -55,7 +55,7 @@ type MarketData struct {
 	// Arithmetic average of the best static bid price and best static offer price
 	StaticMidPrice decimal.Decimal
 	// Market identifier for the data
-	Market MarketID
+	Market ID[Market]
 	// The sum of the size of all positions greater than 0 on the market
 	OpenInterest int64
 	// Time in seconds until the end of the auction (0 if currently not in auction period)
@@ -194,7 +194,7 @@ func MarketDataFromProto(data *types.MarketData) (*MarketData, error) {
 		BestStaticOfferVolume:      bestStaticOfferVolume,
 		MidPrice:                   mid,
 		StaticMidPrice:             staticMid,
-		Market:                     NewMarketID(data.Market),
+		Market:                     ID[Market](data.Market),
 		OpenInterest:               openInterest,
 		AuctionEnd:                 data.AuctionEnd,
 		AuctionStart:               data.AuctionStart,

@@ -100,7 +100,7 @@ func (ts *Trades) Add(t *entities.Trade) error {
 
 func (ts *Trades) GetByMarket(ctx context.Context, market string, p entities.OffsetPagination) ([]entities.Trade, error) {
 	query := `SELECT * from trades WHERE market_id=$1`
-	args := []interface{}{entities.NewMarketID(market)}
+	args := []interface{}{entities.ID[entities.Market](market)}
 	defer metrics.StartSQLQuery("Trades", "GetByMarket")()
 	trades, err := ts.queryTrades(ctx, query, args, &p)
 	if err != nil {
@@ -112,7 +112,7 @@ func (ts *Trades) GetByMarket(ctx context.Context, market string, p entities.Off
 
 func (ts *Trades) GetByMarketWithCursor(ctx context.Context, market string, pagination entities.CursorPagination) ([]entities.Trade, entities.PageInfo, error) {
 	query := `SELECT * from trades WHERE market_id=$1`
-	args := []interface{}{entities.NewMarketID(market)}
+	args := []interface{}{entities.ID[entities.Market](market)}
 	trades, pageInfo, err := ts.queryTradesWithCursorPagination(ctx, query, args, pagination)
 	if err != nil {
 		return nil, pageInfo, fmt.Errorf("failed to get trade by market:%w", err)
@@ -154,7 +154,7 @@ func (ts *Trades) GetByOrderIDWithCursor(ctx context.Context, order string, mark
 
 func (ts *Trades) queryTradesWithMarketFilter(ctx context.Context, query string, args []interface{}, market *string, p entities.OffsetPagination) ([]entities.Trade, error) {
 	if market != nil && *market != "" {
-		marketID := nextBindVar(&args, entities.NewMarketID(*market))
+		marketID := nextBindVar(&args, entities.ID[entities.Market](*market))
 		query += ` AND market_id=` + marketID
 	}
 
@@ -170,7 +170,7 @@ func (ts *Trades) queryTradesWithMarketFilterAndCursorPagination(ctx context.Con
 	market *string, cursor entities.CursorPagination,
 ) ([]entities.Trade, entities.PageInfo, error) {
 	if market != nil && *market != "" {
-		marketID := nextBindVar(&args, entities.NewMarketID(*market))
+		marketID := nextBindVar(&args, entities.ID[entities.Market](*market))
 		query += ` AND market_id=` + marketID
 	}
 

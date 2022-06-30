@@ -27,10 +27,10 @@ import (
 )
 
 var (
-	testData1      = entities.MarketData{Market: entities.NewMarketID("aa"), SeqNum: 1}
-	testData2      = entities.MarketData{Market: entities.NewMarketID("bb"), SeqNum: 2}
-	testData3      = entities.MarketData{Market: entities.NewMarketID("aa"), SeqNum: 3}
-	testData4      = entities.MarketData{Market: entities.NewMarketID("cc"), SeqNum: 4}
+	testData1      = entities.MarketData{Market: entities.ID[entities.Market]("aa"), SeqNum: 1}
+	testData2      = entities.MarketData{Market: entities.ID[entities.Market]("bb"), SeqNum: 2}
+	testData3      = entities.MarketData{Market: entities.ID[entities.Market]("aa"), SeqNum: 3}
+	testData4      = entities.MarketData{Market: entities.ID[entities.Market]("cc"), SeqNum: 4}
 	sortMarketData = cmpopts.SortSlices(func(a, b entities.MarketData) bool { return a.SeqNum < b.SeqNum })
 )
 

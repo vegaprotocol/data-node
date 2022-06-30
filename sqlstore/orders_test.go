@@ -83,8 +83,8 @@ func TestOrders(t *testing.T) {
 	}
 
 	markets := []entities.Market{
-		{ID: entities.NewMarketID("aa")},
-		{ID: entities.NewMarketID("bb")},
+		{ID: entities.ID[entities.Market]("aa")},
+		{ID: entities.ID[entities.Market]("bb")},
 	}
 
 	// Make some orders
@@ -252,7 +252,7 @@ func generateParties(t *testing.T, numParties int, block entities.Block, ps *sql
 
 func addTestMarket(t *testing.T, ms *sqlstore.Markets, block entities.Block) entities.Market {
 	market := entities.Market{
-		ID:       entities.NewMarketID(generateID()),
+		ID:       entities.ID[entities.Market](generateID()),
 		VegaTime: block.VegaTime,
 	}
 

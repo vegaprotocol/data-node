@@ -394,7 +394,7 @@ func getTestAccounts(t *testing.T, accounts *sqlstore.Accounts, block entities.B
 
 	assets := sqlstore.NewAssets(connectionSource)
 
-	testAssetId := entities.AssetID{ID: entities.ID(generateID())}
+	testAssetId := entities.AssetID{OldID: entities.OldID(generateID())}
 	testAsset := entities.Asset{
 		ID:            testAssetId,
 		Name:          "testAssetName",
@@ -413,7 +413,7 @@ func getTestAccounts(t *testing.T, accounts *sqlstore.Accounts, block entities.B
 	}
 
 	accountFrom = entities.Account{
-		PartyID:  entities.PartyID{ID: entities.ID(generateID())},
+		PartyID:  entities.PartyID{OldID: entities.OldID(generateID())},
 		AssetID:  testAssetId,
 		Type:     vega.AccountType_ACCOUNT_TYPE_GLOBAL_REWARD,
 		VegaTime: block.VegaTime,
@@ -424,7 +424,7 @@ func getTestAccounts(t *testing.T, accounts *sqlstore.Accounts, block entities.B
 	}
 
 	accountTo = entities.Account{
-		PartyID: entities.PartyID{ID: entities.ID(generateID())},
+		PartyID: entities.PartyID{OldID: entities.OldID(generateID())},
 		AssetID: testAssetId,
 
 		Type:     vega.AccountType_ACCOUNT_TYPE_GENERAL,

@@ -27,10 +27,10 @@ const (
 	ERC20MultiSigSignerEventTypeRemoved ERC20MultiSigSignerEventType = "SIGNER_REMOVED"
 )
 
-type ERC20MultiSigSignerEventID struct{ ID }
+type ERC20MultiSigSignerEventID struct{ OldID }
 
 func NewERC20MultiSigSignerEventID(id string) ERC20MultiSigSignerEventID {
-	return ERC20MultiSigSignerEventID{ID: ID(id)}
+	return ERC20MultiSigSignerEventID{OldID: OldID(id)}
 }
 
 type ERC20MultiSigSignerEvent struct {

@@ -75,7 +75,7 @@ func (ml *MarginLevels) GetMarginLevelsByID(ctx context.Context, partyID, market
 
 func buildAccountWhereClause(partyID, marketID string) (string, []interface{}) {
 	party := entities.NewPartyID(partyID)
-	market := entities.NewMarketID(marketID)
+	market := entities.ID[entities.Market](marketID)
 
 	var bindVars []interface{}
 

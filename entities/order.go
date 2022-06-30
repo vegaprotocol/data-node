@@ -25,15 +25,15 @@ import (
 	"code.vegaprotocol.io/vega/types"
 )
 
-type OrderID struct{ ID }
+type OrderID struct{ OldID }
 
 func NewOrderID(id string) OrderID {
-	return OrderID{ID: ID(id)}
+	return OrderID{OldID: OldID(id)}
 }
 
 type Order struct {
 	ID              OrderID
-	MarketID        MarketID
+	MarketID        ID[Market]
 	PartyID         PartyID
 	Side            Side
 	Price           int64
@@ -140,7 +140,7 @@ func OrderFromProto(po *vega.Order, seqNum uint64) (Order, error) {
 
 	o := Order{
 		ID:              NewOrderID(po.Id),
-		MarketID:        NewMarketID(po.MarketId),
+		MarketID:        ID[Market](po.MarketId),
 		PartyID:         NewPartyID(po.PartyId),
 		Side:            po.Side,
 		Price:           price,
