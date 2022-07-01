@@ -3273,9 +3273,9 @@ type VoteEdge {
   cursor: String
 }
 type VoteConnection {
-  "The total number of positions in this connection"
+  "The total number of votes in this connection"
   totalCount: Int
-  "The positions in this connection"
+  "The votes in this connection"
   edges: [VoteEdge!]
   "The pagination information"
   pageInfo: PageInfo
