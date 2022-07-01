@@ -207,6 +207,10 @@ models:
     model: code.vegaprotocol.io/protos/vega.MarginCalculator
   Vote:
     model: code.vegaprotocol.io/protos/vega.Vote
+  VoteConnection:
+    model: code.vegaprotocol.io/protos/data-node/api/v2.VoteConnection
+  VoteEdge:
+    model: code.vegaprotocol.io/protos/data-node/api/v2.VoteEdge
   MarketTimestamps:
     model: code.vegaprotocol.io/protos/vega.MarketTimestamps
   NodeData:

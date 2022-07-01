@@ -62,6 +62,7 @@ type tradingDataServiceV2 struct {
 	withdrawalService    *service.Withdrawal
 	oracleSpecService    *service.OracleSpec
 	oracleDataService    *service.OracleData
+	governanceService    *service.Governance
 }
 
 func (t *tradingDataServiceV2) checkV2ApiEnabled() error {
@@ -1152,4 +1153,33 @@ func (t *tradingDataServiceV2) GetOracleDataConnection(ctx context.Context, req 
 	}
 
 	return &resp, nil
+}
+
+// Get all Votes using a cursor based pagination model
+func (t *tradingDataServiceV2) GetVotesByPartyConnection(ctx context.Context, in *v2.GetVotesRequest) (*v2.GetVotesResponse, error) {
+	if err := t.checkV2ApiEnabled(); err != nil {
+		return nil, err
+	}
+
+	pagination, err := entities.CursorPaginationFromProto(in.Pagination)
+	if err != nil {
+		return nil, apiError(codes.InvalidArgument, err)
+	}
+
+	positions, pageInfo, err := t.governanceService.GetByPartyConnection(ctx, in.PartyId, pagination)
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+
+	VotesConnection := &v2.VoteConnection{
+		TotalCount: 0, // TODO: implement total count
+		Edges:      makeEdges[*v2.VoteEdge](positions),
+		PageInfo:   pageInfo.ToProto(),
+	}
+
+	resp := &v2.GetVotesResponse{
+		Votes: VotesConnection,
+	}
+
+	return resp, nil
 }

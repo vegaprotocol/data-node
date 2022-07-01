@@ -381,6 +381,11 @@ type Query {
     reference: String
   ): Proposal!
 
+  votesByPartyConnection(
+      partyId: ID
+      pagination: Pagination
+    ): VoteConnection!
+
   "Governance proposals that aim to create new markets"
   newMarketProposals(
     "Returns only proposals in the specified state. Leave out to get all proposals"
@@ -3259,6 +3264,19 @@ type PositionConnection {
   totalCount: Int
   "The positions in this connection"
   edges: [PositionEdge!]
+  "The pagination information"
+  pageInfo: PageInfo
+}
+
+type VoteEdge {
+  node: Vote!
+  cursor: String
+}
+type VoteConnection {
+  "The total number of positions in this connection"
+  totalCount: Int
+  "The positions in this connection"
+  edges: [VoteEdge!]
   "The pagination information"
   pageInfo: PageInfo
 }

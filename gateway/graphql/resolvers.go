@@ -1507,6 +1507,36 @@ func (r *myPartyResolver) Votes(ctx context.Context, party *types.Party) ([]*Pro
 	return result, nil
 }
 
+func (r *myQueryResolver) VotesByParty(ctx context.Context, partyID *string, marketID *string) ([]*types.Vote, error) {
+	if len(*partyID) <= 0 {
+		return nil, errors.New("missing party id")
+	}
+	req := protoapi.GetVotesByPartyRequest{
+		PartyId:  *partyID,
+	}
+	res, err := r.tradingDataClient.GetVotesByParty(ctx, &req)
+	if err != nil {
+		r.log.Error("tradingData client", logging.Error(err))
+		return nil, customErrorFromStatus(err)
+	}
+	return res.Votes, nil
+}
+
+func (r *myQueryResolver) VotesByPartyConnection(ctx context.Context, partyID *string, marketID string, pagination *v2.Pagination) (*v2.VoteConnection, error) {
+	req := v2.GetVotesRequest{
+		PartyId:    *partyID,
+		Pagination: pagination,
+	}
+
+	res, err := r.tradingDataClientV2.GetVotes(ctx, &req)
+	if err != nil {
+		r.log.Error("tradingData client", logging.Error(err))
+		return nil, customErrorFromStatus(err)
+	}
+
+	return res.Votes, nil
+}
+
 func (r *myPartyResolver) Delegations(
 	ctx context.Context,
 	obj *types.Party,

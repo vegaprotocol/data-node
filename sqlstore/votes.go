@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"strings"
 
+	v2 "code.vegaprotocol.io/protos/data-node/api/v2"
+
 	"code.vegaprotocol.io/data-node/entities"
 	"code.vegaprotocol.io/data-node/metrics"
 	"github.com/georgysavva/scany/pgxscan"
@@ -73,6 +75,28 @@ func (rs *Votes) GetNoVotesForProposal(ctx context.Context, proposalIDStr string
 func (rs *Votes) GetByParty(ctx context.Context, partyIDStr string) ([]entities.Vote, error) {
 	defer metrics.StartSQLQuery("Votes", "GetByParty")()
 	return rs.Get(ctx, nil, &partyIDStr, nil)
+}
+
+func (rs *Votes) GetByPartyConnection(ctx context.Context, partyIDStr string, pagination entities.CursorPagination) ([]entities.Vote, entities.PageInfo, error) {
+	query := fmt.Sprintf(`select * from votes where party_id=%s`, partyIDStr)
+	
+
+	positions := make([]entities.Vote, 0)
+	args := make([]interface{}, 0)
+
+	var pagedVotes []entities.Vote
+	var pageInfo entities.PageInfo
+
+	sorting, cmp, cursor := extractPaginationInfo(pagination)
+	cursors := []CursorQueryParameter{NewCursorQueryParameter("vega_time", sorting, cmp, cursor)}
+	query, args = orderAndPaginateWithCursor(query, pagination, cursors, args...)
+
+	if err := pgxscan.Select(ctx, ps.Connection, &positions, query, args...); err != nil {
+		return nil, entities.PageInfo{}, err
+	}
+
+	pagedVotes, pageInfo = entities.PageEntities[*v2.VoteEdge](positions, pagination)
+	return pagedVotes, pageInfo, nil
 }
 
 func (rs *Votes) Get(ctx context.Context,
