@@ -954,6 +954,7 @@ type ComplexityRoot struct {
 		Statistics                         func(childComplexity int) int
 		Transfers                          func(childComplexity int, pubkey string, isFrom *bool, isTo *bool) int
 		UpdateMarketProposals              func(childComplexity int, marketID *string, inState *ProposalState) int
+		VotesByPartyConnection             func(childComplexity int, partyID *string, pagination *v2.Pagination) int
 		Withdrawal                         func(childComplexity int, id string) int
 	}
 
@@ -1241,6 +1242,17 @@ type ComplexityRoot struct {
 		Party                  func(childComplexity int) int
 		ProposalId             func(childComplexity int) int
 		Value                  func(childComplexity int) int
+	}
+
+	VoteConnection struct {
+		Edges      func(childComplexity int) int
+		PageInfo   func(childComplexity int) int
+		TotalCount func(childComplexity int) int
+	}
+
+	VoteEdge struct {
+		Cursor func(childComplexity int) int
+		Node   func(childComplexity int) int
 	}
 
 	Withdrawal struct {
@@ -1580,6 +1592,7 @@ type QueryResolver interface {
 	OrderByReference(ctx context.Context, reference string) (*vega.Order, error)
 	Proposals(ctx context.Context, inState *ProposalState) ([]*vega.GovernanceData, error)
 	Proposal(ctx context.Context, id *string, reference *string) (*vega.GovernanceData, error)
+	VotesByPartyConnection(ctx context.Context, partyID *string, pagination *v2.Pagination) (*v2.VoteConnection, error)
 	NewMarketProposals(ctx context.Context, inState *ProposalState) ([]*vega.GovernanceData, error)
 	UpdateMarketProposals(ctx context.Context, marketID *string, inState *ProposalState) ([]*vega.GovernanceData, error)
 	NetworkParametersProposals(ctx context.Context, inState *ProposalState) ([]*vega.GovernanceData, error)
@@ -5720,6 +5733,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.UpdateMarketProposals(childComplexity, args["marketId"].(*string), args["inState"].(*ProposalState)), true
 
+	case "Query.votesByPartyConnection":
+		if e.complexity.Query.VotesByPartyConnection == nil {
+			break
+		}
+
+		args, err := ec.field_Query_votesByPartyConnection_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.VotesByPartyConnection(childComplexity, args["partyId"].(*string), args["pagination"].(*v2.Pagination)), true
+
 	case "Query.withdrawal":
 		if e.complexity.Query.Withdrawal == nil {
 			break
@@ -7021,6 +7046,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Vote.Value(childComplexity), true
 
+	case "VoteConnection.edges":
+		if e.complexity.VoteConnection.Edges == nil {
+			break
+		}
+
+		return e.complexity.VoteConnection.Edges(childComplexity), true
+
+	case "VoteConnection.pageInfo":
+		if e.complexity.VoteConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.VoteConnection.PageInfo(childComplexity), true
+
+	case "VoteConnection.totalCount":
+		if e.complexity.VoteConnection.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.VoteConnection.TotalCount(childComplexity), true
+
+	case "VoteEdge.cursor":
+		if e.complexity.VoteEdge.Cursor == nil {
+			break
+		}
+
+		return e.complexity.VoteEdge.Cursor(childComplexity), true
+
+	case "VoteEdge.node":
+		if e.complexity.VoteEdge.Node == nil {
+			break
+		}
+
+		return e.complexity.VoteEdge.Node(childComplexity), true
+
 	case "Withdrawal.amount":
 		if e.complexity.Withdrawal.Amount == nil {
 			break
@@ -7582,6 +7642,11 @@ type Query {
     "Optionally, locate proposal by its reference. If id is set, this parameter is ignored."
     reference: String
   ): Proposal!
+
+  votesByPartyConnection(
+      partyId: ID
+      pagination: Pagination
+    ): VoteConnection!
 
   "Governance proposals that aim to create new markets"
   newMarketProposals(
@@ -10465,6 +10530,19 @@ type PositionConnection {
   pageInfo: PageInfo
 }
 
+type VoteEdge {
+  node: Vote!
+  cursor: String
+}
+type VoteConnection {
+  "The total number of votes in this connection"
+  totalCount: Int
+  "The votes in this connection"
+  edges: [VoteEdge!]
+  "The pagination information"
+  pageInfo: PageInfo
+}
+
 type MarginEdge {
   node: MarginLevels!
   cursor: String
@@ -12188,6 +12266,30 @@ func (ec *executionContext) field_Query_updateMarketProposals_args(ctx context.C
 		}
 	}
 	args["inState"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_votesByPartyConnection_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["partyId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("partyId"))
+		arg0, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["partyId"] = arg0
+	var arg1 *v2.Pagination
+	if tmp, ok := rawArgs["pagination"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+		arg1, err = ec.unmarshalOPagination2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPagination(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["pagination"] = arg1
 	return args, nil
 }
 
@@ -29874,6 +29976,48 @@ func (ec *executionContext) _Query_proposal(ctx context.Context, field graphql.C
 	return ec.marshalNProposal2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐGovernanceData(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_votesByPartyConnection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_votesByPartyConnection_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().VotesByPartyConnection(rctx, args["partyId"].(*string), args["pagination"].(*v2.Pagination))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*v2.VoteConnection)
+	fc.Result = res
+	return ec.marshalNVoteConnection2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐVoteConnection(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_newMarketProposals(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -37111,6 +37255,169 @@ func (ec *executionContext) _Vote_governanceTokenWeight(ctx context.Context, fie
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _VoteConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *v2.VoteConnection) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "VoteConnection",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TotalCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalOInt2int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _VoteConnection_edges(ctx context.Context, field graphql.CollectedField, obj *v2.VoteConnection) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "VoteConnection",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Edges, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*v2.VoteEdge)
+	fc.Result = res
+	return ec.marshalOVoteEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐVoteEdgeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _VoteConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *v2.VoteConnection) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "VoteConnection",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PageInfo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*v2.PageInfo)
+	fc.Result = res
+	return ec.marshalOPageInfo2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐPageInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _VoteEdge_node(ctx context.Context, field graphql.CollectedField, obj *v2.VoteEdge) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "VoteEdge",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Node, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*vega.Vote)
+	fc.Result = res
+	return ec.marshalNVote2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐVote(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _VoteEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *v2.VoteEdge) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "VoteEdge",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Withdrawal_id(ctx context.Context, field graphql.CollectedField, obj *vega.Withdrawal) (ret graphql.Marshaler) {
@@ -48184,6 +48491,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
+		case "votesByPartyConnection":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_votesByPartyConnection(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "newMarketProposals":
 			field := field
 
@@ -51719,6 +52049,86 @@ func (ec *executionContext) _Vote(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var voteConnectionImplementors = []string{"VoteConnection"}
+
+func (ec *executionContext) _VoteConnection(ctx context.Context, sel ast.SelectionSet, obj *v2.VoteConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, voteConnectionImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("VoteConnection")
+		case "totalCount":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._VoteConnection_totalCount(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+		case "edges":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._VoteConnection_edges(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+		case "pageInfo":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._VoteConnection_pageInfo(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var voteEdgeImplementors = []string{"VoteEdge"}
+
+func (ec *executionContext) _VoteEdge(ctx context.Context, sel ast.SelectionSet, obj *v2.VoteEdge) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, voteEdgeImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("VoteEdge")
+		case "node":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._VoteEdge_node(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cursor":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._VoteEdge_cursor(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var withdrawalImplementors = []string{"Withdrawal", "Event"}
 
 func (ec *executionContext) _Withdrawal(ctx context.Context, sel ast.SelectionSet, obj *vega.Withdrawal) graphql.Marshaler {
@@ -54438,6 +54848,30 @@ func (ec *executionContext) marshalNVote2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋ
 		return graphql.Null
 	}
 	return ec._Vote(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNVoteConnection2codeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐVoteConnection(ctx context.Context, sel ast.SelectionSet, v v2.VoteConnection) graphql.Marshaler {
+	return ec._VoteConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNVoteConnection2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐVoteConnection(ctx context.Context, sel ast.SelectionSet, v *v2.VoteConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._VoteConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNVoteEdge2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐVoteEdge(ctx context.Context, sel ast.SelectionSet, v *v2.VoteEdge) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._VoteEdge(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNVoteValue2codeᚗvegaprotocolᚗioᚋdataᚑnodeᚋgatewayᚋgraphqlᚐVoteValue(ctx context.Context, v interface{}) (VoteValue, error) {
@@ -57899,6 +58333,53 @@ func (ec *executionContext) marshalOVote2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotos
 				defer wg.Done()
 			}
 			ret[i] = ec.marshalNVote2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋvegaᚐVote(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalOVoteEdge2ᚕᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐVoteEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*v2.VoteEdge) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNVoteEdge2ᚖcodeᚗvegaprotocolᚗioᚋprotosᚋdataᚑnodeᚋapiᚋv2ᚐVoteEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)

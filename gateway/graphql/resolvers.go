@@ -1512,7 +1512,7 @@ func (r *myQueryResolver) VotesByParty(ctx context.Context, partyID *string, mar
 		return nil, errors.New("missing party id")
 	}
 	req := protoapi.GetVotesByPartyRequest{
-		PartyId:  *partyID,
+		PartyId: *partyID,
 	}
 	res, err := r.tradingDataClient.GetVotesByParty(ctx, &req)
 	if err != nil {
@@ -1522,7 +1522,7 @@ func (r *myQueryResolver) VotesByParty(ctx context.Context, partyID *string, mar
 	return res.Votes, nil
 }
 
-func (r *myQueryResolver) VotesByPartyConnection(ctx context.Context, partyID *string, marketID string, pagination *v2.Pagination) (*v2.VoteConnection, error) {
+func (r *myQueryResolver) VotesByPartyConnection(ctx context.Context, partyID *string, pagination *v2.Pagination) (*v2.VoteConnection, error) {
 	req := v2.GetVotesRequest{
 		PartyId:    *partyID,
 		Pagination: pagination,
