@@ -101,6 +101,14 @@ func TestGetNodes(t *testing.T) {
 
 	node, err = ns.GetNodeByID(ctx, "DEADBEEF", 3)
 	require.Error(t, err)
+
+	// check the value can be changed, since this happens during a checkpoint restore
+	// we were need to remove genesis validators if they aren't in the checkpoint
+	addNodeAnnounced(t, ns, node1.ID, true, 7)
+	// get all nodes
+	found, err = ns.GetNodes(ctx, 7)
+	require.NoError(t, err)
+	require.Len(t, found, 1)
 }
 
 func TestGetNodesJoiningAndLeaving(t *testing.T) {
