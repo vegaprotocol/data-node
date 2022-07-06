@@ -1048,28 +1048,24 @@ func (t *tradingDataServiceV2) GetOracleDataConnection(ctx context.Context, req 
 }
 
 // Get all Votes using a cursor based pagination model
-func (t *tradingDataServiceV2) GetVotesByPartyConnection(ctx context.Context, in *v2.GetVotesRequest) (*v2.GetVotesResponse, error) {
-	if err := t.checkV2ApiEnabled(); err != nil {
-		return nil, err
-	}
-
+func (t *tradingDataServiceV2) ListVotes(ctx context.Context, in *v2.ListVotesRequest) (*v2.ListVotesResponse, error) {
 	pagination, err := entities.CursorPaginationFromProto(in.Pagination)
 	if err != nil {
 		return nil, apiError(codes.InvalidArgument, err)
 	}
 
-	positions, pageInfo, err := t.governanceService.GetByPartyConnection(ctx, in.PartyId, pagination)
+	votes, pageInfo, err := t.governanceService.GetByPartyConnection(ctx, in.PartyId, pagination)
 	if err != nil {
 		return nil, apiError(codes.Internal, err)
 	}
 
 	VotesConnection := &v2.VoteConnection{
 		TotalCount: 0, // TODO: implement total count
-		Edges:      makeEdges[*v2.VoteEdge](positions),
+		Edges:      makeEdges[*v2.VoteEdge](votes),
 		PageInfo:   pageInfo.ToProto(),
 	}
 
-	resp := &v2.GetVotesResponse{
+	resp := &v2.ListVotesResponse{
 		Votes: VotesConnection,
 	}
 

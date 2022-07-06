@@ -271,12 +271,6 @@ type Query {
   "An instrument that is trading on the VEGA network"
   market("Optional ID of a market" id: ID!): Market
 
-  positionsByPartyConnection(
-    partyId: ID
-    marketId: ID!
-    pagination: Pagination
-  ): PositionConnection!
-
   "One or more entities that are trading on the VEGA network"
   parties("Optional ID of a party" id: ID): [Party!]
 
@@ -380,11 +374,6 @@ type Query {
     "Optionally, locate proposal by its reference. If id is set, this parameter is ignored."
     reference: String
   ): Proposal!
-
-  votesByPartyConnection(
-      partyId: ID
-      pagination: Pagination
-    ): VoteConnection!
 
   "Governance proposals that aim to create new markets"
   newMarketProposals(
@@ -1648,7 +1637,10 @@ type Party {
   ): [Account!]
 
   "Trading positions relating to a party"
-  positions: [Position!]
+  positions: [Position!] @deprecated(reason: "Use the 'positionsConnection' field instead")
+
+  "Trading positions relating to a party"
+  positionsConnection(market: ID, pagination: Pagination): PositionConnection!
 
   "marginLevels"
   margins(
@@ -1670,6 +1662,8 @@ type Party {
   ): [Proposal]
 
   votes: [ProposalVote]
+
+  votesConnection(pagination: Pagination): ProposalVoteConnection!
 
   "The list of all withdrawals initiated by the party"
   withdrawals: [Withdrawal!] @deprecated(reason: "Use withdrawalsConnection instead")
@@ -2774,7 +2768,6 @@ type Vote {
 type ProposalVote {
   "Cast vote"
   vote: Vote!
-
   "Proposal casting the vote on"
   proposalId: ID!
 }
@@ -3286,11 +3279,26 @@ type VoteEdge {
   node: Vote!
   cursor: String
 }
+
 type VoteConnection {
   "The total number of votes in this connection"
   totalCount: Int
   "The votes in this connection"
   edges: [VoteEdge!]
+  "The pagination information"
+  pageInfo: PageInfo
+}
+
+type ProposalVoteEdge {
+  node: ProposalVote!
+  cursor: String
+}
+
+type ProposalVoteConnection {
+  "The total number of proposal votes in this connection"
+  totalCount: Int
+  "The proposal votes in this connection"
+  edges: [ProposalVoteEdge!]
   "The pagination information"
   pageInfo: PageInfo
 }
