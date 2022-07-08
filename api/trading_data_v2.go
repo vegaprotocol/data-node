@@ -63,7 +63,7 @@ type tradingDataServiceV2 struct {
 	oracleSpecService         *service.OracleSpec
 	oracleDataService         *service.OracleData
 	liquidityProvisionService *service.LiquidityProvision
-	governanceService    *service.Governance
+	governanceService         *service.Governance
 }
 
 func (t *tradingDataServiceV2) GetBalanceHistory(ctx context.Context, req *v2.GetBalanceHistoryRequest) (*v2.GetBalanceHistoryResponse, error) {
