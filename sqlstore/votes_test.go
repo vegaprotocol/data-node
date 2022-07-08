@@ -166,12 +166,18 @@ func TestVotesCursorPagination(t *testing.T) {
 	t.Run("Should return requested page of votes if first is provided with after cursor", testVotesCursorPaginationFirstWithAfter)
 	t.Run("Should return last page of votes if last is provided no before cursor", testVotesCursorPaginationLastNoBefore)
 	t.Run("Should return requested page of votes if last is provided with before cursor", testVotesCursorPaginationLastWithBefore)
+
+	t.Run("Should return all votes if no pagination is provided - newest first", testVotesCursorPaginationNoPaginationNewestFirst)
+	t.Run("Should return first page of votes if first is provided no after cursor - newest first", testVotesCursorPaginationFirstNoAfterNewestFirst)
+	t.Run("Should return requested page of votes if first is provided with after cursor - newest first", testVotesCursorPaginationFirstWithAfterNewestFirst)
+	t.Run("Should return last page of votes if last is provided no before cursor - newest first", testVotesCursorPaginationLastNoBeforeNewestFirst)
+	t.Run("Should return requested page of votes if last is provided with before cursor - newest first", testVotesCursorPaginationLastWithBeforeNewestFirst)
 }
 
 func testVotesCursorPaginationNoPagination(t *testing.T) {
 	defer DeleteEverything()
 	vs, party, votes := setupPaginationTestVotes(t)
-	pagination, err := entities.NewCursorPagination(nil, nil, nil, nil)
+	pagination, err := entities.NewCursorPagination(nil, nil, nil, nil, false)
 	require.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -190,7 +196,7 @@ func testVotesCursorPaginationFirstNoAfter(t *testing.T) {
 	defer DeleteEverything()
 	vs, party, votes := setupPaginationTestVotes(t)
 	first := int32(3)
-	pagination, err := entities.NewCursorPagination(&first, nil, nil, nil)
+	pagination, err := entities.NewCursorPagination(&first, nil, nil, nil, false)
 	require.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -210,7 +216,7 @@ func testVotesCursorPaginationFirstWithAfter(t *testing.T) {
 	vs, party, votes := setupPaginationTestVotes(t)
 	first := int32(3)
 	after := votes[2].Cursor().Encode()
-	pagination, err := entities.NewCursorPagination(&first, &after, nil, nil)
+	pagination, err := entities.NewCursorPagination(&first, &after, nil, nil, false)
 	require.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -229,7 +235,7 @@ func testVotesCursorPaginationLastNoBefore(t *testing.T) {
 	defer DeleteEverything()
 	vs, party, votes := setupPaginationTestVotes(t)
 	last := int32(3)
-	pagination, err := entities.NewCursorPagination(nil, nil, &last, nil)
+	pagination, err := entities.NewCursorPagination(nil, nil, &last, nil, false)
 	require.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -249,7 +255,108 @@ func testVotesCursorPaginationLastWithBefore(t *testing.T) {
 	vs, party, votes := setupPaginationTestVotes(t)
 	last := int32(3)
 	before := votes[7].Cursor().Encode()
-	pagination, err := entities.NewCursorPagination(nil, nil, &last, &before)
+	pagination, err := entities.NewCursorPagination(nil, nil, &last, &before, false)
+	require.NoError(t, err)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	got, pageInfo, err := vs.GetByPartyConnection(ctx, party.ID.String(), pagination)
+	require.NoError(t, err)
+	require.Equal(t, votes[4:7], got)
+	require.Equal(t, entities.PageInfo{
+		HasNextPage:     true,
+		HasPreviousPage: true,
+		StartCursor:     votes[4].Cursor().Encode(),
+		EndCursor:       votes[6].Cursor().Encode(),
+	}, pageInfo)
+}
+
+func testVotesCursorPaginationNoPaginationNewestFirst(t *testing.T) {
+	defer DeleteEverything()
+	vs, party, votes := setupPaginationTestVotes(t)
+	votes = entities.ReverseSlice(votes)
+	pagination, err := entities.NewCursorPagination(nil, nil, nil, nil, true)
+	require.NoError(t, err)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	got, pageInfo, err := vs.GetByPartyConnection(ctx, party.ID.String(), pagination)
+	require.NoError(t, err)
+	require.Equal(t, votes, got)
+	require.Equal(t, entities.PageInfo{
+		HasNextPage:     false,
+		HasPreviousPage: false,
+		StartCursor:     votes[0].Cursor().Encode(),
+		EndCursor:       votes[len(votes)-1].Cursor().Encode(),
+	}, pageInfo)
+}
+
+func testVotesCursorPaginationFirstNoAfterNewestFirst(t *testing.T) {
+	defer DeleteEverything()
+	vs, party, votes := setupPaginationTestVotes(t)
+	votes = entities.ReverseSlice(votes)
+	first := int32(3)
+	pagination, err := entities.NewCursorPagination(&first, nil, nil, nil, true)
+	require.NoError(t, err)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	got, pageInfo, err := vs.GetByPartyConnection(ctx, party.ID.String(), pagination)
+	require.NoError(t, err)
+	require.Equal(t, votes[:3], got)
+	require.Equal(t, entities.PageInfo{
+		HasNextPage:     true,
+		HasPreviousPage: false,
+		StartCursor:     votes[0].Cursor().Encode(),
+		EndCursor:       votes[2].Cursor().Encode(),
+	}, pageInfo)
+}
+
+func testVotesCursorPaginationFirstWithAfterNewestFirst(t *testing.T) {
+	defer DeleteEverything()
+	vs, party, votes := setupPaginationTestVotes(t)
+	votes = entities.ReverseSlice(votes)
+	first := int32(3)
+	after := votes[2].Cursor().Encode()
+	pagination, err := entities.NewCursorPagination(&first, &after, nil, nil, true)
+	require.NoError(t, err)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	got, pageInfo, err := vs.GetByPartyConnection(ctx, party.ID.String(), pagination)
+	require.NoError(t, err)
+	require.Equal(t, votes[3:6], got)
+	require.Equal(t, entities.PageInfo{
+		HasNextPage:     true,
+		HasPreviousPage: true,
+		StartCursor:     votes[3].Cursor().Encode(),
+		EndCursor:       votes[5].Cursor().Encode(),
+	}, pageInfo)
+}
+
+func testVotesCursorPaginationLastNoBeforeNewestFirst(t *testing.T) {
+	defer DeleteEverything()
+	vs, party, votes := setupPaginationTestVotes(t)
+	votes = entities.ReverseSlice(votes)
+	last := int32(3)
+	pagination, err := entities.NewCursorPagination(nil, nil, &last, nil, true)
+	require.NoError(t, err)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	got, pageInfo, err := vs.GetByPartyConnection(ctx, party.ID.String(), pagination)
+	require.NoError(t, err)
+	require.Equal(t, votes[7:], got)
+	require.Equal(t, entities.PageInfo{
+		HasNextPage:     false,
+		HasPreviousPage: true,
+		StartCursor:     votes[7].Cursor().Encode(),
+		EndCursor:       votes[9].Cursor().Encode(),
+	}, pageInfo)
+}
+
+func testVotesCursorPaginationLastWithBeforeNewestFirst(t *testing.T) {
+	defer DeleteEverything()
+	vs, party, votes := setupPaginationTestVotes(t)
+	votes = entities.ReverseSlice(votes)
+	last := int32(3)
+	before := votes[7].Cursor().Encode()
+	pagination, err := entities.NewCursorPagination(nil, nil, &last, &before, true)
 	require.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

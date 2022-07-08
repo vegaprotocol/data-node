@@ -20,11 +20,14 @@
 - [733](https://github.com/vegaprotocol/data-node/issues/733) - Store chain info in database when using `SQL`
 - [748](https://github.com/vegaprotocol/data-node/issues/748) - Add REST endpoint to list `OracleData`
 - [761](https://github.com/vegaprotocol/data-node/issues/761) - Delete all badger stores, `SQL` stores only from now
-
+- [566](https://github.com/vegaprotocol/data-node/issues/566) - Liquidity provision pagination 
+- [779](https://github.com/vegaprotocol/data-node/issues/779) - Ordering of paginated query results from newest to oldest
 
 ### 🐛 Fixes
 - [705](https://github.com/vegaprotocol/data-node/issues/705) - Market Depth returning incorrect book state
-- [730](https://github.com/vegaprotocol/data-node/issues/730) - Event bus subscriptions with party and market filter not working 
+- [730](https://github.com/vegaprotocol/data-node/issues/730) - Event bus subscriptions with party and market filter not working
+- [678](https://github.com/vegaprotocol/data-node/issues/678) - Add new trading mode variant
+- [776](https://github.com/vegaprotocol/data-node/issues/776) - Add support for missing proposal errors
 
 ## 0.52.0
 
