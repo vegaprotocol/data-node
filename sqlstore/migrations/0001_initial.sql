@@ -911,6 +911,8 @@ create table if not exists liquidity_provisions (
 
 select create_hypertable('liquidity_provisions', 'vega_time', chunk_time_interval => INTERVAL '1 day');
 
+CREATE VIEW liquidity_provisions_current AS ( SELECT DISTINCT ON (id) * FROM liquidity_provisions ORDER BY id DESC, vega_time DESC);
+
 CREATE TYPE transfer_type AS enum('OneOff','Recurring','Unknown');
 CREATE TYPE transfer_status AS enum('STATUS_UNSPECIFIED','STATUS_PENDING','STATUS_DONE','STATUS_REJECTED','STATUS_STOPPED','STATUS_CANCELLED');
 

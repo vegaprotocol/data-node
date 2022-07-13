@@ -29,6 +29,7 @@ import (
 func TestLiquidityProvision(t *testing.T) {
 	t.Run("Upsert should insert a liquidity provision record if the id doesn't exist in the current block", testInsertNewInCurrentBlock)
 	t.Run("Upsert should update a liquidity provision record if the id already exists in the current block", testUpdateExistingInCurrentBlock)
+	t.Run("Upsert should update a liquidity provision record if the id already exists", testUpdateExistingInDifferentBlock)
 	t.Run("Get should return all LP for a given party if no market is provided", testGetLPByPartyOnly)
 	t.Run("Get should return all LP for a given party and market if both are provided", testGetLPByPartyAndMarket)
 	t.Run("Get should error if no party and market are provided", testGetLPNoPartyAndMarketErrors)
@@ -42,6 +43,7 @@ func TestLiquidityProvisionPagination(t *testing.T) {
 	t.Run("should return the last page of results if last is provided", testLiquidityProvisionPaginationLast)
 	t.Run("should return the specified page of results if first and after are provided", testLiquidityProvisionPaginationFirstAfter)
 	t.Run("should return the specified page of results if last and before are provided", testLiquidityProvisionPaginationLastBefore)
+	t.Run("should return the first page of results with the most recently updated liquidity provisions first", testLiquidityProvisionPaginationNewestFirst)
 }
 
 func setupLPTests(t *testing.T, ctx context.Context) (*sqlstore.Blocks, *sqlstore.LiquidityProvision, *pgx.Conn) {
@@ -67,7 +69,7 @@ func testInsertNewInCurrentBlock(t *testing.T) {
 	bs, lp, conn := setupLPTests(t, ctx)
 
 	var rowCount int
-	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions").Scan(&rowCount))
+	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions_current").Scan(&rowCount))
 	assert.Equal(t, 0, rowCount)
 
 	block := addTestBlock(t, bs)
@@ -79,8 +81,45 @@ func testInsertNewInCurrentBlock(t *testing.T) {
 	err = lp.Flush(ctx)
 	require.NoError(t, err)
 
-	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions").Scan(&rowCount))
+	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions_current").Scan(&rowCount))
 	assert.Equal(t, 1, rowCount)
+}
+
+func testUpdateExistingInDifferentBlock(t *testing.T) {
+	testTimeout := time.Second * 10
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+	defer cancel()
+
+	bs, lp, conn := setupLPTests(t, ctx)
+
+	var rowCount int
+	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions_current").Scan(&rowCount))
+	assert.Equal(t, 0, rowCount)
+
+	block := addTestBlock(t, bs)
+	lpProto := getTestLiquidityProvision()
+	data, err := entities.LiquidityProvisionFromProto(lpProto[0], block.VegaTime)
+	require.NoError(t, err)
+	assert.NoError(t, lp.Upsert(context.Background(), data))
+
+	block = addTestBlock(t, bs)
+	lpProto = getTestLiquidityProvision()
+	data, err = entities.LiquidityProvisionFromProto(lpProto[0], block.VegaTime)
+	assert.NoError(t, err)
+	data.Reference = "Updated"
+	assert.NoError(t, lp.Upsert(context.Background(), data))
+	err = lp.Flush(ctx)
+	require.NoError(t, err)
+
+	provisions, _, err := lp.Get(ctx, data.PartyID, data.MarketID, "", entities.CursorPagination{NewestFirst: false})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(provisions))
+	assert.Equal(t, "Updated", provisions[0].Reference)
+
+	provisions, _, err = lp.Get(ctx, data.PartyID, data.MarketID, "", entities.CursorPagination{NewestFirst: true})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(provisions))
+	assert.Equal(t, "Updated", provisions[0].Reference)
 }
 
 func testUpdateExistingInCurrentBlock(t *testing.T) {
@@ -91,7 +130,7 @@ func testUpdateExistingInCurrentBlock(t *testing.T) {
 	bs, lp, conn := setupLPTests(t, ctx)
 
 	var rowCount int
-	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions").Scan(&rowCount))
+	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions_current").Scan(&rowCount))
 	assert.Equal(t, 0, rowCount)
 
 	block := addTestBlock(t, bs)
@@ -106,8 +145,17 @@ func testUpdateExistingInCurrentBlock(t *testing.T) {
 	err = lp.Flush(ctx)
 	require.NoError(t, err)
 
-	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions").Scan(&rowCount))
+	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions_current").Scan(&rowCount))
 	assert.Equal(t, 1, rowCount)
+	provisions, _, err := lp.Get(ctx, data.PartyID, data.MarketID, "", entities.CursorPagination{NewestFirst: false})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(provisions))
+	assert.Equal(t, "Updated", provisions[0].Reference)
+
+	provisions, _, err = lp.Get(ctx, data.PartyID, data.MarketID, "", entities.CursorPagination{NewestFirst: true})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(provisions))
+	assert.Equal(t, "Updated", provisions[0].Reference)
 }
 
 func testGetLPByReferenceAndParty(t *testing.T) {
@@ -118,7 +166,7 @@ func testGetLPByReferenceAndParty(t *testing.T) {
 	bs, lp, conn := setupLPTests(t, ctx)
 
 	var rowCount int
-	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions").Scan(&rowCount))
+	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions_current").Scan(&rowCount))
 	assert.Equal(t, 0, rowCount)
 
 	lpProto := getTestLiquidityProvision()
@@ -142,7 +190,7 @@ func testGetLPByReferenceAndParty(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions").Scan(&rowCount))
+	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions_current").Scan(&rowCount))
 	assert.Equal(t, 3, rowCount)
 
 	partyID := entities.NewPartyID("deadbaad")
@@ -161,7 +209,7 @@ func testGetLPByPartyOnly(t *testing.T) {
 	bs, lp, conn := setupLPTests(t, ctx)
 
 	var rowCount int
-	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions").Scan(&rowCount))
+	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions_current").Scan(&rowCount))
 	assert.Equal(t, 0, rowCount)
 
 	lpProto := getTestLiquidityProvision()
@@ -185,7 +233,7 @@ func testGetLPByPartyOnly(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions").Scan(&rowCount))
+	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions_current").Scan(&rowCount))
 	assert.Equal(t, 3, rowCount)
 
 	partyID := entities.NewPartyID("deadbaad")
@@ -204,7 +252,7 @@ func testGetLPByPartyAndMarket(t *testing.T) {
 	bs, lp, conn := setupLPTests(t, ctx)
 
 	var rowCount int
-	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions").Scan(&rowCount))
+	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions_current").Scan(&rowCount))
 	assert.Equal(t, 0, rowCount)
 
 	lpProto := getTestLiquidityProvision()
@@ -232,7 +280,7 @@ func testGetLPByPartyAndMarket(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions").Scan(&rowCount))
+	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions_current").Scan(&rowCount))
 	assert.Equal(t, 3, rowCount)
 
 	partyID := entities.NewPartyID("DEADBAAD")
@@ -263,7 +311,7 @@ func testGetLPNoPartyWithMarket(t *testing.T) {
 	bs, lp, conn := setupLPTests(t, ctx)
 
 	var rowCount int
-	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions").Scan(&rowCount))
+	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions_current").Scan(&rowCount))
 	assert.Equal(t, 0, rowCount)
 
 	lpProto := getTestLiquidityProvision()
@@ -289,7 +337,7 @@ func testGetLPNoPartyWithMarket(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions").Scan(&rowCount))
+	assert.NoError(t, conn.QueryRow(ctx, "select count(*) from liquidity_provisions_current").Scan(&rowCount))
 	assert.Equal(t, 3, rowCount)
 	partyID := entities.NewPartyID("")
 	marketID := entities.NewMarketID(wantMarketID)
@@ -360,11 +408,11 @@ func testLiquidityProvisionPaginationNoPagination(t *testing.T) {
 	assert.Equal(t, testLps, got)
 	assert.False(t, pageInfo.HasPreviousPage)
 	assert.False(t, pageInfo.HasNextPage)
-	assert.Equal(t, entities.NewCursor(entities.WithdrawalCursor{
+	assert.Equal(t, entities.NewCursor(entities.LiquidityProvisionCursor{
 		VegaTime: testLps[0].VegaTime,
 		ID:       testLps[0].ID.String(),
 	}.String()).Encode(), pageInfo.StartCursor)
-	assert.Equal(t, entities.NewCursor(entities.WithdrawalCursor{
+	assert.Equal(t, entities.NewCursor(entities.LiquidityProvisionCursor{
 		VegaTime: testLps[9].VegaTime,
 		ID:       testLps[9].ID.String(),
 	}.String()).Encode(), pageInfo.EndCursor)
@@ -386,13 +434,45 @@ func testLiquidityProvisionPaginationFirst(t *testing.T) {
 	assert.Equal(t, want, got)
 	assert.False(t, pageInfo.HasPreviousPage)
 	assert.True(t, pageInfo.HasNextPage)
-	assert.Equal(t, entities.NewCursor(entities.WithdrawalCursor{
+	assert.Equal(t, entities.NewCursor(entities.LiquidityProvisionCursor{
 		VegaTime: testLps[0].VegaTime,
 		ID:       testLps[0].ID.String(),
 	}.String()).Encode(), pageInfo.StartCursor)
-	assert.Equal(t, entities.NewCursor(entities.WithdrawalCursor{
+	assert.Equal(t, entities.NewCursor(entities.LiquidityProvisionCursor{
 		VegaTime: testLps[2].VegaTime,
 		ID:       testLps[2].ID.String(),
+	}.String()).Encode(), pageInfo.EndCursor)
+}
+
+func testLiquidityProvisionPaginationNewestFirst(t *testing.T) {
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	bs, lpStore, _ := setupLPTests(t, timeoutCtx)
+	testLps := addLiquidityProvisions(timeoutCtx, t, bs, lpStore)
+
+	first := int32(3)
+
+	pagination, err := entities.NewCursorPagination(&first, nil, nil, nil, true)
+	require.NoError(t, err)
+	got, pageInfo, err := lpStore.Get(timeoutCtx, entities.PartyID{ID: "deadbaad"}, entities.MarketID{ID: ""}, "", pagination)
+
+	require.NoError(t, err)
+	newest := testLps[7:10]
+	var want []entities.LiquidityProvision
+	for i := range newest {
+		want = append(want, newest[len(newest)-1-i])
+	}
+
+	assert.Equal(t, want, got)
+	assert.False(t, pageInfo.HasPreviousPage)
+	assert.True(t, pageInfo.HasNextPage)
+	assert.Equal(t, entities.NewCursor(entities.LiquidityProvisionCursor{
+		VegaTime: testLps[9].VegaTime,
+		ID:       testLps[9].ID.String(),
+	}.String()).Encode(), pageInfo.StartCursor)
+	assert.Equal(t, entities.NewCursor(entities.LiquidityProvisionCursor{
+		VegaTime: testLps[7].VegaTime,
+		ID:       testLps[7].ID.String(),
 	}.String()).Encode(), pageInfo.EndCursor)
 }
 
@@ -412,11 +492,11 @@ func testLiquidityProvisionPaginationLast(t *testing.T) {
 	assert.Equal(t, want, got)
 	assert.True(t, pageInfo.HasPreviousPage)
 	assert.False(t, pageInfo.HasNextPage)
-	assert.Equal(t, entities.NewCursor(entities.WithdrawalCursor{
+	assert.Equal(t, entities.NewCursor(entities.LiquidityProvisionCursor{
 		VegaTime: testLps[7].VegaTime,
 		ID:       testLps[7].ID.String(),
 	}.String()).Encode(), pageInfo.StartCursor)
-	assert.Equal(t, entities.NewCursor(entities.WithdrawalCursor{
+	assert.Equal(t, entities.NewCursor(entities.LiquidityProvisionCursor{
 		VegaTime: testLps[9].VegaTime,
 		ID:       testLps[9].ID.String(),
 	}.String()).Encode(), pageInfo.EndCursor)
@@ -442,11 +522,11 @@ func testLiquidityProvisionPaginationFirstAfter(t *testing.T) {
 	assert.Equal(t, want, got)
 	assert.True(t, pageInfo.HasPreviousPage)
 	assert.True(t, pageInfo.HasNextPage)
-	assert.Equal(t, entities.NewCursor(entities.WithdrawalCursor{
+	assert.Equal(t, entities.NewCursor(entities.LiquidityProvisionCursor{
 		VegaTime: testLps[3].VegaTime,
 		ID:       testLps[3].ID.String(),
 	}.String()).Encode(), pageInfo.StartCursor)
-	assert.Equal(t, entities.NewCursor(entities.WithdrawalCursor{
+	assert.Equal(t, entities.NewCursor(entities.LiquidityProvisionCursor{
 		VegaTime: testLps[5].VegaTime,
 		ID:       testLps[5].ID.String(),
 	}.String()).Encode(), pageInfo.EndCursor)
@@ -472,11 +552,11 @@ func testLiquidityProvisionPaginationLastBefore(t *testing.T) {
 	assert.Equal(t, want, got)
 	assert.True(t, pageInfo.HasPreviousPage)
 	assert.True(t, pageInfo.HasNextPage)
-	assert.Equal(t, entities.NewCursor(entities.WithdrawalCursor{
+	assert.Equal(t, entities.NewCursor(entities.LiquidityProvisionCursor{
 		VegaTime: testLps[4].VegaTime,
 		ID:       testLps[4].ID.String(),
 	}.String()).Encode(), pageInfo.StartCursor)
-	assert.Equal(t, entities.NewCursor(entities.WithdrawalCursor{
+	assert.Equal(t, entities.NewCursor(entities.LiquidityProvisionCursor{
 		VegaTime: testLps[6].VegaTime,
 		ID:       testLps[6].ID.String(),
 	}.String()).Encode(), pageInfo.EndCursor)

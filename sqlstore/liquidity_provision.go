@@ -126,8 +126,7 @@ func (lp *LiquidityProvision) buildLiquidityProvisionsSelect(partyID entities.Pa
 	reference string) (string, []interface{}) {
 	var bindVars []interface{}
 
-	selectSql := fmt.Sprintf(`select distinct on (id) %s
-from liquidity_provisions`, sqlOracleLiquidityProvisionColumns)
+	selectSql := fmt.Sprintf(`select %s from liquidity_provisions_current`, sqlOracleLiquidityProvisionColumns)
 
 	where := ""
 
