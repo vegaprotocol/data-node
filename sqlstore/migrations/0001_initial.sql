@@ -731,46 +731,53 @@ create table if not exists margin_levels (
 );
 
 select create_hypertable('margin_levels', 'vega_time', chunk_time_interval => INTERVAL '1 day');
-create index on margin_levels (account_id, vega_time);
 
-CREATE MATERIALIZED VIEW conflated_margin_levels
-            WITH (timescaledb.continuous, timescaledb.materialized_only = true) AS
-SELECT account_id, time_bucket('1 minute', vega_time) AS bucket,
-       last(maintenance_margin, vega_time) AS maintenance_margin,
-       last(search_level, vega_time) AS search_level,
-       last(initial_margin, vega_time) AS initial_margin,
-       last(collateral_release_level, vega_time) AS collateral_release_level,
-       last(timestamp, vega_time) AS timestamp,
-       last(vega_time, vega_time) AS vega_time
-FROM margin_levels
-GROUP BY account_id, bucket WITH NO DATA;
-
--- start_offset is set to a day, as data is append only this does not impact the processing time and ensures
--- that the CAGG data will be correct on recovery in the event of a transient outage ( < 1 day )
-SELECT add_continuous_aggregate_policy('conflated_margin_levels', start_offset => INTERVAL '1 day',
-    end_offset => INTERVAL '1 minute', schedule_interval => INTERVAL '1 minute');
-
-CREATE VIEW all_margin_levels AS
+create table current_margin_levels
 (
-SELECT margin_levels.account_id,
-       margin_levels."timestamp",
-       margin_levels.maintenance_margin,
-       margin_levels.search_level,
-       margin_levels.initial_margin,
-       margin_levels.collateral_release_level,
-       margin_levels.vega_time
-FROM margin_levels
-UNION ALL
-SELECT conflated_margin_levels.account_id,
-       conflated_margin_levels."timestamp",
-       conflated_margin_levels.maintenance_margin,
-       conflated_margin_levels.search_level,
-       conflated_margin_levels.initial_margin,
-       conflated_margin_levels.collateral_release_level,
-       conflated_margin_levels.vega_time
-FROM conflated_margin_levels
-WHERE conflated_margin_levels.vega_time < ( SELECT min(margin_levels.vega_time) FROM margin_levels) OR
-        0 = (select count(*) from margin_levels));
+    account_id INT NOT NULL,
+    timestamp timestamp with time zone not null,
+    maintenance_margin HUGEINT,
+    search_level HUGEINT,
+    initial_margin HUGEINT,
+    collateral_release_level HUGEINT,
+    vega_time timestamp with time zone not null,
+
+    PRIMARY KEY(account_id)
+);
+
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION update_current_margin_levels()
+   RETURNS TRIGGER
+   LANGUAGE PLPGSQL AS
+$$
+BEGIN
+INSERT INTO current_margin_levels(account_id,
+                             timestamp,
+                             maintenance_margin,
+                             search_level,
+                             initial_margin,
+                             collateral_release_level,
+                             vega_time) VALUES(NEW.account_id,
+                                               NEW.timestamp,
+                                               NEW.maintenance_margin,
+                                               NEW.search_level,
+                                               NEW.initial_margin,
+                                               NEW.collateral_release_level,
+                                               NEW.vega_time)
+    ON CONFLICT(account_id) DO UPDATE SET
+                                   timestamp=EXCLUDED.timestamp,
+                                   maintenance_margin=EXCLUDED.maintenance_margin,
+                                   search_level=EXCLUDED.search_level,
+                                   initial_margin=EXCLUDED.initial_margin,
+                                   collateral_release_level=EXCLUDED.collateral_release_level,
+                                   vega_time=EXCLUDED.vega_time;
+RETURN NULL;
+END;
+$$;
+-- +goose StatementEnd
+
+CREATE TRIGGER update_current_margin_levels AFTER INSERT ON margin_levels FOR EACH ROW EXECUTE function update_current_margin_levels();
+
 
 create table if not exists risk_factors (
     market_id bytea not null,
@@ -1056,6 +1063,9 @@ DROP VIEW IF EXISTS orders_current_versions;
 
 drop table if exists risk_factors;
 drop table if exists margin_levels cascade;
+DROP TRIGGER IF EXISTS update_current_margin_levels ON margin_levels;
+DROP FUNCTION IF EXISTS update_current_margin_levels;
+DROP TABLE IF EXISTS current_margin_levels;
 
 drop view if exists deposits_current;
 DROP TABLE IF EXISTS deposits;
