@@ -28,11 +28,16 @@ import (
 var testAssetCount int = 0
 
 func addTestAsset(t *testing.T, as *sqlstore.Assets, block entities.Block, idPrefix ...string) entities.Asset {
+	assetID := generateID()
+
+	return addTestAssetForId(t, context.Background(), assetID, as, block, idPrefix...)
+}
+
+func addTestAssetForId(t *testing.T, ctx context.Context, assetID string, as *sqlstore.Assets, block entities.Block, idPrefix ...string) entities.Asset {
 	// Make an asset
 	testAssetCount += 1
 	totalSupply, _ := decimal.NewFromString("1000000000000000000001")
 	quantum, _ := decimal.NewFromString("10")
-	assetID := generateID()
 
 	if len(idPrefix) > 0 && idPrefix[0] != "" {
 		assetID = fmt.Sprintf("%s%02d", idPrefix[0], testAssetCount)
@@ -53,9 +58,33 @@ func addTestAsset(t *testing.T, as *sqlstore.Assets, block entities.Block, idPre
 	}
 
 	// Add it to the database
-	err := as.Add(context.Background(), asset)
+	err := as.Add(ctx, asset)
 	require.NoError(t, err)
 	return asset
+}
+
+func TestAddAssetTwice(t *testing.T) {
+	defer DeleteEverything()
+
+	bs := sqlstore.NewBlocks(connectionSource)
+	block := addTestBlock(t, bs)
+
+	as := sqlstore.NewAssets(connectionSource)
+	ctx := context.Background()
+
+	// Get all assets, there shouldn't be any yet
+	assets, err := as.GetAll(ctx)
+	require.NoError(t, err)
+	require.Empty(t, assets)
+
+	assetId := generateID()
+	ctx, err = connectionSource.WithTransaction(ctx)
+	require.NoError(t, err)
+
+	addTestAssetForId(t, ctx, assetId, as, block)
+	addTestAssetForId(t, ctx, assetId, as, block)
+
+	connectionSource.Commit(ctx)
 }
 
 func TestAsset(t *testing.T) {
