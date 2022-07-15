@@ -13,6 +13,7 @@
 - [791](https://github.com/vegaprotocol/data-node/issues/791) - `v2` orders `api`
 
 ### 🐛 Fixes
+- [801](https://github.com/vegaprotocol/data-node/issues/801) - Just a build test
 - [](https://github.com/vegaprotocol/data-node/issues/xxx) -
 
 ## 0.53.0
