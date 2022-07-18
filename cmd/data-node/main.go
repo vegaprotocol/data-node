@@ -27,7 +27,7 @@ var (
 	CLIVersionHash = ""
 
 	// Version specifies the version used to build the application. See VERSION in Makefile for details.
-	CLIVersion = "v0.53.0"
+	CLIVersion = "v0.53.1"
 )
 
 // Subcommand is the signature of a sub command that can be registered.
