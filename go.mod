@@ -118,5 +118,3 @@ replace github.com/shopspring/decimal => github.com/vegaprotocol/decimal v1.2.1-
 replace github.com/fergusstrange/embedded-postgres => github.com/vegaprotocol/embedded-postgres v1.13.1-0.20220607151211-5f2f488de508
 
 replace github.com/jackc/pgx/v4 v4.14.1 => github.com/pscott31/pgx/v4 v4.16.2-0.20220531164027-bd666b84b61f
-
-replace code.vegaprotocol.io/protos => ../../../protos/protos
