@@ -1380,6 +1380,9 @@ func (t *tradingDataServiceV2) ListDelegations(ctx context.Context, in *v2.ListD
 	}
 
 	delegations, pageInfo, err := t.delegationService.Get(ctx, in.PartyId, in.NodeId, epochID, pagination)
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
 
 	edges, err := makeEdges[*v2.DelegationEdge](delegations)
 	if err != nil {

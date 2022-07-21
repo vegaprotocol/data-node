@@ -176,6 +176,7 @@ func testDelegationPaginationNoFilterNoPagination(t *testing.T) {
 	defer cancel()
 
 	got, pageInfo, err := ds.Get(ctx, nil, nil, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[:]
 	assert.Equal(t, want, got)
@@ -197,6 +198,7 @@ func testDelegationPaginationNoFilterFirstPage(t *testing.T) {
 	defer cancel()
 
 	got, pageInfo, err := ds.Get(ctx, nil, nil, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[:3]
 	assert.Equal(t, want, got)
@@ -219,6 +221,7 @@ func testDelegationPaginationNoFilterFirstAfterPage(t *testing.T) {
 	defer cancel()
 
 	got, pageInfo, err := ds.Get(ctx, nil, nil, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[3:6]
 	assert.Equal(t, want, got)
@@ -240,6 +243,7 @@ func testDelegationPaginationNoFilterLastPage(t *testing.T) {
 	defer cancel()
 
 	got, pageInfo, err := ds.Get(ctx, nil, nil, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[17:]
 	assert.Equal(t, want, got)
@@ -262,6 +266,7 @@ func testDelegationPaginationNoFilterLastBeforePage(t *testing.T) {
 	defer cancel()
 
 	got, pageInfo, err := ds.Get(ctx, nil, nil, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[14:17]
 	assert.Equal(t, want, got)
@@ -282,6 +287,7 @@ func testDelegationPaginationNoFilterNoPaginationNewestFirst(t *testing.T) {
 	defer cancel()
 
 	got, pageInfo, err := ds.Get(ctx, nil, nil, nil, pagination)
+	require.NoError(t, err)
 
 	delegations = entities.ReverseSlice(delegations)
 	want := delegations[:]
@@ -306,6 +312,7 @@ func testDelegationPaginationNoFilterFirstPageNewestFirst(t *testing.T) {
 	defer cancel()
 
 	got, pageInfo, err := ds.Get(ctx, nil, nil, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[:3]
 	assert.Equal(t, want, got)
@@ -329,6 +336,7 @@ func testDelegationPaginationNoFilterFirstAfterPageNewestFirst(t *testing.T) {
 	defer cancel()
 
 	got, pageInfo, err := ds.Get(ctx, nil, nil, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[3:6]
 	assert.Equal(t, want, got)
@@ -351,6 +359,7 @@ func testDelegationPaginationNoFilterLastPageNewestFirst(t *testing.T) {
 	defer cancel()
 
 	got, pageInfo, err := ds.Get(ctx, nil, nil, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[17:]
 	assert.Equal(t, want, got)
@@ -374,6 +383,7 @@ func testDelegationPaginationNoFilterLastBeforePageNewestFirst(t *testing.T) {
 	defer cancel()
 
 	got, pageInfo, err := ds.Get(ctx, nil, nil, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[14:17]
 	assert.Equal(t, want, got)
@@ -394,6 +404,7 @@ func testDelegationPaginationPartyFilterNoPagination(t *testing.T) {
 	defer cancel()
 	partyID := parties[0].ID.String()
 	got, pageInfo, err := ds.Get(ctx, &partyID, nil, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[0:10]
 	assert.Equal(t, want, got)
@@ -415,6 +426,7 @@ func testDelegationPaginationPartyFilterFirstPage(t *testing.T) {
 	defer cancel()
 	partyID := parties[0].ID.String()
 	got, pageInfo, err := ds.Get(ctx, &partyID, nil, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[0:3]
 	assert.Equal(t, want, got)
@@ -437,6 +449,7 @@ func testDelegationPaginationPartyFilterFirstAfterPage(t *testing.T) {
 	defer cancel()
 	partyID := parties[0].ID.String()
 	got, pageInfo, err := ds.Get(ctx, &partyID, nil, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[3:6]
 	assert.Equal(t, want, got)
@@ -458,6 +471,7 @@ func testDelegationPaginationPartyFilterLastPage(t *testing.T) {
 	defer cancel()
 	partyID := parties[0].ID.String()
 	got, pageInfo, err := ds.Get(ctx, &partyID, nil, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[7:10]
 	assert.Equal(t, want, got)
@@ -480,6 +494,7 @@ func testDelegationPaginationPartyFilterLastBeforePage(t *testing.T) {
 	defer cancel()
 	partyID := parties[0].ID.String()
 	got, pageInfo, err := ds.Get(ctx, &partyID, nil, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[4:7]
 	assert.Equal(t, want, got)
@@ -501,6 +516,7 @@ func testDelegationPaginationPartyNodeFilterNoPagination(t *testing.T) {
 	partyID := parties[1].ID.String()
 	nodeID := nodes[1].ID.String()
 	got, pageInfo, err := ds.Get(ctx, &partyID, &nodeID, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[10:]
 	assert.Equal(t, want, got)
@@ -523,6 +539,7 @@ func testDelegationPaginationPartyNodeFilterFirstPage(t *testing.T) {
 	partyID := parties[1].ID.String()
 	nodeID := nodes[1].ID.String()
 	got, pageInfo, err := ds.Get(ctx, &partyID, &nodeID, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[10:13]
 	assert.Equal(t, want, got)
@@ -546,6 +563,7 @@ func testDelegationPaginationPartyNodeFilterFirstAfterPage(t *testing.T) {
 	partyID := parties[1].ID.String()
 	nodeID := nodes[1].ID.String()
 	got, pageInfo, err := ds.Get(ctx, &partyID, &nodeID, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[13:16]
 	assert.Equal(t, want, got)
@@ -568,6 +586,7 @@ func testDelegationPaginationPartyNodeFilterLastPage(t *testing.T) {
 	partyID := parties[1].ID.String()
 	nodeID := nodes[1].ID.String()
 	got, pageInfo, err := ds.Get(ctx, &partyID, &nodeID, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[17:]
 	assert.Equal(t, want, got)
@@ -591,6 +610,7 @@ func testDelegationPaginationPartyNodeFilterLastBeforePage(t *testing.T) {
 	partyID := parties[1].ID.String()
 	nodeID := nodes[1].ID.String()
 	got, pageInfo, err := ds.Get(ctx, &partyID, &nodeID, nil, pagination)
+	require.NoError(t, err)
 
 	want := delegations[14:17]
 	assert.Equal(t, want, got)
