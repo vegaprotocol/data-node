@@ -16,7 +16,7 @@
 - [570](https://github.com/vegaprotocol/data-node/issues/570) - Add pagination for proposals with ordering of open proposals listed first
 
 ### 🐛 Fixes
-- [](https://github.com/vegaprotocol/data-node/issues/xxx) -
+- [594](https://github.com/vegaprotocol/data-node/issues/594) - Fix returning proposal rationale
 
 ## 0.53.0
 
