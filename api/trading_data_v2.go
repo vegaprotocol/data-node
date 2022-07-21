@@ -66,6 +66,7 @@ type tradingDataServiceV2 struct {
 	liquidityProvisionService *service.LiquidityProvision
 	governanceService         *service.Governance
 	transfersService          *service.Transfer
+	delegationService         *service.Delegation
 }
 
 func (t *tradingDataServiceV2) ListAccounts(ctx context.Context, req *v2.ListAccountsRequest) (*v2.ListAccountsResponse, error) {
@@ -764,7 +765,7 @@ func (t *tradingDataServiceV2) GetTradesByOrderID(ctx context.Context, in *v2.Ge
 	return resp, nil
 }
 
-// Get all markets using a cursor based pagination model
+// List all markets using a cursor based pagination model
 func (t *tradingDataServiceV2) ListMarkets(ctx context.Context, in *v2.ListMarketsRequest) (*v2.ListMarketsResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("GetMarketsV2")()
 
@@ -794,7 +795,7 @@ func (t *tradingDataServiceV2) ListMarkets(ctx context.Context, in *v2.ListMarke
 	return resp, nil
 }
 
-// Get all Positions using a cursor based pagination model
+// List all Positions using a cursor based pagination model
 func (t *tradingDataServiceV2) ListPositions(ctx context.Context, in *v2.ListPositionsRequest) (*v2.ListPositionsResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("GetPositionsByPartyConnection")()
 
@@ -825,7 +826,7 @@ func (t *tradingDataServiceV2) ListPositions(ctx context.Context, in *v2.ListPos
 	return resp, nil
 }
 
-// Get Parties using a cursor based pagination model
+// List Parties using a cursor based pagination model
 func (t *tradingDataServiceV2) ListParties(ctx context.Context, in *v2.ListPartiesRequest) (*v2.ListPartiesResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("GetPartiesV2")()
 
@@ -884,7 +885,7 @@ func (t *tradingDataServiceV2) GetMarginLevels(ctx context.Context, in *v2.ListM
 	return resp, nil
 }
 
-// Get rewards
+// List rewards
 func (t *tradingDataServiceV2) ListRewards(ctx context.Context, in *v2.ListRewardsRequest) (*v2.ListRewardsResponse, error) {
 	defer metrics.StartAPIRequestAndTimeGRPC("GetRewardsV2")()
 
@@ -1353,6 +1354,45 @@ func (t *tradingDataServiceV2) ListOrderVersions(ctx context.Context, in *v2.Lis
 
 	resp := &v2.ListOrderVersionsResponse{
 		Orders: ordersConnection,
+	}
+
+	return resp, nil
+}
+
+func (t *tradingDataServiceV2) ListDelegations(ctx context.Context, in *v2.ListDelegationsRequest) (*v2.ListDelegationsResponse, error) {
+	defer metrics.StartAPIRequestAndTimeGRPC("ListDelegationsV2")()
+
+	pagination, err := entities.CursorPaginationFromProto(in.Pagination)
+
+	if err != nil {
+		return nil, apiError(codes.InvalidArgument, err)
+	}
+
+	var epochID *int64
+
+	if in.EpochId != nil {
+		epoch, err := strconv.ParseInt(*in.EpochId, 10, 64)
+		if err != nil {
+			return nil, apiError(codes.InvalidArgument, fmt.Errorf("invalid epoch id: %w", err))
+		}
+
+		epochID = &epoch
+	}
+
+	delegations, pageInfo, err := t.delegationService.Get(ctx, in.PartyId, in.NodeId, epochID, pagination)
+
+	edges, err := makeEdges[*v2.DelegationEdge](delegations)
+	if err != nil {
+		return nil, apiError(codes.Internal, err)
+	}
+
+	delegationsConnection := &v2.DelegationsConnection{
+		Edges:    edges,
+		PageInfo: pageInfo.ToProto(),
+	}
+
+	resp := &v2.ListDelegationsResponse{
+		Delegations: delegationsConnection,
 	}
 
 	return resp, nil
