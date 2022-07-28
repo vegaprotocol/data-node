@@ -1141,7 +1141,7 @@ DROP TYPE IF EXISTS transfer_type;
 
 DROP TABLE IF EXISTS checkpoints;
 
-drop view if exists network_parameter_current;
+drop view if exists network_parameters_current;
 DROP TABLE IF EXISTS network_parameters;
 
 DROP VIEW IF EXISTS stake_linking_current;
